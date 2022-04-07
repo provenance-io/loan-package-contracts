@@ -11,5 +11,6 @@ plugins {
 
 dependencies {
     api(project(":proto"))
-    implementation("io.provenance.scope:contract-base:0.4.0")
+    implementation("io.provenance.p8e:p8e-contract-base:0.8.+")
+    implementation("io.provenance.model:metadata-asset-model:0.1.2")
 }
