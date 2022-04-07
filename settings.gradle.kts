@@ -8,4 +8,4 @@
  */
 
 rootProject.name = "loan-package-contracts"
-include("lib", "proto")
+include("contract", "proto")

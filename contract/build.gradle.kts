@@ -6,10 +6,10 @@ buildscript {
 
 plugins {
     id("kotlin")
+
 }
 
 dependencies {
-    api project(':protos')
-
+    api(project(":proto"))
     implementation("io.provenance.scope:contract-base:0.4.0")
 }
