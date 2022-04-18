@@ -7,28 +7,24 @@ buildscript {
     }
 
     dependencies {
-        classpath("com.google.protobuf:protobuf-gradle-plugin:0.8.13")
-    }
-}
-
-sourceSets {
-    main {
-        java {
-            srcDir("build/generated/source/proto/main/java")
-            srcDir("build/generated/source/proto/main/grpc")
-        }
+        classpath("com.google.protobuf:protobuf-gradle-plugin:0.8.18")
     }
 }
 
 plugins {
-    id("java")
-    id("com.google.protobuf") version "0.8.13"
+    id("kotlin")
+    id("com.google.protobuf") version "0.8.18"
 }
 
 dependencies {
-    compileOnly("io.provenance.scope:contract-base:0.4.0")
-    compileOnly("com.google.protobuf:protobuf-java:3.6.+")
-    compileOnly("com.google.protobuf:protobuf-java-util:3.6.+")
+    implementation("io.provenance.scope:contract-base:0.4.9") {
+        exclude("com.google.protobuf", "protobuf-java")
+    }
+
+    api("com.google.protobuf:protobuf-java:3.20.0")
+    api("com.google.protobuf:protobuf-java-util:3.20.0") {
+        exclude("com.google.protobuf", "protobuf-java")
+    }
 
     implementation("io.grpc", "grpc-stub", "1.39.0")
     implementation("io.grpc", "grpc-protobuf", "1.39.0") {
@@ -39,6 +35,6 @@ dependencies {
 protobuf {
     protoc {
         // The artifact spec for the Protobuf Compiler
-        artifact = "com.google.protobuf:protoc:3.6.+"
+        artifact = "com.google.protobuf:protoc:3.20.0"
     }
 }
