@@ -23,15 +23,6 @@ internal infix fun Boolean.orError(error: ContractViolation): ContractEnforcemen
     Pair(this, error)
 
 /**
- * Adds a [ContractViolation] to a [ContractViolationMap] if its corresponding requirement was violated.
- */
-internal fun ContractViolationMap.requireThat(enforcement: ContractEnforcement) = enforcement.let { (rule, violationReport) ->
-    if (!rule) {
-        plus(violationReport to getOrDefault(violationReport, 0) + 1)
-    }
-}
-
-/**
  * Adds [ContractViolation]s to a [ContractViolationMap] that have their corresponding requirement violated.
  */
 internal fun ContractViolationMap.requireThat(vararg enforcements: ContractEnforcement) = enforcements.forEach { (rule, violationReport) ->
