@@ -7,7 +7,7 @@ on:
         description: 'environment the contracts should be bootstrapped to'
         required: true
         default: 'testnet'
-        type: boolean
+        type: choice
         options:
           - 'testnet'
           - 'mainnet'
@@ -17,10 +17,11 @@ jobs:
     name: Build and Publish Jar
     runs-on: ubuntu-latest
     env:
+      IS_TEST: ${{ github.event.inputs.publishing_environment == 'testnet' }}
       OS_GRPC_URL: grpc://object-store-v2.core:80
       PROVENANCE_GRPC_URL: grpc://192.168.1.244:9090
-      ENCRYPTION_PRIVATE_KEY: IS_TEST && ${{ secrets.TEST_PRIVATE_KEY }} || ${{ secrets.PROD_PRIVATE_KEY }}
-      CHAIN_ID: ${{ github.event.inputs.publishing_environment == 'testnet' }} && "pio-testnet-1 || "pio-mainnet-1"
+      ENCRYPTION_PRIVATE_KEY: $IS_TEST && ${{ secrets.TEST_PRIVATE_KEY }} || ${{ secrets.PROD_PRIVATE_KEY }}
+      CHAIN_ID: $IS_TEST && "pio-testnet-1 || "pio-mainnet-1"
 
     steps:
       - uses: actions/checkout@v2
@@ -40,9 +41,6 @@ jobs:
 
       - name: Build with Gradle
         run: ./gradlew clean build --refresh-dependencies -Pversion=$VERSION
-        env:
-          GITHUB_ACTOR: ${{ github.actor }}
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Check Contract Syntax
         run: ./gradlew p8eClean p8eCheck --info

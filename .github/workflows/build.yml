@@ -28,9 +28,6 @@ jobs:
 
       - name: Build with Gradle
         run: ./gradlew clean build --refresh-dependencies -Pversion=$VERSION
-        env:
-          GITHUB_ACTOR: ${{ github.actor }}
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Check Contract Syntax
         run: ./gradlew p8eClean p8eCheck --info
