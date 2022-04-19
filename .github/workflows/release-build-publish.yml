@@ -1,25 +1,26 @@
 name: Build and Publish
 
 on:
-  release:
-    types: [created]
-  push:
-    branches:
-      - main
+  workflow_dispatch:
+    inputs:
+      publishing_environment:
+        description: 'environment the contracts should be bootstrapped to'
+        required: true
+        default: 'testnet'
+        type: boolean
+        options:
+          - 'testnet'
+          - 'mainnet'
 
 jobs:
   build-and-publish:
     name: Build and Publish Jar
     runs-on: ubuntu-latest
     env:
-      OS_GRPC_URL: grpc://object-store-v2.p8e:80
+      OS_GRPC_URL: grpc://object-store-v2.core:80
       PROVENANCE_GRPC_URL: grpc://192.168.1.244:9090
-      TEST_ENCRYPTION_PRIVATE_KEY: ${{ secrets.TEST_PRIVATE_KEY }}
-      TEST_SIGNING_PRIVATE_KEY: ${{ secrets.TEST_PRIVATE_KEY }}
-      PROD_ENCRYPTION_PRIVATE_KEY: ${{ secrets.PROD_PRIVATE_KEY }}
-      PROD_SIGNING_PRIVATE_KEY: ${{ secrets.PROD_PRIVATE_KEY }}
-      TEST_CHAIN_ID: pio-testnet-1
-      PROD_CHAIN_ID: pio-mainnet-1
+      ENCRYPTION_PRIVATE_KEY: IS_TEST && ${{ secrets.TEST_PRIVATE_KEY }} || ${{ secrets.PROD_PRIVATE_KEY }}
+      CHAIN_ID: IS_TEST && "pio-testnet-1 || "pio-mainnet-1"
 
     steps:
       - uses: actions/checkout@v2
@@ -46,9 +47,5 @@ jobs:
       - name: Check Contract Syntax
         run: ./gradlew p8eClean p8eCheck --info
 
-        # in order to bootstrap in github actions - we must have an object-store and query node that we can hit
       - name: Bootstrap Test
-        run: CHAIN_ID=$TEST_CHAIN_ID ENCRYPTION_PRIVATE_KEY=$TEST_ENCRYPTION_PRIVATE_KEY SIGNING_PRIVATE_KEY=$TEST_SIGNING_PRIVATE_KEY ./gradlew p8eBootstrap --info
-
-#      - name: Bootstrap Prod
-#        run: CHAIN_ID=$PROD_CHAIN_ID ENCRYPTION_PRIVATE_KEY=$PROD_ENCRYPTION_PRIVATE_KEY SIGNING_PRIVATE_KEY=$PROD_SIGNING_PRIVATE_KEY ./gradlew p8eBootstrap --info
+        run: CHAIN_ID=$CHAIN_ID ENCRYPTION_PRIVATE_KEY=$ENCRYPTION_PRIVATE_KEY SIGNING_PRIVATE_KEY=$ENCRYPTION_PRIVATE_KEY IS_TEST=${{ github.event.inputs.publishing_environment == 'testnet' }} ./gradlew p8eBootstrap --info
