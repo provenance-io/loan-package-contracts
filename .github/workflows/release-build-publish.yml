@@ -48,4 +48,4 @@ jobs:
         run: ./gradlew p8eClean p8eCheck --info
 
       - name: Bootstrap Test
-        run: CHAIN_ID=$CHAIN_ID ENCRYPTION_PRIVATE_KEY=$ENCRYPTION_PRIVATE_KEY SIGNING_PRIVATE_KEY=$ENCRYPTION_PRIVATE_KEY IS_TEST=${{ github.event.inputs.publishing_environment == 'testnet' }} ./gradlew p8eBootstrap --info
+        run: CHAIN_ID=$CHAIN_ID ENCRYPTION_PRIVATE_KEY=$ENCRYPTION_PRIVATE_KEY SIGNING_PRIVATE_KEY=$ENCRYPTION_PRIVATE_KEY IS_TEST=$IS_TEST ./gradlew p8eBootstrap --info
