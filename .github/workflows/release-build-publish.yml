@@ -6,15 +6,20 @@ on:
   push:
     branches:
       - main
-  pull_request:
-    branches:
-      - main
 
 jobs:
-  java_build:
+  build-and-publish:
     name: Build and Publish Jar
-
     runs-on: ubuntu-latest
+    env:
+      OS_GRPC_URL: grpc://object-store-v2.p8e:80
+      PROVENANCE_GRPC_URL: grpc://192.168.1.244:9090
+      TEST_ENCRYPTION_PRIVATE_KEY: ${{ secrets.TEST_PRIVATE_KEY }}
+      TEST_SIGNING_PRIVATE_KEY: ${{ secrets.TEST_PRIVATE_KEY }}
+      PROD_ENCRYPTION_PRIVATE_KEY: ${{ secrets.PROD_PRIVATE_KEY }}
+      PROD_SIGNING_PRIVATE_KEY: ${{ secrets.PROD_PRIVATE_KEY }}
+      TEST_CHAIN_ID: pio-testnet-1
+      PROD_CHAIN_ID: pio-mainnet-1
 
     steps:
       - uses: actions/checkout@v2
@@ -38,4 +43,12 @@ jobs:
           GITHUB_ACTOR: ${{ github.actor }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-  # TODO: On release, publish the Kotlin classes & the p8e contracts
+      - name: Check Contract Syntax
+        run: ./gradlew p8eClean p8eCheck --info
+
+        # in order to bootstrap in github actions - we must have an object-store and query node that we can hit
+      - name: Bootstrap Test
+        run: CHAIN_ID=$TEST_CHAIN_ID ENCRYPTION_PRIVATE_KEY=$TEST_ENCRYPTION_PRIVATE_KEY SIGNING_PRIVATE_KEY=$TEST_SIGNING_PRIVATE_KEY ./gradlew p8eBootstrap --info
+
+#      - name: Bootstrap Prod
+#        run: CHAIN_ID=$PROD_CHAIN_ID ENCRYPTION_PRIVATE_KEY=$PROD_ENCRYPTION_PRIVATE_KEY SIGNING_PRIVATE_KEY=$PROD_SIGNING_PRIVATE_KEY ./gradlew p8eBootstrap --info
