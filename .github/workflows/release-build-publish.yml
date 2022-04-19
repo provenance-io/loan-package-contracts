@@ -19,7 +19,7 @@ jobs:
     env:
       IS_TEST: ${{ github.event.inputs.publishing_environment == 'testnet' }}
       OS_GRPC_URL: grpc://object-store-v2.core:80
-#      PROVENANCE_GRPC_URL: grpc://192.168.1.244:9090
+      PROVENANCE_GRPC_URL: grpc://192.168.1.244:9090
 #      ENCRYPTION_PRIVATE_KEY: IS_TEST && ${{ secrets.TEST_PRIVATE_KEY }} || ${{ secrets.PROD_PRIVATE_KEY }}
 #      CHAIN_ID: IS_TEST && "pio-testnet-1 || "pio-mainnet-1"
       TEST_ENCRYPTION_PRIVATE_KEY: ${{ secrets.TEST_PRIVATE_KEY }}
