@@ -77,9 +77,6 @@ val prLocations = mapOf(
 )
 
 val releaseLocations = mapOf(
-    // NOTE: we cannot publish prod releases (main branch) to test for now since the ScopeSpecificationDefinition uuid for
-    // com.figure.origination.loan is different in prod, this prevents the creation of the prod version in test
-    // since this uuid is stored on the annotation in the jar, changing this would not be straightforward
     "production" to P8eLocationExtension().also {
         it.osUrl = System.getenv("OS_GRPC_URL")
         it.provenanceUrl = System.getenv("PROVENANCE_GRPC_URL")
@@ -100,11 +97,11 @@ p8e {
     contractHashPackage = "com.figure.los.contract"
     protoHashPackage = "com.figure.los.contract"
 
-    if (System.getenv("IS_RELEASE") != null) {
-        locations = releaseLocations
-    } else if (System.getenv("IS_TEST") != null) {
-        locations = prLocations
+    locations = if (System.getenv("IS_TEST") == "false") {
+        releaseLocations
+    } else if (System.getenv("IS_TEST") == "true") {
+        prLocations
     } else {
-        locations = localLocations
+        localLocations
     }
 }
