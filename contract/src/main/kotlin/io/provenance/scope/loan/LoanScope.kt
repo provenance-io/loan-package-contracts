@@ -3,6 +3,7 @@ package io.provenance.scope.loan
 import io.dartinc.registry.v1beta1.ENote
 import io.provenance.scope.contract.annotations.Record
 import io.provenance.scope.contract.annotations.ScopeSpecificationDefinition
+import io.provenance.scope.contract.proto.Specifications
 import io.provenance.scope.contract.spec.P8eScopeSpecification
 import tech.figure.asset.v1beta1.Asset
 import tech.figure.loan.v1beta1.LoanDocuments
@@ -40,9 +41,9 @@ data class LoanPackage(
 )
 
 @ScopeSpecificationDefinition(
-    uuid = "<UUID>",
+    uuid = "c370d852-0f3b-4f70-85e6-25983ac07c0f",
     name = "tech.figure.loan",
     description = "An extensible loan scope",
-    partiesInvolved = [], // TODO: Test if having this be an empty array works and then let Pierce know
+    partiesInvolved = [Specifications.PartyType.OWNER],
 )
 open class LoanScopeSpecification : P8eScopeSpecification()
