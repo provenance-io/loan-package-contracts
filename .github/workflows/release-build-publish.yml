@@ -18,7 +18,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       IS_TEST: ${{ github.event.inputs.publishing_environment == 'testnet' }}
-      OS_GRPC_URL: https://test.figure.com
+      OS_GRPC_URL: https://test.figure.com:80
       PROVENANCE_GRPC_URL: grpcs://34.148.39.82:9090
 #      ENCRYPTION_PRIVATE_KEY: IS_TEST && ${{ secrets.TEST_PRIVATE_KEY }} || ${{ secrets.PROD_PRIVATE_KEY }}
 #      CHAIN_ID: IS_TEST && "pio-testnet-1 || "pio-mainnet-1"
