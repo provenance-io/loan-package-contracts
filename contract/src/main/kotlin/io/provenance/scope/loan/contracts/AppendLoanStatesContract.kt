@@ -8,6 +8,7 @@ import io.provenance.scope.contract.annotations.ScopeSpecification
 import io.provenance.scope.contract.proto.Specifications.PartyType
 import io.provenance.scope.contract.spec.P8eContract
 import io.provenance.scope.loan.LoanScopeFacts
+import io.provenance.scope.loan.utility.LoanPackageContract
 import io.provenance.scope.loan.utility.isValid
 import io.provenance.scope.loan.utility.orError
 import io.provenance.scope.loan.utility.requireThat
@@ -16,6 +17,7 @@ import tech.figure.servicing.v1beta1.LoanStateOuterClass.LoanStates
 
 @Participants(roles = [PartyType.OWNER])
 @ScopeSpecification(["tech.figure.loan"])
+@LoanPackageContract("AppendLoanStatesContract")
 open class AppendLoanStatesContract(
     @Record(LoanScopeFacts.loanStates) val existingLoanStates: LoanStates,
 ) : P8eContract() {
