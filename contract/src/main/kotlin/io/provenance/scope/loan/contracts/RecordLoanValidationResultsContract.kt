@@ -10,12 +10,14 @@ import io.provenance.scope.loan.utility.orError
 import io.provenance.scope.loan.utility.validateRequirements
 import io.provenance.scope.contract.proto.Specifications.PartyType
 import io.provenance.scope.contract.spec.P8eContract
+import io.provenance.scope.loan.utility.LoanPackageContract
 import io.provenance.scope.loan.utility.isValid
 import tech.figure.validation.v1beta1.ValidationIteration
 import tech.figure.validation.v1beta1.ValidationResults
 
 @Participants(roles = [PartyType.OWNER]) // TODO: Change to VALIDATOR?
 @ScopeSpecification(["tech.figure.loan"])
+@LoanPackageContract("RecordLoanValidationResultsContract")
 open class RecordLoanValidationResultsContract(
     @Record(LoanScopeFacts.validationResults) val validationIteration: ValidationIteration,
 ) : P8eContract() {

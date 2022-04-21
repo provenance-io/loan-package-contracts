@@ -1,8 +1,13 @@
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 import io.provenance.p8e.plugin.P8eLocationExtension
 import io.provenance.p8e.plugin.P8ePartyExtension
+import net.swiftzer.semver.SemVer
 
 buildscript {
+    dependencies {
+        classpath("net.swiftzer.semver:semver:1.1.2")
+        classpath("com.github.breadmoirai:github-release:2.2.12")
+    }
     repositories {
         mavenCentral()
         maven { url = uri("https://javadoc.jitpack.io") }
@@ -11,12 +16,25 @@ buildscript {
 
 plugins {
     id("org.jetbrains.kotlin.jvm") version "1.6.10"
+    id("io.github.gradle-nexus.publish-plugin") version "1.1.0"
+    id("com.github.breadmoirai.github-release") version "2.2.12"
     id("io.provenance.p8e.p8e-publish") version "0.6.3"
+    id("io.github.nefilim.gradle.semver-plugin") version "0.3.10"
+    signing
 }
 
+semver {
+    tagPrefix("v")
+    initialVersion("0.1.0")
+    findProperty("semver.overrideVersion")?.toString()?.let { overrideVersion(it) }
+    val semVerModifier = findProperty("semver.modifier")?.toString()?.let { buildVersionModifier(it) } ?: { nextPatch() }
+    versionModifier(semVerModifier)
+}
+
+val semVersion = semver.version
 allprojects {
     group = "io.provenance.loan-package-contracts"
-    version = "1.0-SNAPSHOT"
+    version = semVersion
 
     repositories {
         mavenCentral()
@@ -24,11 +42,99 @@ allprojects {
 }
 
 subprojects {
+    val subProjectName = name
+
+    apply {
+        plugin("signing")
+    }
+    java {
+        withJavadocJar()
+        withSourcesJar()
+    }
+
     tasks.withType<KotlinCompile>().all {
         kotlinOptions {
             jvmTarget = "11"
         }
     }
+
+    publishing {
+        publications {
+            create<MavenPublication>("maven") {
+                groupId = "io.provenance"
+                artifactId = subProjectName
+
+                from(components["java"])
+
+                pom {
+                    name.set("Provenance Loan Package Contracts")
+                    description.set("P8e Loan Package Contracts for use with p8e-cee-api.")
+                    url.set("https://provenance.io")
+
+                    licenses {
+                        license {
+                            name.set("The Apache License, Version 2.0")
+                            url.set("http://www.apache.org/licenses/LICENSE-2.0.txt")
+                        }
+                    }
+
+                    developers {
+                        developer {
+                            id.set("cworsnop-figure")
+                            name.set("Cody Worsnop")
+                            email.set("cworsnop@figure.com")
+                        }
+                    }
+
+                    scm {
+                        connection.set("git@github.com:provenance-io/loan-package-contracts.git")
+                        developerConnection.set("git@github.com:provenance-io/loan-package-contracts.git")
+                        url.set("https://github.com/provenance-io/loan-package-contracts")
+                    }
+                }
+            }
+
+            signing {
+                sign(publishing.publications["maven"])
+            }
+        }
+
+        tasks.javadoc {
+            if(JavaVersion.current().isJava9Compatible) {
+                (options as StandardJavadocDocletOptions).addBooleanOption("html5", true)
+            }
+        }
+    }
+}
+
+nexusPublishing {
+    repositories {
+        sonatype {
+            nexusUrl.set(uri("https://s01.oss.sonatype.org/service/local/"))
+            snapshotRepositoryUrl.set(uri("https://s01.oss.sonatype.org/content/repositories/snapshots/"))
+            username.set(findProject("ossrhUsername")?.toString() ?: System.getenv("OSSRH_USERNAME"))
+            password.set(findProject("ossrhPassword")?.toString() ?: System.getenv("OSSRH_PASSWORD"))
+            stagingProfileId.set("3180ca260b82a7") // prevents querying for the staging profile id, performance optimization
+        }
+    }
+}
+
+val githubTokenValue = findProperty("githubToken")?.toString() ?: System.getenv("GITHUB_TOKEN")
+
+githubRelease {
+    token(githubTokenValue)
+    owner("provenance-io")
+    targetCommitish("main")
+    draft(false)
+    prerelease(false)
+    repo("loan-package-contracts")
+    tagName(semver.versionTagName)
+    body(changelog())
+
+    overwrite(false)
+    dryRun(false)
+    apiEndpoint("https://api.github.com")
+    client
 }
 
 fun p8eParty(publicKey: String): P8ePartyExtension = P8ePartyExtension().also { it.publicKey = publicKey }
@@ -94,8 +200,8 @@ val releaseLocations = mapOf(
 p8e {
     // Package locations that the ContractHash and ProtoHash source files will be written to.
     language = "kt" // defaults to "java"
-    contractHashPackage = "com.figure.los.contract"
-    protoHashPackage = "com.figure.los.contract"
+    contractHashPackage = "io.provenance.contract"
+    protoHashPackage = "io.provenance.proto"
 
     locations = if (System.getenv("IS_TEST") == "false") {
         releaseLocations

@@ -20,25 +20,16 @@ jobs:
       IS_TEST: ${{ github.event.inputs.publishing_environment == 'testnet' }}
       OS_GRPC_URL: https://test.figure.com:80
       PROVENANCE_GRPC_URL: grpcs://34.148.39.82:9090
-#      ENCRYPTION_PRIVATE_KEY: IS_TEST && ${{ secrets.TEST_PRIVATE_KEY }} || ${{ secrets.PROD_PRIVATE_KEY }}
-#      CHAIN_ID: IS_TEST && "pio-testnet-1 || "pio-mainnet-1"
-      ENCRYPTION_PRIVATE_KEY: ${{ secrets.TEST_PRIVATE_KEY }}
-      SIGNING_PRIVATE_KEY: ${{ secrets.TEST_PRIVATE_KEY }}
-      PROD_ENCRYPTION_PRIVATE_KEY: ${{ secrets.PROD_PRIVATE_KEY }}
-      PROD_SIGNING_PRIVATE_KEY: ${{ secrets.PROD_PRIVATE_KEY }}
-      TEST_CHAIN_ID: pio-testnet-1
-      PROD_CHAIN_ID: pio-mainnet-1
+      ENCRYPTION_PRIVATE_KEY: IS_TEST && ${{ secrets.TEST_PRIVATE_KEY }} || ${{ secrets.PROD_PRIVATE_KEY }}
+      SIGNING_PRIVATE_KEY: IS_TEST && ${{ secrets.TEST_PRIVATE_KEY }} || ${{ secrets.PROD_PRIVATE_KEY }}
+      CHAIN_ID: IS_TEST && "pio-testnet-1 || "pio-mainnet-1"
 
     steps:
-      - uses: actions/checkout@v2
+      - name: Checkout
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
 
-      - name: Get Version
-        run: |
-          # Strip git ref prefix from version
-          VERSION=$(echo "${{ github.ref }}" | sed -e 's,.*/\(.*\),\1,')
-          # Strip "v" prefix from tag name
-          [[ "${{ github.ref }}" == "refs/tags/"* ]] && VERSION=$(echo $VERSION | sed -e 's/^v//')
-          echo "VERSION=$VERSION" >> $GITHUB_ENV
       - name: Set up JDK 11
         uses: actions/setup-java@v1
         with:
@@ -46,10 +37,34 @@ jobs:
           server-id: github # Value of the distributionManagement/repository/id field of the pom.xml
 
       - name: Build with Gradle
-        run: ./gradlew clean build --refresh-dependencies -Pversion=$VERSION
+        run: ./gradlew -i clean build --refresh-dependencies :generateVersionFile githubRelease --stacktrace
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Check Contract Syntax
         run: ./gradlew p8eClean p8eCheck --info
 
-      - name: Bootstrap Test
-        run: ./gradlew p8eBootstrap --info
+#      - name: Bootstrap Test
+#        run: ./gradlew p8eBootstrap --info
+
+      - name: Create Outputs
+        run: |-
+          echo "::set-output name=semVersion::$(cat build/semver/version.txt | head -1)"
+          echo "::set-output name=semVersionTag::$(cat build/semver/version.txt | tail -1)"
+        id: ci-release-create-outputs
+        shell: bash
+
+      - name: Install gpg secret key
+        run: |
+          export GPG_TTY=$(tty)
+          echo -n "${{ secrets.OSSRH_GPG_SECRET_KEY }}" | base64 --decode | gpg --batch --import
+          gpg --list-secret-keys --keyid-format LONG
+          echo -n "${{ secrets.OSSRH_GPG_SECRET_KEY }}" | base64 --decode > $GITHUB_WORKSPACE/release.gpg
+      - name: Publish to Maven Central
+        run: |
+          ./gradlew publishToSonatype -Psemver.overrideVersion=${{ steps.ci-release-create-outputs.outputs.semVersion }} $(if [ "${{github.event.release.prerelease}}" = "true" ]; then echo 'closeSonatypeStagingRepository'; else echo 'closeAndReleaseSonatypeStagingRepository'; fi) \
+            -Psigning.keyId=B7D30ABE -Psigning.password="${{ secrets.OSSRH_GPG_SECRET_KEY_PASSWORD }}" -Psigning.secretKeyRingFile=$GITHUB_WORKSPACE/release.gpg \
+            --info
+        env:
+          OSSRH_USERNAME: ${{ secrets.OSSRH_USERNAME }}
+          OSSRH_PASSWORD: ${{ secrets.OSSRH_PASSWORD }}

@@ -14,6 +14,8 @@ buildscript {
 plugins {
     id("kotlin")
     id("com.google.protobuf") version "0.8.18"
+    `maven-publish`
+    `java-library`
 }
 
 dependencies {
