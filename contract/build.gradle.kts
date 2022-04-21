@@ -6,6 +6,8 @@ buildscript {
 
 plugins {
     id("kotlin")
+    `java-library`
+    `maven-publish`
 }
 
 dependencies {

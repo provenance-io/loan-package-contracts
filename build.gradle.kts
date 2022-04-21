@@ -46,9 +46,7 @@ subprojects {
 
     apply {
         plugin("signing")
-        plugin("maven-publish")
     }
-
     java {
         withJavadocJar()
         withSourcesJar()
@@ -95,10 +93,10 @@ subprojects {
                     }
                 }
             }
-        }
 
-        signing {
-            sign(publishing.publications["maven"])
+            signing {
+                sign(publishing.publications["maven"])
+            }
         }
 
         tasks.javadoc {

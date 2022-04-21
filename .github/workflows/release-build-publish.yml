@@ -46,10 +46,34 @@ jobs:
           server-id: github # Value of the distributionManagement/repository/id field of the pom.xml
 
       - name: Build with Gradle
-        run: ./gradlew clean build --refresh-dependencies -Pversion=$VERSION
+        run: ./gradlew -i clean build --refresh-dependencies :generateVersionFile githubRelease --stacktrace
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Check Contract Syntax
         run: ./gradlew p8eClean p8eCheck --info
 
       - name: Bootstrap Test
         run: ./gradlew p8eBootstrap --info
+
+      - name: Create Outputs
+        run: |-
+          echo "::set-output name=semVersion::$(cat build/semver/version.txt | head -1)"
+          echo "::set-output name=semVersionTag::$(cat build/semver/version.txt | tail -1)"
+        id: ci-release-create-outputs
+        shell: bash
+
+      - name: Install gpg secret key
+        run: |
+          export GPG_TTY=$(tty)
+          echo -n "${{ secrets.OSSRH_GPG_SECRET_KEY }}" | base64 --decode | gpg --batch --import
+          gpg --list-secret-keys --keyid-format LONG
+          echo -n "${{ secrets.OSSRH_GPG_SECRET_KEY }}" | base64 --decode > $GITHUB_WORKSPACE/release.gpg
+      - name: Publish to Maven Central
+        run: |
+          ./gradlew publishToSonatype -Psemver.overrideVersion=${{ steps.ci-release-create-outputs.outputs.semVersion }} $(if [ "${{github.event.release.prerelease}}" = "true" ]; then echo 'closeSonatypeStagingRepository'; else echo 'closeAndReleaseSonatypeStagingRepository'; fi) \
+            -Psigning.keyId=B7D30ABE -Psigning.password="${{ secrets.OSSRH_GPG_SECRET_KEY_PASSWORD }}" -Psigning.secretKeyRingFile=$GITHUB_WORKSPACE/release.gpg \
+            --info
+        env:
+          OSSRH_USERNAME: ${{ secrets.OSSRH_USERNAME }}
+          OSSRH_PASSWORD: ${{ secrets.OSSRH_PASSWORD }}
