@@ -20,14 +20,9 @@ jobs:
       IS_TEST: ${{ github.event.inputs.publishing_environment == 'testnet' }}
       OS_GRPC_URL: https://test.figure.com:80
       PROVENANCE_GRPC_URL: grpcs://34.148.39.82:9090
-#      ENCRYPTION_PRIVATE_KEY: IS_TEST && ${{ secrets.TEST_PRIVATE_KEY }} || ${{ secrets.PROD_PRIVATE_KEY }}
-#      CHAIN_ID: IS_TEST && "pio-testnet-1 || "pio-mainnet-1"
-      ENCRYPTION_PRIVATE_KEY: ${{ secrets.TEST_PRIVATE_KEY }}
-      SIGNING_PRIVATE_KEY: ${{ secrets.TEST_PRIVATE_KEY }}
-      PROD_ENCRYPTION_PRIVATE_KEY: ${{ secrets.PROD_PRIVATE_KEY }}
-      PROD_SIGNING_PRIVATE_KEY: ${{ secrets.PROD_PRIVATE_KEY }}
-      TEST_CHAIN_ID: pio-testnet-1
-      PROD_CHAIN_ID: pio-mainnet-1
+      ENCRYPTION_PRIVATE_KEY: IS_TEST && ${{ secrets.TEST_PRIVATE_KEY }} || ${{ secrets.PROD_PRIVATE_KEY }}
+      SIGNING_PRIVATE_KEY: IS_TEST && ${{ secrets.TEST_PRIVATE_KEY }} || ${{ secrets.PROD_PRIVATE_KEY }}
+      CHAIN_ID: IS_TEST && "pio-testnet-1 || "pio-mainnet-1"
 
     steps:
       - name: Checkout
@@ -56,8 +51,8 @@ jobs:
       - name: Check Contract Syntax
         run: ./gradlew p8eClean p8eCheck --info
 
-      - name: Bootstrap Test
-        run: ./gradlew p8eBootstrap --info
+#      - name: Bootstrap Test
+#        run: ./gradlew p8eBootstrap --info
 
       - name: Create Outputs
         run: |-
