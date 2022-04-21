@@ -33,7 +33,7 @@ semver {
 
 val semVersion = semver.version
 allprojects {
-    group = "io.provenance.loan-package-contracts"
+    group = "io.provenance.loan-package"
     version = semVersion
 
     repositories {
@@ -61,7 +61,7 @@ subprojects {
     publishing {
         publications {
             create<MavenPublication>("maven") {
-                groupId = "io.provenance"
+                groupId = "io.provenance.loan-package"
                 artifactId = subProjectName
 
                 from(components["java"])
