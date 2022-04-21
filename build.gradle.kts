@@ -200,8 +200,8 @@ val releaseLocations = mapOf(
 p8e {
     // Package locations that the ContractHash and ProtoHash source files will be written to.
     language = "kt" // defaults to "java"
-    contractHashPackage = "com.figure.los.contract"
-    protoHashPackage = "com.figure.los.contract"
+    contractHashPackage = "io.provenance.contract"
+    protoHashPackage = "io.provenance.proto"
 
     locations = if (System.getenv("IS_TEST") == "false") {
         releaseLocations
