@@ -93,15 +93,15 @@ subprojects {
                     }
                 }
             }
+        }
 
-            signing {
-                sign(publishing.publications["maven"])
-            }
+        signing {
+            sign(publishing.publications["maven"])
+        }
 
-            tasks.javadoc {
-                if(JavaVersion.current().isJava9Compatible) {
-                    (options as StandardJavadocDocletOptions).addBooleanOption("html5", true)
-                }
+        tasks.javadoc {
+            if(JavaVersion.current().isJava9Compatible) {
+                (options as StandardJavadocDocletOptions).addBooleanOption("html5", true)
             }
         }
     }
