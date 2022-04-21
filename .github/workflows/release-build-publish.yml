@@ -30,7 +30,10 @@ jobs:
       PROD_CHAIN_ID: pio-mainnet-1
 
     steps:
-      - uses: actions/checkout@v2
+      - name: Checkout
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
 
       - name: Get Version
         run: |
