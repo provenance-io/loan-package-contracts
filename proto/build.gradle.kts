@@ -12,26 +12,30 @@ buildscript {
 }
 
 plugins {
-    id("kotlin")
-    id("com.google.protobuf") version "0.8.18"
+    pluginSpecs(
+        Plugins.Kotlin,
+        Plugins.Protobuf,
+        Plugins.KrotoPlus,
+    )
     `maven-publish`
     `java-library`
 }
 
 dependencies {
-    implementation("io.provenance.scope:contract-base:0.4.9") {
-        exclude("com.google.protobuf", "protobuf-java")
-    }
+    implementationSpecs(
+        Dependencies.Provenance.ContractBase,
+        Dependencies.Provenance.MetadataAssetModel,
+        Dependencies.ProtocGen.ValidateBase,
+        Dependencies.ProtocGen.ValidateJavaStub,
+        Dependencies.ProtocGen.KrotoPlus,
+        Dependencies.Grpc.Stub,
+        Dependencies.Grpc.Protobuf,
+    )
 
-    api("com.google.protobuf:protobuf-java:3.20.0")
-    api("com.google.protobuf:protobuf-java-util:3.20.0") {
-        exclude("com.google.protobuf", "protobuf-java")
-    }
-
-    implementation("io.grpc", "grpc-stub", "1.39.0")
-    implementation("io.grpc", "grpc-protobuf", "1.39.0") {
-        exclude("com.google.protobuf")
-    }
+    apiSpecs(
+        Dependencies.Protobuf.Java,
+        Dependencies.Protobuf.JavaUtil,
+    )
 }
 
 protobuf {
