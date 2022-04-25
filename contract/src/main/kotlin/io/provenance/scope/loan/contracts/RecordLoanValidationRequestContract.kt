@@ -8,13 +8,11 @@ import io.provenance.scope.contract.annotations.ScopeSpecification
 import io.provenance.scope.loan.LoanScopeFacts
 import io.provenance.scope.contract.proto.Specifications.PartyType
 import io.provenance.scope.contract.spec.P8eContract
-import io.provenance.scope.loan.utility.LoanPackageContract
 import tech.figure.validation.v1beta1.Validation
 import tech.figure.validation.v1beta1.ValidationRequest
 
 @Participants(roles = [PartyType.OWNER]) // TODO: Add/Change to VALIDATOR?
 @ScopeSpecification(["tech.figure.loan"])
-@LoanPackageContract("RecordLoanValidationRequestContract")
 open class RecordLoanValidationRequestContract(
     @Record(LoanScopeFacts.validationResults) val existingResults: Validation,
 ) : P8eContract() {

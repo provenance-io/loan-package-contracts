@@ -9,7 +9,6 @@ import io.provenance.scope.contract.annotations.Record
 import io.provenance.scope.contract.proto.Specifications.PartyType
 import io.provenance.scope.contract.spec.P8eContract
 import io.provenance.scope.loan.LoanScopeFacts
-import io.provenance.scope.loan.utility.LoanPackageContract
 import io.provenance.scope.loan.utility.isValid
 import io.provenance.scope.loan.utility.orError
 import io.provenance.scope.loan.utility.requireThat
@@ -22,7 +21,6 @@ import tech.figure.validation.v1beta1.ValidationResults
 
 @Participants(roles = [PartyType.OWNER])
 @ScopeSpecification(["tech.figure.loan"])
-@LoanPackageContract("RecordLoanContract")
 open class RecordLoanContract(
     @Record(LoanScopeFacts.asset) val existingAsset: Asset,
     @Record(LoanScopeFacts.eNote) val existingENote: ENote,

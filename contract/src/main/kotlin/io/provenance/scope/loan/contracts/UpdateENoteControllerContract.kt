@@ -10,14 +10,12 @@ import io.provenance.scope.contract.annotations.ScopeSpecification
 import io.provenance.scope.loan.LoanScopeFacts
 import io.provenance.scope.contract.proto.Specifications.PartyType
 import io.provenance.scope.contract.spec.P8eContract
-import io.provenance.scope.loan.utility.LoanPackageContract
 import io.provenance.scope.loan.utility.isValid
 import io.provenance.scope.loan.utility.orError
 import io.provenance.scope.loan.utility.validateRequirements
 
 @Participants([PartyType.OWNER/*, PartyType.CONTROLLER*/]) // TODO: Specify both OWNER and CONTROLLER
 @ScopeSpecification(["tech.figure.loan"])
-@LoanPackageContract("UpdateENoteControllerContract")
 open class UpdateENoteControllerContract(
     @Record(LoanScopeFacts.eNote) val existingENote: ENote?, // TODO: Confirm if this should be nullable and adjust code below accordingly
 ) : P8eContract() {
