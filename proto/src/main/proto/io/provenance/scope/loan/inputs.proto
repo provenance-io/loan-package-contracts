@@ -1,0 +1,14 @@
+syntax = "proto3";
+
+package io.provenance.scope.loan.proto;
+
+option java_multiple_files = true;
+option java_package = "io.provenance.scope.loan.proto";
+
+import "tech/figure/util/v1beta1/types.proto";
+import "tech/figure/validation/v1beta1/validation.proto";
+
+message ValidationResultSubmission {
+  tech.figure.util.v1beta1.UUID                    request_id = 1;
+  tech.figure.validation.v1beta1.ValidationResults results    = 2;
+}

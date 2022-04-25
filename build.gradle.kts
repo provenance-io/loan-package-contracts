@@ -1,25 +1,28 @@
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 import io.provenance.p8e.plugin.P8eLocationExtension
 import io.provenance.p8e.plugin.P8ePartyExtension
-import net.swiftzer.semver.SemVer
 
 buildscript {
     dependencies {
-        classpath("net.swiftzer.semver:semver:1.1.2")
-        classpath("com.github.breadmoirai:github-release:2.2.12")
+        classpathSpecs(
+            Dependencies.SemVer,
+            Dependencies.GitHubRelease,
+        )
     }
     repositories {
         mavenCentral()
-        maven { url = uri("https://javadoc.jitpack.io") }
+        maven { url = uri(RepositoryLocations.JitPack) }
     }
 }
 
 plugins {
-    id("org.jetbrains.kotlin.jvm") version "1.6.10"
-    id("io.github.gradle-nexus.publish-plugin") version "1.1.0"
-    id("com.github.breadmoirai.github-release") version "2.2.12"
-    id("io.provenance.p8e.p8e-publish") version "0.6.3"
-    id("io.github.nefilim.gradle.semver-plugin") version "0.3.10"
+    pluginSpecs(
+        Plugins.KotlinJvm,
+        Plugins.GitHubRelease,
+        Plugins.NexusPublishing,
+        Plugins.P8ePublishing,
+        Plugins.SemVer,
+    )
     signing
 }
 
@@ -110,8 +113,8 @@ subprojects {
 nexusPublishing {
     repositories {
         sonatype {
-            nexusUrl.set(uri("https://s01.oss.sonatype.org/service/local/"))
-            snapshotRepositoryUrl.set(uri("https://s01.oss.sonatype.org/content/repositories/snapshots/"))
+            nexusUrl.set(uri(RepositoryLocations.Sonatype))
+            snapshotRepositoryUrl.set(uri(RepositoryLocations.SonatypeSnapshot))
             username.set(findProject("ossrhUsername")?.toString() ?: System.getenv("OSSRH_USERNAME"))
             password.set(findProject("ossrhPassword")?.toString() ?: System.getenv("OSSRH_PASSWORD"))
             stagingProfileId.set("3180ca260b82a7") // prevents querying for the staging profile id, performance optimization
