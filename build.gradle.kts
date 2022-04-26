@@ -205,6 +205,7 @@ p8e {
     language = "kt" // defaults to "java"
     contractHashPackage = "io.provenance.scope.loan.contracts"
     protoHashPackage = "io.provenance.scope.loan.proto"
+    includePackages = arrayOf("io", "com", "tech.figure")
 
     locations = if (System.getenv("IS_TEST") == "false") {
         releaseLocations
