@@ -11,9 +11,14 @@ internal typealias ContractViolation = String
 internal typealias ContractEnforcement = Pair<Boolean, ContractViolation>
 
 /**
- * Denotes a mapping of the amount of times each unique [ContractViolation] was raised.
+ * Denotes a mapping of the amount of times a unique [ContractViolation] was raised.
  */
-internal typealias ContractViolationMap = Map<ContractViolation, Int>
+internal typealias ContractViolationMap = MutableMap<ContractViolation, UInt>
+
+/**
+ * Denotes an [Exception] thrown by [validateRequirements] when at least one [ContractViolation] is found.
+ */
+internal class ContractViolationException(val overallViolationCount: UInt, message: String) : IllegalArgumentException(message)
 
 /**
  * Maps a contract requirement to the appropriate [ContractViolation] that should be raised if it is not met.
@@ -23,55 +28,68 @@ internal infix fun Boolean.orError(error: ContractViolation): ContractEnforcemen
     Pair(this, error)
 
 /**
- * Adds [ContractViolation]s to a [ContractViolationMap] that have their corresponding requirement violated.
+ * Performs validation of one or more [ContractEnforcement]s.
  */
-internal fun ContractViolationMap.requireThat(vararg enforcements: ContractEnforcement) = enforcements.forEach { (rule, violationReport) ->
-    if (!rule) {
-        plus(violationReport to getOrDefault(violationReport, 0) + 1)
-    }
-}
+internal fun validateRequirements(
+    vararg checks: ContractEnforcement
+) = checks.fold<ContractEnforcement, ContractViolationMap>(mutableMapOf()) { acc, (rule, violationReport) ->
+        acc.apply {
+            if (!rule) {
+                acc[violationReport] = acc.getOrDefault(violationReport, 0U) + 1U
+            }
+        }
+    }.handleViolations()
 
 /**
  * Performs validation of any [ContractEnforcement]s specified by [requireThat] in the body.
  * Should be used to wrap code blocks that also performs actions other than validation.
  */
 internal fun validateRequirements(
-    checksBody: ContractViolationMap.() -> Unit
-) = mutableMapOf<ContractViolation, Int>()
+    checksBody: ContractEnforcementContext.() -> Unit
+) = ContractEnforcementContext()
     .apply(checksBody)
     .handleViolations()
 
 /**
- * Performs validation of one or more [ContractEnforcement]s.
- */
-internal fun validateRequirements(
-    vararg checks: ContractEnforcement
-) = checks.fold<ContractEnforcement, ContractViolationMap>(emptyMap()) { acc, (rule, violationReport) ->
-        if (!rule) {
-            acc.plus(violationReport to (acc.getOrDefault(violationReport, 0) + 1))
-        } else {
-            acc
-        }
-    }.handleViolations()
-
-/**
- * Aggregates multiple [ContractEnforcement]s into a single exception listing all of the [ContractViolation]s that were
- * found.
+ * Aggregates multiple [ContractEnforcement]s into a single exception listing all of the [ContractViolation]s that
+ * were found.
  *
- * @throws [IllegalArgumentException] if any of the supplied contract requirements were violated.
+ * @throws [ContractViolationException] if any of the supplied contract requirements were violated.
  * @return [Nothing] if no contract requirements were violated.
  */
 private fun ContractViolationMap.handleViolations() =
-    takeIf { map ->
-        map.isNotEmpty()
-    }?.let { violations -> // TODO: Determine how to best list out all the exceptions as a string
-        violations.entries.joinToString { (violation, count) ->
-            if (count > 1) {
-                "$violation ($count occurrences)"
-            } else {
-                violation
-            }
+    entries.fold(
+        "" to 0U
+    ) { (violationMessage, overallViolationCount), (violation, count) ->
+        if (count > 0U) {
+            "$violationMessage; $violation ($count occurrences)" to overallViolationCount + 1U
+        } else {
+            violationMessage to overallViolationCount
         }
-    }?.let { formattedViolations ->
-        throw IllegalArgumentException("The contract input was invalid: $formattedViolations")
+    }.takeIf { (_, overallViolationCount) ->
+        overallViolationCount > 0U
+    }?.let { (formattedViolations, overallViolationCount) ->
+        throw ContractViolationException(
+            overallViolationCount,
+            "The contract input was invalid - $overallViolationCount unique violations were found: $formattedViolations"
+        )
     }
+
+internal class ContractEnforcementContext {
+    /**
+     * A [ContractViolationMap] which can be updated by calls to [requireThat].
+     */
+    private val violations: ContractViolationMap = mutableMapOf()
+    /**
+     * Adds [ContractViolation]s to a [ContractViolationMap] that have their corresponding requirement violated.
+     */
+    fun requireThat(vararg enforcements: ContractEnforcement) = enforcements.forEach { (rule, violationReport) ->
+        if (!rule) {
+            violations[violationReport] = violations.getOrDefault(violationReport, 0U) + 1U
+        }
+    }
+    /**
+     * See [io.provenance.scope.loan.utility.handleViolations].
+     */
+    fun handleViolations() = violations.handleViolations()
+}
