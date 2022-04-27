@@ -18,7 +18,7 @@ object Versions {
     object Dependencies {
         const val Grpc = "1.39.0"
         const val ProtocGenValidate = "0.6.7"
-        const val Protobuf = "3.20.0"
+        const val Protobuf = "3.20.+"
         const val SemVer = "1.1.2"
         object Provenance {
             const val Scope = "0.4.9"
@@ -71,6 +71,10 @@ object Dependencies {
             exclude = setOf(
                 "com.google.protobuf:protobuf-java",
             ),
+        )
+        val Protoc = DependencySpec(
+            name = "com.google.protobuf:protoc",
+            version = Versions.Dependencies.Protobuf,
         )
     }
     object ProtocGen {
