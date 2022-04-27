@@ -20,7 +20,7 @@ open class RecordLoanValidationResultsContract(
     @Record(LoanScopeFacts.validationResults) val validationRecord: Validation,
 ) : P8eContract() {
 
-    @Function(invokedBy = PartyType.CUSTODIAN) // TODO: Change to VALIDATOR?
+    @Function(invokedBy = PartyType.OWNER) // TODO: Change to VALIDATOR?
     @Record(LoanScopeFacts.validationResults)
     open fun recordLoanValidationResults(
         @Input(name = "resultSubmission") submission: ValidationResultSubmission
@@ -52,9 +52,12 @@ open class RecordLoanValidationResultsContract(
             iteration.request.requestId == submission.requestId
         }.let { index ->
             validationRecord.toBuilder().also { recordBuilder ->
-                recordBuilder.iterationList[index] = validationRecord.iterationList[index].toBuilder().apply {
-                    results = submission.results
-                }.build()
+                recordBuilder.setIteration(
+                    index,
+                    validationRecord.iterationList[index].toBuilder().apply {
+                        results = submission.results
+                    }.build()
+                )
             }.build()
         }
     }

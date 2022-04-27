@@ -9,27 +9,15 @@ import io.kotest.property.arbitrary.boolean
 import io.kotest.property.arbitrary.list
 import io.kotest.property.arbitrary.string
 import io.kotest.property.arbitrary.uInt
-import io.kotest.property.arbitrary.uuid
 import io.provenance.scope.loan.utility.ContractEnforcement
 import io.provenance.scope.loan.utility.ContractViolation
 import io.provenance.scope.loan.utility.ContractViolationException
 import io.provenance.scope.loan.utility.ContractViolationMap
-import tech.figure.util.v1beta1.UUID as FigureTechUUID
 
 /**
- * Generators of [Arb]itrary instances of loan scope classes.
+ * Generators of [Arb]itrary instances.
  */
 internal object LoanPackageArbs {
-    /* Metadata asset model */
-    val figureTechUuidArb: Arb<FigureTechUUID> = Arb.bind(
-        listOf(
-            Arb.uuid()
-        )
-    ) { javaUuid4 ->
-        FigureTechUUID.newBuilder().apply {
-            value = javaUuid4.toString()
-        }.build()
-    }
     /* Contract requirements */
     val contractViolation: Arb<ContractViolation> = Arb.string()
     val contractEnforcement: Arb<ContractEnforcement> = Arb.bind(
