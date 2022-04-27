@@ -8,6 +8,7 @@ import org.gradle.plugin.use.PluginDependenciesSpec
 object Versions {
     const val Kotlin = "1.6.21"
     const val GitHubRelease = "2.2.12"
+    const val Kotest = "5.2.3"
     const val KrotoPlus = "0.6.1"
     object Plugins {
         const val NexusPublishing = "1.1.0"
@@ -39,6 +40,7 @@ object Plugins {
 }
 
 object Dependencies {
+    // Build
     val GitHubRelease = DependencySpec(
         name = "com.github.breadmoirai:github-release",
         version = Versions.GitHubRelease,
@@ -47,6 +49,23 @@ object Dependencies {
         name = "net.swiftzer.semver:semver",
         version = Versions.Dependencies.SemVer,
     )
+    // Testing
+    object Kotest {
+        val Framework = DependencySpec(
+            name = "io.kotest:kotest-runner-junit5",
+            version = Versions.Kotest,
+        )
+        val Assertions = DependencySpec(
+            name = "io.kotest:kotest-assertions-core",
+            version = Versions.Kotest,
+        )
+        val Property = DependencySpec(
+            name = "io.kotest:kotest-property",
+            version = Versions.Kotest,
+        )
+    }
+
+    // Dependencies
     object Grpc {
         val Stub = DependencySpec(
             name = "io.grpc:grpc-stub",

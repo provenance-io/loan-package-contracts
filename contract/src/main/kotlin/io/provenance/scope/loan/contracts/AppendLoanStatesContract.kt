@@ -10,7 +10,6 @@ import io.provenance.scope.contract.spec.P8eContract
 import io.provenance.scope.loan.LoanScopeFacts
 import io.provenance.scope.loan.utility.isValid
 import io.provenance.scope.loan.utility.orError
-import io.provenance.scope.loan.utility.requireThat
 import io.provenance.scope.loan.utility.validateRequirements
 import tech.figure.servicing.v1beta1.LoanStateOuterClass.LoanStates
 

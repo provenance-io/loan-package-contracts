@@ -18,4 +18,14 @@ dependencies {
         Dependencies.Provenance.ScopeUtil,
         Dependencies.Provenance.MetadataAssetModel,
     )
+
+    testImplementationSpecs(
+        Dependencies.Kotest.Framework,
+        Dependencies.Kotest.Assertions,
+        Dependencies.Kotest.Property,
+    )
+}
+
+tasks.withType<Test>().configureEach {
+    useJUnitPlatform()
 }

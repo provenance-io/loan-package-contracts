@@ -1,22 +1,32 @@
 package io.provenance.scope.loan.utility
 
-import com.google.protobuf.Message
-import com.google.protobuf.Timestamp
-import io.provenance.scope.util.toInstant
-import tech.figure.util.v1beta1.Checksum
-import tech.figure.util.v1beta1.Date
-import tech.figure.util.v1beta1.Money
-import tech.figure.util.v1beta1.UUID
-import java.time.Instant
+import com.google.protobuf.Message as ProtobufMessage
+import com.google.protobuf.Timestamp as ProtobufTimestamp
+import java.util.UUID as JavaUUID
+import tech.figure.util.v1beta1.Checksum as FigureTechChecksum
+import tech.figure.util.v1beta1.Date as FigureTechDate
+import tech.figure.util.v1beta1.Money as FigureTechMoney
+import tech.figure.util.v1beta1.UUID as FigureTechUUID
 
-internal fun Message?.isSet() = this !== null && this != this.defaultInstanceForType
+@Suppress("TooGenericExceptionCaught")
+private fun tryOrFalse(fn: () -> Any): Boolean =
+    try {
+        fn()
+        true
+    } catch (e: Exception) {
+        false
+    }
 
-internal fun Timestamp?.isValid() = isSet() && this!!.toInstant() < Instant.now()
+internal fun ProtobufMessage?.isSet() = this !== null && this != this.defaultInstanceForType
 
-internal fun Date?.isValid() = isSet() && this!!.value.isNotBlank()
+internal fun ProtobufTimestamp?.isValid() = isSet()
 
-internal fun Checksum?.isValid() = isSet() && this!!.checksum.isNotBlank()
+internal fun FigureTechDate?.isValid() = isSet() && this!!.value.isNotBlank()
 
-internal fun UUID?.isValid() = isSet() && this!!.value.isNotBlank()
+internal fun FigureTechChecksum?.isValid() = isSet() && this!!.checksum.isNotBlank()
 
-internal fun Money?.isValid() = isSet() && this!!.amount > 0
+internal fun FigureTechUUID?.isValid() = isSet() && this!!.value.isNotBlank() && tryOrFalse {
+    JavaUUID.fromString(this.value)
+}
+
+internal fun FigureTechMoney?.isValid() = isSet()
