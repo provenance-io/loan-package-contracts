@@ -22,8 +22,8 @@ import tech.figure.validation.v1beta1.ValidationResults
 @Participants(roles = [PartyType.OWNER])
 @ScopeSpecification(["tech.figure.loan"])
 open class RecordLoanContract(
-    @Record(LoanScopeFacts.asset) val existingAsset: Asset,
-    @Record(LoanScopeFacts.eNote) val existingENote: ENote,
+    @Record(LoanScopeFacts.asset) val existingAsset: Asset? = null,
+    @Record(LoanScopeFacts.eNote) val existingENote: ENote? = null,
 ) : P8eContract() {
 
     @Function(invokedBy = PartyType.OWNER)
@@ -72,10 +72,10 @@ open class RecordLoanContract(
 
     @Function(invokedBy = PartyType.OWNER)
     @Record(LoanScopeFacts.eNote)
-    open fun recordENote(@Input(LoanScopeFacts.eNote) eNote: ENote) = eNote.also { // TODO: Confirm if we want existing and/or input to be nullable and adjust code below accordingly
+    open fun recordENote(@Input(LoanScopeFacts.eNote) eNote: ENote? = null) = eNote?.also {
         validateRequirements {
             if (existingENote != null) {
-                //requireThat(existingENote.checksum == eNote.checksum orError "cannot modify or remove eNote during loan onboarding"), // use specific contract instead
+                requireThat((existingENote.eNote.checksum == it.eNote.checksum) orError "ENote with a different checksum already exists on chain for the specified scope; ENote modifications are not allowed!")
             }
             // TODO: Decide which fields should only be required if DART is listed as mortgagee of record/active custodian
             requireThat(
