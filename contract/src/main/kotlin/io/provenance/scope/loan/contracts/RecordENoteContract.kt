@@ -21,19 +21,17 @@ open class RecordENoteContract: P8eContract() {
     @Function(invokedBy = Specifications.PartyType.OWNER)
     @Record(LoanScopeFacts.eNote)
     open fun recordENote(@Input(LoanScopeFacts.eNote) eNote: ENote) = eNote.also {
-        validateRequirements {
+        validateRequirements(
             // TODO: Decide which fields should only be required if DART is listed as mortgagee of record/active custodian
-            requireThat(
-                eNote.controller.controllerUuid.isValid()    orError "ENote missing controller UUID",
-                eNote.controller.controllerName.isNotBlank() orError "ENote missing controller Name",
-                eNote.eNote.id.isValid()                     orError "ENote missing ID",
-                eNote.eNote.uri.isNotBlank()                 orError "ENote missing uri",
-                eNote.eNote.contentType.isNotBlank()         orError "ENote missing content type",
-                eNote.eNote.documentType.isNotBlank()        orError "ENote missing document type",
-                eNote.eNote.checksum.isValid()               orError "ENote missing checksum",
-                eNote.signedDate.isValid()                   orError "ENote missing signed date",
-                eNote.vaultName.isNotBlank()                 orError "ENote missing vault name",
-            )
-        }
+            eNote.controller.controllerUuid.isValid()    orError "ENote missing controller UUID",
+            eNote.controller.controllerName.isNotBlank() orError "ENote missing controller Name",
+            eNote.eNote.id.isValid()                     orError "ENote missing ID",
+            eNote.eNote.uri.isNotBlank()                 orError "ENote missing uri",
+            eNote.eNote.contentType.isNotBlank()         orError "ENote missing content type",
+            eNote.eNote.documentType.isNotBlank()        orError "ENote missing document type",
+            eNote.eNote.checksum.isValid()               orError "ENote missing checksum",
+            eNote.signedDate.isValid()                   orError "ENote missing signed date",
+            eNote.vaultName.isNotBlank()                 orError "ENote missing vault name",
+        )
     }
 }
