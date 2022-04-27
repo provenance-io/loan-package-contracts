@@ -19,7 +19,7 @@ object Versions {
     object Dependencies {
         const val Grpc = "1.39.0"
         const val ProtocGenValidate = "0.6.7"
-        const val Protobuf = "3.20.+"
+        const val Protobuf = "3.20.1"
         const val SemVer = "1.1.2"
         object Provenance {
             const val Scope = "0.4.9"
