@@ -5,26 +5,26 @@ import io.provenance.scope.contract.annotations.Input
 import io.provenance.scope.contract.annotations.Participants
 import io.provenance.scope.contract.annotations.Record
 import io.provenance.scope.contract.annotations.ScopeSpecification
-import io.provenance.scope.loan.LoanScopeFacts
-import io.provenance.scope.loan.utility.orError
-import io.provenance.scope.loan.utility.validateRequirements
 import io.provenance.scope.contract.proto.Specifications.PartyType
 import io.provenance.scope.contract.spec.P8eContract
-import io.provenance.scope.loan.proto.ValidationResultSubmission
+import io.provenance.scope.loan.LoanScopeFacts
 import io.provenance.scope.loan.utility.isValid
-import tech.figure.validation.v1beta1.Validation
+import io.provenance.scope.loan.utility.orError
+import io.provenance.scope.loan.utility.validateRequirements
+import tech.figure.validation.v1beta1.LoanValidation
+import tech.figure.validation.v1beta1.ValidationResponse
 
 @Participants(roles = [PartyType.OWNER]) // TODO: Change to VALIDATOR?
 @ScopeSpecification(["tech.figure.loan"])
 open class RecordLoanValidationResultsContract(
-    @Record(LoanScopeFacts.validationResults) val validationRecord: Validation,
+    @Record(LoanScopeFacts.loanValidations) val validationRecord: LoanValidation,
 ) : P8eContract() {
 
     @Function(invokedBy = PartyType.OWNER) // TODO: Change to VALIDATOR?
-    @Record(LoanScopeFacts.validationResults)
+    @Record(LoanScopeFacts.loanValidations)
     open fun recordLoanValidationResults(
-        @Input(name = "resultSubmission") submission: ValidationResultSubmission
-    ): Validation {
+        @Input(name = "resultSubmission") submission: ValidationResponse
+    ): LoanValidation {
         validateRequirements {
             requireThat(
                 submission.results.resultSetUuid.isValid()          orError "Result set UUID is missing",
