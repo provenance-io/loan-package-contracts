@@ -74,10 +74,10 @@ class DataExtensionsTest : WordSpec({
             }.build().isValid() shouldBe false
         }
         "return true for any non-empty string" {
-            forAll(Arb.string(minSize = 1)) { randomString ->
+            forAll(Arb.string()) { randomString ->
                 FigureTechChecksum.newBuilder().apply {
                     checksum = randomString
-                }.build().isValid()
+                }.build().isValid() == randomString.isNotBlank()
             }
         }
     }
