@@ -14,9 +14,9 @@ import io.provenance.scope.loan.utility.orError
 import io.provenance.scope.loan.utility.validateRequirements
 import tech.figure.asset.v1beta1.Asset
 import tech.figure.loan.v1beta1.LoanDocuments
-import tech.figure.servicing.v1beta1.LoanStateOuterClass.LoanStates
+import tech.figure.servicing.v1beta1.LoanStateOuterClass.ServicingData
 import tech.figure.servicing.v1beta1.ServicingRightsOuterClass.ServicingRights
-import tech.figure.validation.v1beta1.ValidationResults
+import tech.figure.validation.v1beta1.LoanValidation
 
 @Participants(roles = [PartyType.OWNER])
 @ScopeSpecification(["tech.figure.loan"])
@@ -62,12 +62,12 @@ open class RecordLoanContract(
     open fun recordDocuments(@Input(LoanScopeFacts.documents) documents: LoanDocuments) = documents
 
     @Function(invokedBy = PartyType.OWNER)
-    @Record(LoanScopeFacts.loanStates)
-    open fun recordLoanStates(@Input(LoanScopeFacts.loanStates) loanStates: LoanStates) = loanStates
+    @Record(LoanScopeFacts.servicingData)
+    open fun recordLoanStates(@Input(LoanScopeFacts.servicingData) servicingData: ServicingData) = servicingData
 
     @Function(invokedBy = PartyType.OWNER)
-    @Record(LoanScopeFacts.validationResults)
-    open fun recordValidationResults(@Input(LoanScopeFacts.validationResults) validationResults: ValidationResults) = validationResults
+    @Record(LoanScopeFacts.loanValidations)
+    open fun recordValidationResults(@Input(LoanScopeFacts.loanValidations) loanValidations: LoanValidation) = loanValidations
 
     @Function(invokedBy = PartyType.OWNER)
     @Record(LoanScopeFacts.eNote)
