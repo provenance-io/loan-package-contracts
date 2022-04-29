@@ -8,18 +8,17 @@ import io.provenance.scope.contract.annotations.ScopeSpecification
 import io.provenance.scope.loan.LoanScopeFacts
 import io.provenance.scope.contract.proto.Specifications.PartyType
 import io.provenance.scope.contract.spec.P8eContract
-import tech.figure.validation.v1beta1.Validation
+import tech.figure.validation.v1beta1.LoanValidation
 import tech.figure.validation.v1beta1.ValidationRequest
 
 @Participants(roles = [PartyType.OWNER]) // TODO: Add/Change to VALIDATOR?
 @ScopeSpecification(["tech.figure.loan"])
 open class RecordLoanValidationRequestContract(
-    @Record(LoanScopeFacts.validationResults) val existingResults: Validation,
+    @Record(LoanScopeFacts.loanValidations) val existingResults: LoanValidation,
 ) : P8eContract() {
 
     @Function(invokedBy = PartyType.OWNER) // TODO: Add/Change to VALIDATOR?
-    @Record(LoanScopeFacts.validationResults)
+    @Record(LoanScopeFacts.loanValidations)
     open fun recordLoanValidationRequest(@Input(name = "newRequest") newRequest: ValidationRequest) { // TODO: Change signature & annotations
-
     }
 }
