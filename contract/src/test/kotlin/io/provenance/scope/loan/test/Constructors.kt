@@ -1,11 +1,11 @@
 package io.provenance.scope.loan.test
 
 import io.provenance.scope.loan.contracts.RecordLoanValidationResultsContract
-import io.provenance.scope.loan.proto.ValidationResultSubmission
 import io.provenance.scope.util.toProtoTimestamp
-import tech.figure.validation.v1beta1.Validation
+import tech.figure.validation.v1beta1.LoanValidation
 import tech.figure.validation.v1beta1.ValidationIteration
 import tech.figure.validation.v1beta1.ValidationRequest
+import tech.figure.validation.v1beta1.ValidationResponse
 import java.time.OffsetDateTime
 import tech.figure.util.v1beta1.UUID as FigureTechUUID
 
@@ -17,10 +17,10 @@ object Constructors {
 
     val contractWithEmptyExistingValidationRecord: RecordLoanValidationResultsContract
         get() = RecordLoanValidationResultsContract(
-            Validation.getDefaultInstance()
+            LoanValidation.getDefaultInstance()
         )
     fun contractWithSingleValidationIteration(requestID: FigureTechUUID) = RecordLoanValidationResultsContract(
-        Validation.newBuilder().also { validationRecordBuilder ->
+        LoanValidation.newBuilder().also { validationRecordBuilder ->
             validationRecordBuilder.clearIteration()
             validationRecordBuilder.addIteration(
                 ValidationIteration.newBuilder().also { iterationBuilder ->
@@ -33,7 +33,7 @@ object Constructors {
             )
         }.build()
     )
-    fun validResultSubmission(iterationRequestID: FigureTechUUID) = ValidationResultSubmission.newBuilder().apply {
+    fun validResultSubmission(iterationRequestID: FigureTechUUID) = ValidationResponse.newBuilder().apply {
         requestId = iterationRequestID
         // TODO: Set remaining fields
     }.build()
