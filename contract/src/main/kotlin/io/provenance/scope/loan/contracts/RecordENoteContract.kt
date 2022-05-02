@@ -16,7 +16,7 @@ import io.provenance.scope.loan.utility.validateRequirements
 
 @Participants(roles = [Specifications.PartyType.OWNER])
 @ScopeSpecification(["tech.figure.loan"])
-open class RecordENoteContract: P8eContract() {
+open class RecordENoteContract : P8eContract() {
 
     @Function(invokedBy = Specifications.PartyType.OWNER)
     @Record(LoanScopeFacts.eNote)
