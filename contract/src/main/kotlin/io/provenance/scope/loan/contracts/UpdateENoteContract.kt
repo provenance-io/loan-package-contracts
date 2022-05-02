@@ -14,6 +14,7 @@ import io.provenance.scope.loan.utility.ContractRequirementType
 import io.provenance.scope.loan.utility.isValid
 import io.provenance.scope.loan.utility.orError
 import io.provenance.scope.loan.utility.validateRequirements
+import tech.figure.util.v1beta1.DocumentMetadata
 // TODO: Potentially remove in favor of append model rather than blanket overwrite
 @Participants(roles = [PartyType.OWNER]) // TODO: Change to controller or ensure Authz grant to controller is made
 @ScopeSpecification(["tech.figure.loan"])
@@ -23,7 +24,7 @@ open class UpdateENoteContract(
 
     @Function(invokedBy = PartyType.OWNER) // TODO: Change to controller or ensure Authz grant to controller is made
     @Record(LoanScopeFacts.eNote)
-    open fun updateENote(@Input(LoanScopeInputs.eNoteUpdate) newENote: tech.figure.util.v1beta1.DocumentMetadata): ENote {
+    open fun updateENote(@Input(LoanScopeInputs.eNoteUpdate) newENote: DocumentMetadata): ENote {
         validateRequirements(ContractRequirementType.LEGAL_SCOPE_STATE,
             (existingENote !== null) orError "Cannot create eNote using this contract",
         )
