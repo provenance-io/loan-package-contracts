@@ -6,9 +6,9 @@ buildscript {
         mavenCentral()
     }
 
-    dependencies {
-        classpath("com.google.protobuf:protobuf-gradle-plugin:0.8.18")
-    }
+    classpathSpecs(
+        Plugins.GradleProtobuf,
+    )
 }
 
 plugins {

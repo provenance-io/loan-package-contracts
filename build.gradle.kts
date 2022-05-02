@@ -3,12 +3,10 @@ import io.provenance.p8e.plugin.P8eLocationExtension
 import io.provenance.p8e.plugin.P8ePartyExtension
 
 buildscript {
-    dependencies {
-        classpathSpecs(
-            Dependencies.SemVer,
-            Dependencies.GitHubRelease,
-        )
-    }
+    classpathSpecs(
+        Dependencies.SemVer,
+        Dependencies.GitHubRelease,
+    )
     repositories {
         mavenCentral()
         maven { url = uri(RepositoryLocations.JitPack) }
@@ -42,6 +40,20 @@ allprojects {
     repositories {
         mavenCentral()
     }
+
+    java {
+        sourceCompatibility = JavaVersion.VERSION_11
+        targetCompatibility = JavaVersion.VERSION_11
+    }
+
+    tasks.withType<KotlinCompile>().all {
+        sourceCompatibility = "11"
+        sourceCompatibility = "11"
+        kotlinOptions {
+            languageVersion = "1.6"
+            jvmTarget = "11"
+        }
+    }
 }
 
 subprojects {
@@ -53,12 +65,6 @@ subprojects {
     java {
         withJavadocJar()
         withSourcesJar()
-    }
-
-    tasks.withType<KotlinCompile>().all {
-        kotlinOptions {
-            jvmTarget = "11"
-        }
     }
 
     publishing {

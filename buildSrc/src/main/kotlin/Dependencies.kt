@@ -36,6 +36,7 @@ object Plugins {
     val P8ePublishing = PluginSpec("io.provenance.p8e.p8e-publish", Versions.Plugins.P8ePublishing)
     val SemVer = PluginSpec("io.github.nefilim.gradle.semver-plugin", Versions.Plugins.SemVer)
     val Protobuf = PluginSpec("com.google.protobuf", Versions.Plugins.Protobuf)
+    val GradleProtobuf = PluginSpec("com.google.protobuf:protobuf-gradle-plugin", Versions.Plugins.Protobuf)
     val KrotoPlus = PluginSpec("com.github.marcoferrer.kroto-plus", Versions.KrotoPlus)
 }
 
@@ -137,7 +138,7 @@ object Dependencies {
 data class PluginSpec(
     val id: String,
     val version: String? = ""
-) {
+) : Spec {
     fun addTo(scope: PluginDependenciesSpec) {
         scope.apply {
             id(id).also { spec ->
@@ -151,6 +152,16 @@ data class PluginSpec(
     fun addTo(action: ObjectConfigurationAction) {
         action.plugin(this.id)
     }
+
+    override fun toDependencyNotation(): String =
+        listOfNotNull(
+            id,
+            version?.takeIf { it.isNotBlank() }
+        ).joinToString(":")
+}
+
+/*sealed*/ interface Spec { // TODO: Determine why language version is not applying to allow sealed interfaces
+    fun toDependencyNotation(): String
 }
 
 data class DependencySpec(
@@ -158,7 +169,7 @@ data class DependencySpec(
     val version: String = "",
     val isChanging: Boolean = false,
     val exclude: Collection<String> = emptySet()
-) {
+) : Spec {
     fun plugin(scope: PluginDependenciesSpec) {
         scope.apply {
             id(name).also { spec ->
@@ -214,10 +225,10 @@ data class DependencySpec(
         }
     }
 
-    fun toDependencyNotation(): String =
+    override fun toDependencyNotation(): String =
         listOfNotNull(
             name,
-            version.takeIf { it.isNotEmpty() }
+            version.takeIf { it.isNotBlank() }
         ).joinToString(":")
 }
 
@@ -241,6 +252,10 @@ fun PluginDependenciesSpec.pluginSpecs(vararg specs: PluginSpec) = specs.forEach
     spec.addTo(this)
 }
 
-fun ScriptHandlerScope.classpathSpecs(vararg specs: DependencySpec) = specs.forEach { spec ->
-    spec.classpath(this)
+fun ScriptHandlerScope.classpathSpecs(vararg specs: Spec) = run {
+    dependencies {
+        specs.forEach { spec ->
+            classpath(spec.toDependencyNotation())
+        }
+    }
 }

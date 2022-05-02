@@ -13,7 +13,7 @@ private fun tryOrFalse(fn: () -> Any): Boolean =
     try {
         fn()
         true
-    } catch (e: Exception) {
+    } catch (ignored: Exception) {
         false
     }
 
@@ -23,7 +23,7 @@ internal fun ProtobufTimestamp?.isValid() = isSet()
 
 internal fun FigureTechDate?.isValid() = isSet() && this!!.value.isNotBlank()
 
-internal fun FigureTechChecksum?.isValid() = isSet() && this!!.checksum.isNotBlank()
+internal fun FigureTechChecksum?.isValid() = isSet() && this!!.checksum.isNotBlank() // Check for algorithm is omitted
 
 internal fun FigureTechUUID?.isValid() = isSet() && this!!.value.isNotBlank() && tryOrFalse {
     JavaUUID.fromString(this.value)
