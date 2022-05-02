@@ -4,18 +4,18 @@ import io.kotest.assertions.throwables.shouldNotThrow
 import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.core.spec.style.WordSpec
 import io.kotest.matchers.string.shouldContain
-import io.provenance.scope.loan.proto.ValidationResultSubmission
 import io.provenance.scope.loan.test.Constructors.contractWithEmptyExistingValidationRecord
 import io.provenance.scope.loan.test.Constructors.contractWithSingleValidationIteration
 import io.provenance.scope.loan.test.Constructors.randomProtoUuid
 import io.provenance.scope.loan.test.Constructors.validResultSubmission
 import io.provenance.scope.loan.utility.ContractViolationException
+import tech.figure.validation.v1beta1.ValidationResponse
 
 class RecordLoanValidationResultsUnitTest : WordSpec({
     "recordLoanValidationResults" When {
         "given an invalid input" should {
             "throw an appropriate exception" {
-                ValidationResultSubmission.getDefaultInstance().let { emptyResultSubmission ->
+                ValidationResponse.getDefaultInstance().let { emptyResultSubmission ->
                     shouldThrow<ContractViolationException> {
                         contractWithEmptyExistingValidationRecord.apply {
                             recordLoanValidationResults(emptyResultSubmission)
