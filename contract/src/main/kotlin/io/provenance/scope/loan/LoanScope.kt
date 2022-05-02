@@ -11,6 +11,9 @@ import tech.figure.servicing.v1beta1.LoanStateOuterClass.ServicingData
 import tech.figure.servicing.v1beta1.ServicingRightsOuterClass.ServicingRights
 import tech.figure.validation.v1beta1.LoanValidation
 
+/**
+ * Denotes the string literals used in [Record] annotations for the [LoanScopeSpecification] and its contracts.
+ */
 object LoanScopeFacts {
     const val asset = "asset"
     const val documents = "documents"
@@ -20,15 +23,38 @@ object LoanScopeFacts {
     const val eNote = "eNote"
 }
 
+/**
+ * Denotes the string literals used in [io.provenance.scope.contract.annotations.Input] annotations for
+ * [LoanScopeSpecification] contract functions where the input type differs from the output type.
+ */
+object LoanScopeInputs {
+    const val validationRequest = "newRequest"
+    const val validationResponse = "resultSubmission"
+    const val eNoteUpdate = "newENote"
+    const val eNoteControllerUpdate = "newController"
+}
+
+/**
+ * Denotes the [Record]s that are part of a [LoanScopeSpecification] for the loan package.
+ */
 data class LoanPackage(
+    /** The loan asset. */
     @Record(LoanScopeFacts.asset) var asset: Asset,
-    @Record(LoanScopeFacts.servicingRights) var servicingRights: ServicingRights, // Defaults to the lender
-    @Record(LoanScopeFacts.documents) var documents: LoanDocuments? = null, // list of document metadata with URIs that point to documents in EOS
-    @Record(LoanScopeFacts.servicingData) var servicingData: ServicingData? = null, // list of loan state metadata
-    @Record(LoanScopeFacts.loanValidations) var loanValidations: LoanValidation? = null, // object containing list of third party validation results and a summary of exceptions
+    /** The servicing rights to the loan. Defaults to the lender. */
+    @Record(LoanScopeFacts.servicingRights) var servicingRights: ServicingRights,
+    /** A list of metadata for documents, including their URIs in an encrypted object store. */
+    @Record(LoanScopeFacts.documents) var documents: LoanDocuments? = null,
+    /** Servicing data for the loan, including a list of metadata on loan states. */
+    @Record(LoanScopeFacts.servicingData) var servicingData: ServicingData? = null,
+    /** A list of third-party validation iterations. */
+    @Record(LoanScopeFacts.loanValidations) var loanValidations: LoanValidation? = null,
+    /** The eNote for the loan. */
     @Record(LoanScopeFacts.eNote) var eNote: ENote? = null
 )
 
+/**
+ * The scope specification definition for a [LoanPackage].
+ */
 @ScopeSpecificationDefinition(
     uuid = "c370d852-0f3b-4f70-85e6-25983ac07c0f",
     name = "tech.figure.loan",

@@ -9,6 +9,7 @@ import io.provenance.scope.contract.annotations.Record
 import io.provenance.scope.contract.proto.Specifications.PartyType
 import io.provenance.scope.contract.spec.P8eContract
 import io.provenance.scope.loan.LoanScopeFacts
+import io.provenance.scope.loan.utility.ContractRequirementType.VALID_INPUT
 import io.provenance.scope.loan.utility.isValid
 import io.provenance.scope.loan.utility.orError
 import io.provenance.scope.loan.utility.validateRequirements
@@ -29,7 +30,7 @@ open class RecordLoanContract(
     @Record(LoanScopeFacts.asset)
     open fun recordAsset(@Input(LoanScopeFacts.asset) asset: Asset) = asset.also {
         // TODO: Add or implement correct extension for safe casting of kvMap values like "loan"
-        /*validateRequirements {
+        /*validateRequirements(VALID_INPUT) {
             if (existingAsset != null) {
                 requireThat(
                     // Flag that the asset is an eNote
@@ -72,9 +73,11 @@ open class RecordLoanContract(
     @Function(invokedBy = PartyType.OWNER)
     @Record(LoanScopeFacts.eNote)
     open fun recordENote(@Input(LoanScopeFacts.eNote) eNote: ENote? = null) = eNote?.also {
-        validateRequirements {
+        validateRequirements(VALID_INPUT) {
             if (existingENote != null) {
-                requireThat((existingENote.eNote.checksum == it.eNote.checksum) orError "ENote with a different checksum already exists on chain for the specified scope; ENote modifications are not allowed!")
+                requireThat((existingENote.eNote.checksum == it.eNote.checksum) orError
+                    "ENote with a different checksum already exists on chain for the specified scope; ENote modifications are not allowed!"
+                )
             }
             // TODO: Decide which fields should only be required if DART is listed as mortgagee of record/active custodian
             requireThat(

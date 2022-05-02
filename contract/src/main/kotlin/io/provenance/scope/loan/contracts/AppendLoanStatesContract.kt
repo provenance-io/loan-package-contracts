@@ -8,6 +8,7 @@ import io.provenance.scope.contract.annotations.ScopeSpecification
 import io.provenance.scope.contract.proto.Specifications.PartyType
 import io.provenance.scope.contract.spec.P8eContract
 import io.provenance.scope.loan.LoanScopeFacts
+import io.provenance.scope.loan.utility.ContractRequirementType.VALID_INPUT
 import io.provenance.scope.loan.utility.isValid
 import io.provenance.scope.loan.utility.orError
 import io.provenance.scope.loan.utility.validateRequirements
@@ -24,7 +25,7 @@ open class AppendLoanStatesContract(
     @Record(LoanScopeFacts.servicingData)
     open fun appendLoanStates(@Input(LoanScopeFacts.servicingData) newLoanStates: List<LoanStateMetadata>): ServicingData {
         val updatedServicingData = ServicingData.newBuilder().mergeFrom(existingServicingData)
-        validateRequirements {
+        validateRequirements(VALID_INPUT) {
             for (state in newLoanStates) {
                 requireThat(
                     state.id.isValid()              orError "Invalid id",
