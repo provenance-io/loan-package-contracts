@@ -14,12 +14,12 @@ import io.provenance.scope.loan.utility.isValid
 import io.provenance.scope.loan.utility.orError
 import io.provenance.scope.loan.utility.validateRequirements
 
-@Participants([PartyType.OWNER/*, PartyType.CONTROLLER*/]) // TODO: Specify both OWNER and CONTROLLER
+@Participants([PartyType.OWNER, PartyType.CUSTODIAN])
 @ScopeSpecification(["tech.figure.loan"])
 open class UpdateENoteControllerContract(
     @Record(LoanScopeFacts.eNote) val existingENote: ENote?, // TODO: Confirm if this should be nullable and adjust code below accordingly
 ) : P8eContract() {
-    @Function(invokedBy = PartyType.OWNER/*PartyType.CONTROLLER*/) // TODO: Replace OWNER with CONTROLLER
+    @Function(invokedBy = PartyType.CUSTODIAN) // TODO: Replace OWNER with CONTROLLER
     @Record(LoanScopeFacts.eNote)
     open fun updateENoteController(@Input(name = "newController") newController: Controller): ENote {
         validateRequirements(
