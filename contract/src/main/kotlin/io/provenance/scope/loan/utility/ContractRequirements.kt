@@ -38,7 +38,7 @@ internal enum class ContractRequirementType(
         when (violationCount) {
             0U -> ""
             1U -> " - $violationCount violation was found"
-            else ->  " - $violationCount violations were found"
+            else -> " - $violationCount violations were found"
         }.let { violationCountSnippet ->
             IllegalContractStateException(
                 "The contract state was invalid$violationCountSnippet" +
@@ -53,7 +53,7 @@ internal enum class ContractRequirementType(
         when (violationCount) {
             0U -> ""
             1U -> " - $violationCount unique violation was found"
-            else ->  " - $violationCount unique violations were found"
+            else -> " - $violationCount unique violations were found"
         }.let { violationCountSnippet ->
             ContractViolationException(
                 violationCount,
@@ -77,7 +77,8 @@ internal infix fun Boolean.orError(error: ContractViolation): ContractEnforcemen
 internal fun validateRequirements(
     requirementType: ContractRequirementType,
     vararg checks: ContractEnforcement,
-) = checks.fold<ContractEnforcement, ContractViolationMap>(mutableMapOf()) { acc, (rule, violationReport) ->
+) =
+    checks.fold<ContractEnforcement, ContractViolationMap>(mutableMapOf()) { acc, (rule, violationReport) ->
         acc.apply {
             if (!rule) {
                 acc[violationReport] = acc.getOrDefault(violationReport, 0U) + 1U
@@ -108,7 +109,8 @@ internal fun validateRequirements(
  */
 private fun ContractViolationMap.handleViolations(
     requirementType: ContractRequirementType,
-) = entries.fold(
+) =
+    entries.fold(
         "" to 0U
     ) { (violationMessage, overallViolationCount), (violation, count) ->
         if (count > 0U) {

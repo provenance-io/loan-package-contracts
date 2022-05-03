@@ -12,8 +12,8 @@ import io.kotest.matchers.types.shouldBeTypeOf
 import io.kotest.property.Arb
 import io.kotest.property.arbitrary.list
 import io.kotest.property.checkAll
-import io.provenance.scope.loan.test.shouldHaveViolationCount
 import io.provenance.scope.loan.test.LoanPackageArbs
+import io.provenance.scope.loan.test.shouldHaveViolationCount
 
 class ContractRequirementsTest : WordSpec({
     /* Helpers */
