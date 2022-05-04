@@ -108,62 +108,19 @@ subprojects {
     }
 
     publishing {
-        publications {
-            create<MavenPublication>("maven") {
-                groupId = "io.provenance.loan-package"
-                artifactId = subProjectName
-
-                from(components["java"])
-
-                pom {
-                    name.set("Provenance Loan Package Contracts")
-                    description.set("P8e Loan Package Contracts for use with p8e-cee-api.")
-                    url.set("https://provenance.io")
-
-                    licenses {
-                        license {
-                            name.set("The Apache License, Version 2.0")
-                            url.set("http://www.apache.org/licenses/LICENSE-2.0.txt")
-                        }
-                    }
-
-                    developers {
-                        developer {
-                            id.set("cworsnop-figure")
-                            name.set("Cody Worsnop")
-                            email.set("cworsnop@figure.com")
-                        }
-                    }
-
-                    scm {
-                        connection.set("git@github.com:provenance-io/loan-package-contracts.git")
-                        developerConnection.set("git@github.com:provenance-io/loan-package-contracts.git")
-                        url.set("https://github.com/provenance-io/loan-package-contracts")
-                    }
+        repositories {
+            maven {
+                url = uri("https://nexus.figure.com/repository/figure")
+                credentials {
+                    username = System.getenv("NEXUS_USER")
+                    password = System.getenv("NEXUS_PASS")
                 }
             }
-        }
-
-        signing {
-            sign(publishing.publications["maven"])
-        }
-
-        tasks.javadoc {
-            if(JavaVersion.current().isJava9Compatible) {
-                (options as StandardJavadocDocletOptions).addBooleanOption("html5", true)
+            publications {
+                create<MavenPublication>("maven") {
+                    from(components["java"])
+                }
             }
-        }
-    }
-}
-
-nexusPublishing {
-    repositories {
-        sonatype {
-            nexusUrl.set(uri(RepositoryLocations.Sonatype))
-            snapshotRepositoryUrl.set(uri(RepositoryLocations.SonatypeSnapshot))
-            username.set(findProject("ossrhUsername")?.toString() ?: System.getenv("OSSRH_USERNAME"))
-            password.set(findProject("ossrhPassword")?.toString() ?: System.getenv("OSSRH_PASSWORD"))
-            stagingProfileId.set("3180ca260b82a7") // prevents querying for the staging profile id, performance optimization
         }
     }
 }
@@ -189,11 +146,7 @@ githubRelease {
 fun p8eParty(publicKey: String): P8ePartyExtension = P8ePartyExtension().also { it.publicKey = publicKey }
 
 val localAudience = mapOf(
-    "local1" to p8eParty("0A41046C57E9E25101D5E553AE003E2F79025E389B51495607C796B4E95C0A94001FBC24D84CD0780819612529B803E8AD0A397F474C965D957D33DD64E642B756FBC4"),
-    "local2" to p8eParty("0A4104D630032378D56229DD20D08DBCC6D31F44A07D98175966F5D32CD2189FD748831FCB49266124362E56CC1FAF2AA0D3F362BF84CACBC1C0C74945041EB7327D54"),
-    "local3" to p8eParty("0A4104CD5F4ACFFE72D323CCCB2D784847089BBD80EC6D4F68608773E55B3FEADC812E4E2D7C4C647C8C30352141D2926130D10DFC28ACA5CA8A33B7BD7A09C77072CE"),
-    "local4" to p8eParty("0A41045E4B322ED16CD22465433B0427A4366B9695D7E15DD798526F703035848ACC8D2D002C1F25190454C9B61AB7B243E31E83BA2B48B8A4441F922A08AC3D0A3268"),
-    "local5" to p8eParty("0A4104A37653602DA20D27936AF541084869B2F751953CB0F0D25D320788EDA54FB4BC9FB96A281BFFD97E64B749D78C85871A8E14AFD48048537E45E16F3D2FDDB44B"),
+    "local1" to p8eParty("0A41042C52EB79307D248B6CFB2A4AF562E403D4826BB0F540F024BBC3937528F6EB0B7FFA7A6585B751DBA25C173E658F3FEAAB0F05980C76E985CE0D55294F3600D7"),
 )
 
 val testAudience = mapOf(
