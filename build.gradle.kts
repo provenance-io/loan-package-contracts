@@ -2,13 +2,13 @@ import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 import io.provenance.p8e.plugin.P8eLocationExtension
 import io.provenance.p8e.plugin.P8ePartyExtension
 
+/** Build setup */
+
 buildscript {
-    dependencies {
-        classpathSpecs(
-            Dependencies.SemVer,
-            Dependencies.GitHubRelease,
-        )
-    }
+    classpathSpecs(
+        Dependencies.SemVer,
+        Dependencies.GitHubRelease,
+    )
     repositories {
         mavenCentral()
         maven { url = uri(RepositoryLocations.JitPack) }
@@ -26,6 +26,44 @@ plugins {
     signing
 }
 
+/** Ktlint */
+
+val ktlint by configurations.creating
+
+dependencies {
+    ktlint(Dependencies.Ktlint.toDependencyNotation()) {
+        attributes {
+            attribute(Bundling.BUNDLING_ATTRIBUTE, objects.named(Bundling.EXTERNAL))
+        }
+    }
+    // ktlint(project(":custom-ktlint-ruleset")) // in case of custom ruleset
+}
+
+val outputDir = "${project.buildDir}/reports/ktlint/"
+val inputFiles = project.fileTree(mapOf("dir" to "src", "include" to "**/*.kt"))
+
+val ktlintCheck by tasks.creating(JavaExec::class) {
+    inputs.files(inputFiles)
+    outputs.dir(outputDir)
+
+    description = "Check Kotlin code style."
+    classpath = ktlint
+    mainClass.set("com.pinterest.ktlint.Main")
+    args = listOf("*/src/**/*.kt")
+}
+
+val ktlintFormat by tasks.creating(JavaExec::class) {
+    inputs.files(inputFiles)
+    outputs.dir(outputDir)
+
+    description = "Fix Kotlin code style deviations."
+    classpath = ktlint
+    mainClass.set("com.pinterest.ktlint.Main")
+    args = listOf("-F", "*/src/**/*.kt")
+}
+
+/** Project Setup & Releasing */
+
 semver {
     tagPrefix("v")
     initialVersion("0.1.0")
@@ -42,6 +80,20 @@ allprojects {
     repositories {
         mavenCentral()
     }
+
+    java {
+        sourceCompatibility = JavaVersion.VERSION_11
+        targetCompatibility = JavaVersion.VERSION_11
+    }
+
+    tasks.withType<KotlinCompile>().all {
+        sourceCompatibility = "11"
+        sourceCompatibility = "11"
+        kotlinOptions {
+            languageVersion = "1.6"
+            jvmTarget = "11"
+        }
+    }
 }
 
 subprojects {
@@ -53,12 +105,6 @@ subprojects {
     java {
         withJavadocJar()
         withSourcesJar()
-    }
-
-    tasks.withType<KotlinCompile>().all {
-        kotlinOptions {
-            jvmTarget = "11"
-        }
     }
 
     publishing {

@@ -7,39 +7,54 @@ import io.provenance.scope.contract.proto.Specifications
 import io.provenance.scope.contract.spec.P8eScopeSpecification
 import tech.figure.asset.v1beta1.Asset
 import tech.figure.loan.v1beta1.LoanDocuments
-import tech.figure.servicing.v1beta1.LoanStateOuterClass.LoanStates
+import tech.figure.servicing.v1beta1.LoanStateOuterClass.ServicingData
 import tech.figure.servicing.v1beta1.ServicingRightsOuterClass.ServicingRights
-import tech.figure.validation.v1beta1.ValidationResults
+import tech.figure.validation.v1beta1.LoanValidation
 
+/**
+ * Denotes the string literals used in [Record] annotations for the [LoanScopeSpecification] and its contracts.
+ */
 object LoanScopeFacts {
-
     const val asset = "asset"
     const val documents = "documents"
-    const val loanStates = "loan_states"
-    const val servicingRights = "servicing_rights"
-    const val validationResults = "validation_results"
-
-    // Loans registered with DART would include:
-    const val eNote = "e_note"
-
+    const val servicingRights = "servicingRights"
+    const val servicingData = "servicingData"
+    const val loanValidations = "loanValidations"
+    const val eNote = "eNote"
 }
 
+/**
+ * Denotes the string literals used in [io.provenance.scope.contract.annotations.Input] annotations for
+ * [LoanScopeSpecification] contract functions where the input type differs from the output type.
+ */
+object LoanScopeInputs {
+    const val validationRequest = "newRequest"
+    const val validationResponse = "resultSubmission"
+    const val eNoteUpdate = "newENote"
+    const val eNoteControllerUpdate = "newController"
+}
+
+/**
+ * Denotes the [Record]s that are part of a [LoanScopeSpecification] for the loan package.
+ */
 data class LoanPackage(
-
-    // Required
+    /** The loan asset. */
     @Record(LoanScopeFacts.asset) var asset: Asset,
-    @Record(LoanScopeFacts.servicingRights) var servicingRights: ServicingRights, // Defaults to the lender
-
-    // Optional
-    @Record(LoanScopeFacts.documents) var documents: LoanDocuments? = null, // list of document metadata with URIs that point to documents in EOS
-    @Record(LoanScopeFacts.loanStates) var loanStates: LoanStates? = null, // list of loan states
-    @Record(LoanScopeFacts.validationResults) var validationResults: ValidationResults? = null, // object containing list of third party validation results and a summary of exceptions
-
-    // Loans registered with DART would include:
+    /** The servicing rights to the loan. Defaults to the lender. */
+    @Record(LoanScopeFacts.servicingRights) var servicingRights: ServicingRights,
+    /** A list of metadata for documents, including their URIs in an encrypted object store. */
+    @Record(LoanScopeFacts.documents) var documents: LoanDocuments? = null,
+    /** Servicing data for the loan, including a list of metadata on loan states. */
+    @Record(LoanScopeFacts.servicingData) var servicingData: ServicingData? = null,
+    /** A list of third-party validation iterations. */
+    @Record(LoanScopeFacts.loanValidations) var loanValidations: LoanValidation? = null,
+    /** The eNote for the loan. */
     @Record(LoanScopeFacts.eNote) var eNote: ENote? = null
-
 )
 
+/**
+ * The scope specification definition for a [LoanPackage].
+ */
 @ScopeSpecificationDefinition(
     uuid = "c370d852-0f3b-4f70-85e6-25983ac07c0f",
     name = "tech.figure.loan",

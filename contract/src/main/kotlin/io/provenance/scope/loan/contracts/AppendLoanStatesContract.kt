@@ -8,36 +8,36 @@ import io.provenance.scope.contract.annotations.ScopeSpecification
 import io.provenance.scope.contract.proto.Specifications.PartyType
 import io.provenance.scope.contract.spec.P8eContract
 import io.provenance.scope.loan.LoanScopeFacts
+import io.provenance.scope.loan.utility.ContractRequirementType.VALID_INPUT
 import io.provenance.scope.loan.utility.isValid
 import io.provenance.scope.loan.utility.orError
-import io.provenance.scope.loan.utility.requireThat
 import io.provenance.scope.loan.utility.validateRequirements
-import tech.figure.servicing.v1beta1.LoanStateOuterClass.LoanStates
+import tech.figure.servicing.v1beta1.LoanStateOuterClass.LoanStateMetadata
+import tech.figure.servicing.v1beta1.LoanStateOuterClass.ServicingData
 
 @Participants(roles = [PartyType.OWNER])
 @ScopeSpecification(["tech.figure.loan"])
 open class AppendLoanStatesContract(
-    @Record(LoanScopeFacts.loanStates) val existingLoanStates: LoanStates,
+    @Record(LoanScopeFacts.servicingData) val existingServicingData: ServicingData,
 ) : P8eContract() {
 
     @Function(invokedBy = PartyType.OWNER)
-    @Record(LoanScopeFacts.loanStates)
-    open fun appendLoanStates(@Input(LoanScopeFacts.loanStates) newLoanStates: LoanStates): LoanStates {
-        val newLoanStateList = LoanStates.newBuilder().mergeFrom(existingLoanStates)
-        validateRequirements {
-            for (state in newLoanStates.loanStateList) {
+    @Record(LoanScopeFacts.servicingData)
+    open fun appendLoanStates(@Input(LoanScopeFacts.servicingData) newLoanStates: List<LoanStateMetadata>): ServicingData {
+        val updatedServicingData = ServicingData.newBuilder().mergeFrom(existingServicingData)
+        validateRequirements(VALID_INPUT) {
+            for (state in newLoanStates) {
                 requireThat(
-                    state.effectiveTime.isValid()      orError "Invalid effective time",
-                    state.servicerName.isNotBlank()    orError "Missing servicer name",
-                    state.totalUnpaidPrinBal.isValid() orError "Invalid total unpaid principal balance",
-                    state.accruedInterest.isValid()    orError "Invalid accrued interest",
-                    state.dailyIntAmount.isValid()     orError "Invalid daily interest amount",
+                    state.id.isValid()              orError "Invalid id",
+                    state.effectiveTime.isValid()   orError "Invalid effective time",
+                    state.uri.isNotBlank()          orError "Invalid accrued interest",
+                    state.checksum.isValid()        orError "Invalid checksum"
                 )
-                if (existingLoanStates.loanStateList.none { it.effectiveTime == state.effectiveTime }) {
-                    newLoanStateList.addLoanState(state)
+                if (existingServicingData.loanStateList.none { it.effectiveTime == state.effectiveTime }) {
+                    updatedServicingData.addLoanState(state)
                 }
             }
         }
-        return newLoanStateList.build()
+        return updatedServicingData.build()
     }
 }

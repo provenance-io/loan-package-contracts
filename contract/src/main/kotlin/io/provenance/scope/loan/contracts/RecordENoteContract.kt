@@ -9,19 +9,19 @@ import io.provenance.scope.contract.annotations.ScopeSpecification
 import io.provenance.scope.contract.proto.Specifications
 import io.provenance.scope.contract.spec.P8eContract
 import io.provenance.scope.loan.LoanScopeFacts
+import io.provenance.scope.loan.utility.ContractRequirementType.VALID_INPUT
 import io.provenance.scope.loan.utility.isValid
 import io.provenance.scope.loan.utility.orError
-import io.provenance.scope.loan.utility.requireThat
 import io.provenance.scope.loan.utility.validateRequirements
 
 @Participants(roles = [Specifications.PartyType.OWNER])
 @ScopeSpecification(["tech.figure.loan"])
-open class RecordENoteContract: P8eContract() {
+open class RecordENoteContract : P8eContract() {
 
     @Function(invokedBy = Specifications.PartyType.OWNER)
     @Record(LoanScopeFacts.eNote)
     open fun recordENote(@Input(LoanScopeFacts.eNote) eNote: ENote) = eNote.also {
-        validateRequirements(
+        validateRequirements(VALID_INPUT,
             // TODO: Decide which fields should only be required if DART is listed as mortgagee of record/active custodian
             eNote.controller.controllerUuid.isValid()    orError "ENote missing controller UUID",
             eNote.controller.controllerName.isNotBlank() orError "ENote missing controller Name",

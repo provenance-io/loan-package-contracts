@@ -8,12 +8,14 @@ import org.gradle.plugin.use.PluginDependenciesSpec
 object Versions {
     const val Kotlin = "1.6.21"
     const val GitHubRelease = "2.2.12"
+    const val Kotest = "5.2.3"
+    const val Ktlint = "0.45.2"
     const val KrotoPlus = "0.6.1"
     object Plugins {
         const val NexusPublishing = "1.1.0"
         const val P8ePublishing = "0.6.4"
         const val Protobuf = "0.8.18"
-        const val SemVer = "0.3.10"
+        const val SemVer = "0.3.13"
     }
     object Dependencies {
         const val Grpc = "1.39.0"
@@ -22,7 +24,7 @@ object Versions {
         const val SemVer = "1.1.2"
         object Provenance {
             const val Scope = "0.4.9"
-            const val MetadataAssetModel = "0.1.6"
+            const val MetadataAssetModel = "0.1.7"
         }
     }
 }
@@ -35,10 +37,12 @@ object Plugins {
     val P8ePublishing = PluginSpec("io.provenance.p8e.p8e-publish", Versions.Plugins.P8ePublishing)
     val SemVer = PluginSpec("io.github.nefilim.gradle.semver-plugin", Versions.Plugins.SemVer)
     val Protobuf = PluginSpec("com.google.protobuf", Versions.Plugins.Protobuf)
+    val GradleProtobuf = PluginSpec("com.google.protobuf:protobuf-gradle-plugin", Versions.Plugins.Protobuf)
     val KrotoPlus = PluginSpec("com.github.marcoferrer.kroto-plus", Versions.KrotoPlus)
 }
 
 object Dependencies {
+    // Build
     val GitHubRelease = DependencySpec(
         name = "com.github.breadmoirai:github-release",
         version = Versions.GitHubRelease,
@@ -47,6 +51,26 @@ object Dependencies {
         name = "net.swiftzer.semver:semver",
         version = Versions.Dependencies.SemVer,
     )
+    // Testing
+    object Kotest {
+        val Framework = DependencySpec(
+            name = "io.kotest:kotest-runner-junit5",
+            version = Versions.Kotest,
+        )
+        val Assertions = DependencySpec(
+            name = "io.kotest:kotest-assertions-core",
+            version = Versions.Kotest,
+        )
+        val Property = DependencySpec(
+            name = "io.kotest:kotest-property",
+            version = Versions.Kotest,
+        )
+    }
+    val Ktlint = DependencySpec(
+        name = "com.pinterest:ktlint",
+        version = Versions.Ktlint,
+    )
+    // Dependencies
     object Grpc {
         val Stub = DependencySpec(
             name = "io.grpc:grpc-stub",
@@ -118,7 +142,7 @@ object Dependencies {
 data class PluginSpec(
     val id: String,
     val version: String? = ""
-) {
+) : Spec {
     fun addTo(scope: PluginDependenciesSpec) {
         scope.apply {
             id(id).also { spec ->
@@ -132,6 +156,16 @@ data class PluginSpec(
     fun addTo(action: ObjectConfigurationAction) {
         action.plugin(this.id)
     }
+
+    override fun toDependencyNotation(): String =
+        listOfNotNull(
+            id,
+            version?.takeIf { it.isNotBlank() }
+        ).joinToString(":")
+}
+
+/*sealed*/ interface Spec { // TODO: Determine why language version is not applying to allow sealed interfaces
+    fun toDependencyNotation(): String
 }
 
 data class DependencySpec(
@@ -139,7 +173,7 @@ data class DependencySpec(
     val version: String = "",
     val isChanging: Boolean = false,
     val exclude: Collection<String> = emptySet()
-) {
+) : Spec {
     fun plugin(scope: PluginDependenciesSpec) {
         scope.apply {
             id(name).also { spec ->
@@ -195,10 +229,10 @@ data class DependencySpec(
         }
     }
 
-    fun toDependencyNotation(): String =
+    override fun toDependencyNotation(): String =
         listOfNotNull(
             name,
-            version.takeIf { it.isNotEmpty() }
+            version.takeIf { it.isNotBlank() }
         ).joinToString(":")
 }
 
@@ -222,6 +256,10 @@ fun PluginDependenciesSpec.pluginSpecs(vararg specs: PluginSpec) = specs.forEach
     spec.addTo(this)
 }
 
-fun ScriptHandlerScope.classpathSpecs(vararg specs: DependencySpec) = specs.forEach { spec ->
-    spec.classpath(this)
+fun ScriptHandlerScope.classpathSpecs(vararg specs: Spec) = run {
+    dependencies {
+        specs.forEach { spec ->
+            classpath(spec.toDependencyNotation())
+        }
+    }
 }
