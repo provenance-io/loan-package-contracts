@@ -43,7 +43,7 @@ class ContractRequirementsTest : WordSpec({
                 }
             }
             "return state violations only for failed conditions" {
-                checkAll(Arb.list(LoanPackageArbs.contractEnforcement)) { enforcementList ->
+                checkAll(Arb.list(LoanPackageArbs.anyContractEnforcement)) { enforcementList ->
                     val expectedOverallViolationCount = getExpectedViolationCount(enforcementList)
                     if (expectedOverallViolationCount > 0U) {
                         shouldThrow<IllegalContractStateException> {
@@ -59,7 +59,7 @@ class ContractRequirementsTest : WordSpec({
                 }
             }
             "return input violations only for failed conditions" {
-                checkAll(Arb.list(LoanPackageArbs.contractEnforcement)) { enforcementList ->
+                checkAll(Arb.list(LoanPackageArbs.anyContractEnforcement)) { enforcementList ->
                     val expectedOverallViolationCount = getExpectedViolationCount(enforcementList)
                     if (expectedOverallViolationCount > 0U) {
                         shouldThrow<ContractViolationException> {
@@ -78,8 +78,8 @@ class ContractRequirementsTest : WordSpec({
         "invoked with a function body" should {
             "return state violations only for failed conditions" {
                 checkAll(
-                    Arb.list(LoanPackageArbs.contractEnforcement),
-                    Arb.list(LoanPackageArbs.contractEnforcement),
+                    Arb.list(LoanPackageArbs.anyContractEnforcement),
+                    Arb.list(LoanPackageArbs.anyContractEnforcement),
                 ) { enforcementListA, enforcementListB ->
                     val expectedOverallViolationCount = getExpectedViolationCount(enforcementListA + enforcementListB)
                     if (expectedOverallViolationCount > 0U) {
@@ -109,8 +109,8 @@ class ContractRequirementsTest : WordSpec({
             }
             "return input violations only for failed conditions" {
                 checkAll(
-                    Arb.list(LoanPackageArbs.contractEnforcement),
-                    Arb.list(LoanPackageArbs.contractEnforcement),
+                    Arb.list(LoanPackageArbs.anyContractEnforcement),
+                    Arb.list(LoanPackageArbs.anyContractEnforcement),
                 ) { enforcementListA, enforcementListB ->
                     val expectedOverallViolationCount = getExpectedViolationCount(enforcementListA + enforcementListB)
                     if (expectedOverallViolationCount > 0U) {

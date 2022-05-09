@@ -25,7 +25,14 @@ open class AppendLoanDocContract(
     open fun appendDocuments(@Input(LoanScopeFacts.documents) newDocs: LoanDocuments): LoanDocuments {
         val newDocList = LoanDocuments.newBuilder().mergeFrom(existingDocs)
         validateRequirements(VALID_INPUT) {
-            for (doc in newDocs.documentList) {
+            val existingDocChecksums = existingDocs.documentList.fold(mutableMapOf<String, Boolean>()) { acc, documentMetadata ->
+                acc.apply {
+                    documentMetadata.checksum.takeIf { it.isValid() }?.checksum?.let { checksum ->
+                        acc[checksum] = true
+                    }
+                }
+            }
+            newDocs.documentList.forEach { doc ->
                 requireThat(
                     doc.id.isValid()              orError "Document missing ID",
                     doc.uri.isNotBlank()          orError "Document with ID ${doc.id} is missing URI",
@@ -33,8 +40,11 @@ open class AppendLoanDocContract(
                     doc.documentType.isNotBlank() orError "Document with ID ${doc.id} is missing document type",
                     doc.checksum.isValid()        orError "Document with ID ${doc.id} is missing checksum",
                 )
-                if (!existingDocs.documentList.any { it.checksum == doc.checksum }) { // TODO: Improve efficiency of this
-                    newDocList.addDocument(doc)
+                doc.checksum.checksum?.let { newDocChecksum ->
+                    if (existingDocChecksums[newDocChecksum] != true) { // TODO: Confirm that we want to silently ignore duplicates
+                        newDocList.addDocument(doc)
+                        existingDocChecksums[newDocChecksum] = true
+                    }
                 }
             }
         }

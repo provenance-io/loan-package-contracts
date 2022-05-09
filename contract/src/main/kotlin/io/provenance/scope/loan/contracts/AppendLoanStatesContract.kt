@@ -33,7 +33,7 @@ open class AppendLoanStatesContract(
                     state.uri.isNotBlank()          orError "Invalid accrued interest",
                     state.checksum.isValid()        orError "Invalid checksum"
                 )
-                if (existingServicingData.loanStateList.none { it.effectiveTime == state.effectiveTime }) {
+                if (existingServicingData.loanStateList.none { it.effectiveTime == state.effectiveTime }) { // TODO: Improve check for duplicates
                     updatedServicingData.addLoanState(state)
                 }
             }

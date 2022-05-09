@@ -43,13 +43,13 @@ data class LoanPackage(
     /** The servicing rights to the loan. Defaults to the lender. */
     @Record(LoanScopeFacts.servicingRights) var servicingRights: ServicingRights,
     /** A list of metadata for documents, including their URIs in an encrypted object store. */
-    @Record(LoanScopeFacts.documents) var documents: LoanDocuments? = null,
+    @Record(LoanScopeFacts.documents) var documents: LoanDocuments,
     /** Servicing data for the loan, including a list of metadata on loan states. */
-    @Record(LoanScopeFacts.servicingData) var servicingData: ServicingData? = null,
+    @Record(LoanScopeFacts.servicingData) var servicingData: ServicingData,
     /** A list of third-party validation iterations. */
-    @Record(LoanScopeFacts.loanValidations) var loanValidations: LoanValidation? = null,
+    @Record(LoanScopeFacts.loanValidations) var loanValidations: LoanValidation,
     /** The eNote for the loan. */
-    @Record(LoanScopeFacts.eNote) var eNote: ENote? = null
+    @Record(LoanScopeFacts.eNote) var eNote: ENote,
 )
 
 /**

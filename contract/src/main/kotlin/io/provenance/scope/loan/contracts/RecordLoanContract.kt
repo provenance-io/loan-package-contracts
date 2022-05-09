@@ -10,8 +10,11 @@ import io.provenance.scope.contract.proto.Specifications.PartyType
 import io.provenance.scope.contract.spec.P8eContract
 import io.provenance.scope.loan.LoanScopeFacts
 import io.provenance.scope.loan.utility.ContractRequirementType.VALID_INPUT
+import io.provenance.scope.loan.utility.UnexpectedContractStateException
+import io.provenance.scope.loan.utility.isSet
 import io.provenance.scope.loan.utility.isValid
 import io.provenance.scope.loan.utility.orError
+import io.provenance.scope.loan.utility.toLoan
 import io.provenance.scope.loan.utility.validateRequirements
 import tech.figure.asset.v1beta1.Asset
 import tech.figure.loan.v1beta1.LoanDocuments
@@ -22,36 +25,39 @@ import tech.figure.validation.v1beta1.LoanValidation
 @Participants(roles = [PartyType.OWNER])
 @ScopeSpecification(["tech.figure.loan"])
 open class RecordLoanContract(
-    @Record(LoanScopeFacts.asset) val existingAsset: Asset? = null,
-    @Record(LoanScopeFacts.eNote) val existingENote: ENote? = null,
+    @Record(LoanScopeFacts.asset) val existingAsset: Asset,
+    @Record(LoanScopeFacts.eNote) val existingENote: ENote,
 ) : P8eContract() {
 
     @Function(invokedBy = PartyType.OWNER)
     @Record(LoanScopeFacts.asset)
-    open fun recordAsset(@Input(LoanScopeFacts.asset) asset: Asset) = asset.also {
-        // TODO: Add or implement correct extension for safe casting of kvMap values like "loan"
-        /*validateRequirements(VALID_INPUT) {
-            if (existingAsset != null) {
+    open fun recordAsset(@Input(LoanScopeFacts.asset) newAsset: Asset) = newAsset.also {
+        validateRequirements(VALID_INPUT) {
+            val newLoan = newAsset.kvMap["loan"]?.toLoan()
+                ?: throw UnexpectedContractStateException("No key \"loan\" was found in the input asset")
+            if (existingAsset.isSet()) {
+                val existingLoan = existingAsset.kvMap["loan"]?.toLoan()
+                    ?: throw UnexpectedContractStateException("No key \"loan\" was found in the existing asset record")
                 requireThat(
                     // Flag that the asset is an eNote
-                    existingAsset.kvMap["loan"].isENote.isFalse() orError "asset cannot be updated",
+                    // existingLoan.isENote.isFalse()                               orError "Asset cannot be updated", // TODO: Determine how to do
                     // optional: make sure nothing important changed
                     // examples:
-                    existingAsset.id == asset.id orError "cannot change asset ID",
-                    existingAsset.type == asset.type orError "cannot change asset type",
-                    existingAsset.kvMap["loan"].originatorUuid == asset.kvMap["loan"].originatorUuid orError "cannot change loan originator UUID",
-                    existingAsset.kvMap["loan"].originatorName == asset.kvMap["loan"].originatorName orError "cannot change loan originator name",
+                    (existingAsset.id == newAsset.id)                            orError "Cannot change asset ID",
+                    (existingAsset.type == newAsset.type)                        orError "Cannot change asset type",
+                    // (existingLoan.originatorUuid == existingLoan.originatorUuid) orError "Cannot change loan originator UUID", // TODO: Remove?
+                    (existingLoan.originatorName == existingLoan.originatorName) orError "Cannot change loan originator name",
                 )
             } else {
                 requireThat(
                     // other validation rules, such as:
-                    asset.id.isValid() orError "asset.id is missing",
-                    asset.type.isNotBlank() orError "asset.type is missing",
-                    asset.kvMap["loan"].originatorUuid.isValid() orError "asset.kv.loan.originatorUuid is missing",
-                    asset.kvMap["loan"].originatorName.isNotBlank() orError "asset.kv.loan.originatorName is missing",
+                    newAsset.id.isValid()               orError "Asset ID is missing",
+                    newAsset.type.isNotBlank()          orError "Asset type is missing",
+                    // newLoan.originatorUuid.isValid()    orError "asset.kv.loan.originatorUuid is missing", // TODO: Remove?
+                    newLoan.originatorName.isNotBlank() orError "asset.kv.loan.originatorName is missing",
                 )
             }
-        }*/
+        }
     }
 
     @Function(invokedBy = PartyType.OWNER)
@@ -72,9 +78,9 @@ open class RecordLoanContract(
 
     @Function(invokedBy = PartyType.OWNER)
     @Record(LoanScopeFacts.eNote)
-    open fun recordENote(@Input(LoanScopeFacts.eNote) eNote: ENote? = null) = eNote?.also {
+    open fun recordENote(@Input(LoanScopeFacts.eNote) eNote: ENote) = eNote.also {
         validateRequirements(VALID_INPUT) {
-            if (existingENote != null) {
+            if (existingENote.isSet()) {
                 requireThat((existingENote.eNote.checksum == it.eNote.checksum) orError
                     "ENote with a different checksum already exists on chain for the specified scope; ENote modifications are not allowed!"
                 )
@@ -84,7 +90,7 @@ open class RecordLoanContract(
                 eNote.controller.controllerUuid.isValid()    orError "ENote missing controller UUID",
                 eNote.controller.controllerName.isNotBlank() orError "ENote missing controller Name",
                 eNote.eNote.id.isValid()                     orError "ENote missing ID",
-                eNote.eNote.uri.isNotBlank()                 orError "ENote missing uri",
+                eNote.eNote.uri.isNotBlank()                 orError "ENote missing URI",
                 eNote.eNote.contentType.isNotBlank()         orError "ENote missing content type",
                 eNote.eNote.documentType.isNotBlank()        orError "ENote missing document type",
                 eNote.eNote.checksum.isValid()               orError "ENote missing checksum",

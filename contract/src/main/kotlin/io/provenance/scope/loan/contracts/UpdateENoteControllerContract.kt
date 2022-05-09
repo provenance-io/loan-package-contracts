@@ -12,6 +12,7 @@ import io.provenance.scope.contract.spec.P8eContract
 import io.provenance.scope.loan.LoanScopeFacts
 import io.provenance.scope.loan.LoanScopeInputs
 import io.provenance.scope.loan.utility.ContractRequirementType
+import io.provenance.scope.loan.utility.isSet
 import io.provenance.scope.loan.utility.isValid
 import io.provenance.scope.loan.utility.orError
 import io.provenance.scope.loan.utility.validateRequirements
@@ -19,19 +20,19 @@ import io.provenance.scope.loan.utility.validateRequirements
 @Participants([PartyType.OWNER/*, PartyType.CONTROLLER*/]) // TODO: Add controller or ensure Authz grant to controller is made
 @ScopeSpecification(["tech.figure.loan"])
 open class UpdateENoteControllerContract(
-    @Record(LoanScopeFacts.eNote) val existingENote: ENote?, // TODO: Confirm if this should be nullable and adjust code below accordingly
+    @Record(LoanScopeFacts.eNote) val existingENote: ENote,
 ) : P8eContract() {
 
     @Function(invokedBy = PartyType.OWNER/*PartyType.CONTROLLER*/) // TODO: Change to controller or ensure Authz grant to controller is made
     @Record(LoanScopeFacts.eNote)
     open fun updateENoteController(@Input(LoanScopeInputs.eNoteControllerUpdate) newController: Controller): ENote {
         validateRequirements(ContractRequirementType.LEGAL_SCOPE_STATE,
-            (existingENote !== null) orError "Cannot create eNote using this contract",
+            existingENote.isSet() orError "Cannot create eNote using this contract",
         )
         validateRequirements(ContractRequirementType.VALID_INPUT,
             newController.controllerUuid.isValid()    orError "Controller UUID is missing",
             newController.controllerName.isNotBlank() orError "Controller Name is missing",
         )
-        return existingENote!!.toBuilder().setController(newController).build()
+        return existingENote.toBuilder().setController(newController).build()
     }
 }
