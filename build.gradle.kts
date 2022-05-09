@@ -180,7 +180,7 @@ val prLocations = mapOf(
         it.txFeeAdjustment = "2.0"
         it.txBatchSize = "3"
         it.osHeaders = mapOf(
-            "apikey" to System.getenv("APIKEY")
+            "apikey" to System.getenv("OS_GRPC_APIKEY")
         )
 
         it.audience = testAudience
@@ -198,7 +198,7 @@ val releaseLocations = mapOf(
         it.txFeeAdjustment = "2.0"
         it.txBatchSize = "1"
         it.osHeaders = mapOf(
-            "apikey" to System.getenv("APIKEY")
+            "apikey" to System.getenv("OS_GRPC_APIKEY")
         )
 
         it.audience = prodAudience
