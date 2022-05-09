@@ -13,7 +13,7 @@ object Versions {
     const val KrotoPlus = "0.6.1"
     object Plugins {
         const val NexusPublishing = "1.1.0"
-        const val P8ePublishing = "0.6.4"
+        const val P8ePublishing = "0.6.5"
         const val Protobuf = "0.8.18"
         const val SemVer = "0.3.13"
     }
