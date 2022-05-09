@@ -23,7 +23,7 @@ jobs:
           java-version: '11'
 
       - name: Linting
-        run: ./gradlew ktlintCheck --parallel
+        run: ./gradlew clean ktlintCheck --parallel
 
   build:
     name: Build

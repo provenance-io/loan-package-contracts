@@ -16,16 +16,6 @@ internal typealias ContractEnforcement = Pair<Boolean, ContractViolation>
 internal typealias ContractViolationMap = MutableMap<ContractViolation, UInt>
 
 /**
- * Denotes an [Exception] thrown by [validateRequirements] when a contract is executed for an inapplicable loan scope.
- */
-class IllegalContractStateException(message: String) : IllegalStateException(message)
-
-/**
- * Denotes an [Exception] thrown by [validateRequirements] when a contract is executed with invalid input.
- */
-class ContractViolationException(val overallViolationCount: UInt, message: String) : IllegalArgumentException(message)
-
-/**
  * Denotes the type of contract requirement being evaluated by [validateRequirements].
  */
 internal enum class ContractRequirementType(
@@ -115,9 +105,9 @@ private fun ContractViolationMap.handleViolations(
     ) { (violationMessage, overallViolationCount), (violation, count) ->
         if (count > 0U) {
             if (count > 1U) {
-                "$violation ($count occurrences)"
+                "\"$violation\" ($count occurrences)"
             } else {
-                violation
+                "\"$violation\""
             }.let { violationInstance ->
                 "$violationMessage${if (overallViolationCount > 0U) ", " else ""} $violationInstance" to overallViolationCount + 1U
             }
