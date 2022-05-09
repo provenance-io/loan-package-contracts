@@ -41,6 +41,12 @@ build/
 .project
 .classpath
 
+# p8e files
+ContractHash*.kt
+ProtoHash*.kt
+**/resources/**/*.ContractHash
+**/resources/**/*.ProtoHash
+
 # Miscellaneous files
 /bin/
 out/

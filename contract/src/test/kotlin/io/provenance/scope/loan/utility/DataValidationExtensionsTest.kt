@@ -1,7 +1,6 @@
 package io.provenance.scope.loan.utility
 
 import com.google.protobuf.Any
-import com.google.protobuf.Timestamp
 import io.kotest.core.spec.style.WordSpec
 import io.kotest.matchers.shouldBe
 import io.kotest.property.Arb
@@ -16,14 +15,13 @@ import io.provenance.scope.loan.test.Constructors.randomProtoUuid
 import io.provenance.scope.util.toProtoTimestamp
 import tech.figure.validation.v1beta1.ValidationIteration
 import tech.figure.validation.v1beta1.ValidationRequest
-import java.time.LocalDateTime
 import java.time.ZoneOffset
 import tech.figure.util.v1beta1.Checksum as FigureTechChecksum
 import tech.figure.util.v1beta1.Date as FigureTechDate
 import tech.figure.util.v1beta1.Money as FigureTechMoney
 import tech.figure.util.v1beta1.UUID as FigureTechUUID
 
-class DataExtensionsTest : WordSpec({
+class DataValidationExtensionsTest : WordSpec({
     "Message.isSet" should {
         "return false for any default instance" {
             ValidationIteration.getDefaultInstance().isSet() shouldBe false
@@ -43,11 +41,8 @@ class DataExtensionsTest : WordSpec({
         }
     }
     "Timestamp.isValid" should {
-        "return false for a default instance" {
-            Timestamp.getDefaultInstance().isValid() shouldBe false
-        }
-        "return true for any UTC date other than the epoch" {
-            forAll(Arb.localDateTime(minLocalDateTime = LocalDateTime.of(1970, 1, 1, 0, 1))) { randomLocalDateTime ->
+        "return true for any UTC date" {
+            forAll(Arb.localDateTime()) { randomLocalDateTime ->
                 randomLocalDateTime.atOffset(ZoneOffset.UTC).toProtoTimestamp().isValid()
             }
         }
@@ -106,16 +101,8 @@ class DataExtensionsTest : WordSpec({
         }
     }
     "Money.isValid" should {
-        "return false for a default instance" {
-            FigureTechMoney.getDefaultInstance().isValid() shouldBe false
-        }
-        "return true for any number other than zero" {
-            forAll(Arb.double(max = -0.1)) { randomDouble ->
-                FigureTechMoney.newBuilder().apply {
-                    amount = randomDouble
-                }.build().isValid()
-            }
-            forAll(Arb.double(min = 0.1)) { randomDouble ->
+        "return true for any double" {
+            forAll(Arb.double()) { randomDouble ->
                 FigureTechMoney.newBuilder().apply {
                     amount = randomDouble
                 }.build().isValid()

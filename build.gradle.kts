@@ -41,6 +41,16 @@ dependencies {
 
 val outputDir = "${project.buildDir}/reports/ktlint/"
 val inputFiles = project.fileTree(mapOf("dir" to "src", "include" to "**/*.kt"))
+val lintingExclusions = listOf(
+    "**/ContractHash*.kt",
+    "**/ProtoHash*.kt",
+)
+
+val ktlintExcludeSyntax: (Collection<String>) -> Collection<String> = { exclusions ->
+    exclusions.map { exclusion ->
+        "!$exclusion"
+    }
+}
 
 val ktlintCheck by tasks.creating(JavaExec::class) {
     inputs.files(inputFiles)
@@ -49,7 +59,7 @@ val ktlintCheck by tasks.creating(JavaExec::class) {
     description = "Check Kotlin code style."
     classpath = ktlint
     mainClass.set("com.pinterest.ktlint.Main")
-    args = listOf("*/src/**/*.kt")
+    args = listOf("*/src/**/*.kt") + ktlintExcludeSyntax(lintingExclusions)
 }
 
 val ktlintFormat by tasks.creating(JavaExec::class) {

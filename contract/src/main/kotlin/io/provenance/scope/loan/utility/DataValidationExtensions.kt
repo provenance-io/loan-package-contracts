@@ -19,7 +19,9 @@ private fun tryOrFalse(fn: () -> Any): Boolean =
 
 internal fun ProtobufMessage?.isSet() = this !== null && this != this.defaultInstanceForType
 
-internal fun ProtobufTimestamp?.isValid() = isSet()
+internal fun ProtobufMessage?.isNotSet() = !isSet()
+
+internal fun ProtobufTimestamp?.isValid() = this !== null // Make no assumptions about validity of epoch on behalf of the data source
 
 internal fun FigureTechDate?.isValid() = isSet() && this!!.value.isNotBlank()
 
@@ -29,4 +31,4 @@ internal fun FigureTechUUID?.isValid() = isSet() && this!!.value.isNotBlank() &&
     JavaUUID.fromString(this.value)
 }
 
-internal fun FigureTechMoney?.isValid() = isSet()
+internal fun FigureTechMoney?.isValid() = this !== null // Make no assumptions about validity of money amount on behalf of the data source

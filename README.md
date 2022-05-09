@@ -19,7 +19,11 @@ See [here](https://github.com/provenance-io/p8e-gradle-plugin/#tasks) for detail
 #### Linting
 This project uses [Ktlint](https://github.com/pinterest/ktlint).
 
-To run the linter against your code, use
+To immediately view linting errors, use
+```shell
+./gradlew clean ktlintCheck
+```
+To generate linting reports, use
 ```shell
 ./gradlew ktlintCheck
 ```
