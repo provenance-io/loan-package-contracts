@@ -11,6 +11,7 @@ import io.provenance.scope.contract.spec.P8eContract
 import io.provenance.scope.loan.LoanScopeFacts
 import io.provenance.scope.loan.LoanScopeInputs
 import io.provenance.scope.loan.utility.ContractRequirementType
+import io.provenance.scope.loan.utility.isSet
 import io.provenance.scope.loan.utility.isValid
 import io.provenance.scope.loan.utility.orError
 import io.provenance.scope.loan.utility.validateRequirements
@@ -19,14 +20,14 @@ import tech.figure.util.v1beta1.DocumentMetadata
 @Participants(roles = [PartyType.OWNER]) // TODO: Change to controller or ensure Authz grant to controller is made
 @ScopeSpecification(["tech.figure.loan"])
 open class UpdateENoteContract(
-    @Record(LoanScopeFacts.eNote) val existingENote: ENote?,
+    @Record(LoanScopeFacts.eNote) val existingENote: ENote,
 ) : P8eContract() {
 
     @Function(invokedBy = PartyType.OWNER) // TODO: Change to controller or ensure Authz grant to controller is made
     @Record(LoanScopeFacts.eNote)
     open fun updateENote(@Input(LoanScopeInputs.eNoteUpdate) newENote: DocumentMetadata): ENote {
         validateRequirements(ContractRequirementType.LEGAL_SCOPE_STATE,
-            (existingENote !== null) orError "Cannot create eNote using this contract",
+            existingENote.isSet() orError "Cannot create eNote using this contract",
         )
         validateRequirements(ContractRequirementType.VALID_INPUT,
             newENote.id.isValid()              orError "ENote missing ID",
@@ -35,6 +36,6 @@ open class UpdateENoteContract(
             newENote.documentType.isNotBlank() orError "ENote missing document type",
             newENote.checksum.isValid()        orError "ENote missing checksum",
         )
-        return existingENote!!.toBuilder().setENote(newENote).build()
+        return existingENote.toBuilder().setENote(newENote).build()
     }
 }

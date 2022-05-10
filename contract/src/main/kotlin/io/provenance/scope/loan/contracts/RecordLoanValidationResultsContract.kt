@@ -9,7 +9,8 @@ import io.provenance.scope.contract.proto.Specifications.PartyType
 import io.provenance.scope.contract.spec.P8eContract
 import io.provenance.scope.loan.LoanScopeFacts
 import io.provenance.scope.loan.LoanScopeInputs
-import io.provenance.scope.loan.utility.ContractRequirementType.VALID_INPUT
+import io.provenance.scope.loan.utility.ContractRequirementType
+import io.provenance.scope.loan.utility.isSet
 import io.provenance.scope.loan.utility.isValid
 import io.provenance.scope.loan.utility.orError
 import io.provenance.scope.loan.utility.validateRequirements
@@ -27,11 +28,14 @@ open class RecordLoanValidationResultsContract(
     open fun recordLoanValidationResults(
         @Input(LoanScopeInputs.validationResponse) submission: ValidationResponse
     ): LoanValidation {
-        validateRequirements(VALID_INPUT) {
+        validateRequirements(ContractRequirementType.LEGAL_SCOPE_STATE,
+            validationRecord.isSet() orError "A validation iteration must exist for results to be submitted",
+        )
+        validateRequirements(ContractRequirementType.VALID_INPUT) {
             requireThat(
                 submission.results.resultSetUuid.isValid()          orError "Result set UUID is missing",
                 submission.requestId.isValid()                      orError "Request ID is missing",
-                submission.results.resultSetEffectiveTime.isValid() orError "Result set date is missing",
+                submission.results.resultSetEffectiveTime.isValid() orError "Result set timestamp is missing",
                 (submission.results.validationExceptionCount >= 0)  orError "Invalid validation exception count",
                 (submission.results.validationWarningCount >= 0)    orError "Invalid validation warning count",
                 (submission.results.validationItemsCount > 0)       orError "No validation items were provided",
@@ -44,7 +48,7 @@ open class RecordLoanValidationResultsContract(
                     if (maybeIteration === null) {
                         false orError "No single validation iteration with a matching request ID exists"
                     } else {
-                        (submission.results.resultSetProvider == maybeIteration.request.requesterName) orError
+                        (submission.results.resultSetProvider == maybeIteration.request.validatorName) orError
                             "Result set provider does not match what was requested in this validation iteration"
                     }
                 )
