@@ -11,6 +11,7 @@ object Versions {
     const val Kotest = "5.2.3"
     const val Ktlint = "0.45.2"
     const val KrotoPlus = "0.6.1"
+    const val BouncyCastle = "1.70"
     object Plugins {
         const val NexusPublishing = "1.1.0"
         const val P8ePublishing = "0.6.5"
@@ -136,6 +137,8 @@ object Dependencies {
                 "io.grpc:grpc-protobuf",
             ),
         )
+        val BouncyCastleProvider = DependencySpec("org.bouncycastle:bcprov-jdk15on", Versions.BouncyCastle)
+        val BouncyCastle = DependencySpec("org.bouncycastle:bcpkix-jdk15on", Versions.BouncyCastle)
     }
 }
 

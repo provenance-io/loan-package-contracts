@@ -36,6 +36,8 @@ dependencies {
             attribute(Bundling.BUNDLING_ATTRIBUTE, objects.named(Bundling.EXTERNAL))
         }
     }
+    Dependencies.Provenance.BouncyCastleProvider
+    Dependencies.Provenance.BouncyCastle
     // ktlint(project(":custom-ktlint-ruleset")) // in case of custom ruleset
 }
 
@@ -199,7 +201,8 @@ githubRelease {
 fun p8eParty(publicKey: String): P8ePartyExtension = P8ePartyExtension().also { it.publicKey = publicKey }
 
 val localAudience = mapOf(
-    "local1" to p8eParty("0A41042C52EB79307D248B6CFB2A4AF562E403D4826BB0F540F024BBC3937528F6EB0B7FFA7A6585B751DBA25C173E658F3FEAAB0F05980C76E985CE0D55294F3600D7"),
+    "local1" to p8eParty("0A4104C51E49E4F0ABA2FD5B8CF99445D6D6C385164DBC8F35E7374CAC241D4155ADC48EF9B199F799DC865EC24AF54376CF5DD29A1287F1FD3410709A62F5DDE49349"),
+    "local2" to p8eParty("0A41042C52EB79307D248B6CFB2A4AF562E403D4826BB0F540F024BBC3937528F6EB0B7FFA7A6585B751DBA25C173E658F3FEAAB0F05980C76E985CE0D55294F3600D7"),
 )
 
 val testAudience = mapOf(
