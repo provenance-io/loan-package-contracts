@@ -46,7 +46,7 @@ class DataConversionExtensionsTest : WordSpec({
                     }
                     IllegalArgumentException("Expected the receiver's algorithm to not be set").let { callerException ->
                         shouldThrow<IllegalArgumentException> { // Sanity check that parsing is only attempted when intended by code
-                            randomChecksum.takeIf { it.algorithm.isNullOrBlank() }?.toProtoAny()?.toLoan()
+                            randomChecksum.takeIf { false }?.toProtoAny()?.toLoan()
                                 ?: throw callerException
                         }.let { thrownException ->
                             thrownException shouldBe callerException
