@@ -11,13 +11,27 @@ on:
         options:
           - 'testnet'
           - 'mainnet'
+      os_url:
+        description: Object Store URL
+        default: 'grpcs://test.figure.com/objectstore.'
+        required: true
+        type: string
+      prov_url:
+        description: Provenance URL
+        default: 'grpcs://34.148.39.82:9090'
+        required: true
+        type: string
+      chain_id:
+        description: Chain Id
+        default: 'pio-testnet-1'
+        required: true
+        type: string
 
 jobs:
   linting:
     name: Linting
     runs-on: ubuntu-latest
     if: github.event.pull_request.draft == false
-
     steps:
       - name: Checkout Code
         uses: actions/checkout@v3
@@ -36,13 +50,15 @@ jobs:
   build-and-publish:
     name: Build and Publish Jar
     runs-on: ubuntu-latest
+    environment: ${{ github.event.inputs.publishing_environment }}
     env:
       IS_TEST: ${{ github.event.inputs.publishing_environment == 'testnet' }}
-      OS_GRPC_URL: https://test.figure.com:80
-      PROVENANCE_GRPC_URL: grpcs://34.148.39.82:9090
-      ENCRYPTION_PRIVATE_KEY: IS_TEST && ${{ secrets.TEST_PRIVATE_KEY }} || ${{ secrets.PROD_PRIVATE_KEY }}
-      SIGNING_PRIVATE_KEY: IS_TEST && ${{ secrets.TEST_PRIVATE_KEY }} || ${{ secrets.PROD_PRIVATE_KEY }}
-      CHAIN_ID: IS_TEST && "pio-testnet-1 || "pio-mainnet-1"
+      OS_GRPC_URL: ${{ github.event.inputs.os_url }}
+      PROVENANCE_GRPC_URL: ${{ github.event.inputs.prov_url }}
+      ENCRYPTION_PRIVATE_KEY: ${{ secrets.ENCRYPTION_PRIVATE_KEY }}
+      SIGNING_PRIVATE_KEY: ${{ secrets.SIGNING_PRIVATE_KEY }}
+      CHAIN_ID: ${{ github.event.inputs.chain_id }}
+      OS_GRPC_APIKEY: ${{ secrets.OS_GRPC_APIKEY }}
 
     steps:
       - name: Checkout
@@ -64,8 +80,8 @@ jobs:
       - name: Check Contract Syntax
         run: ./gradlew p8eClean p8eCheck --info
 
-#      - name: Bootstrap Test
-#        run: ./gradlew p8eBootstrap --info
+      - name: Bootstrap Test
+        run: ./gradlew p8eBootstrap --info
 
       - name: Create Outputs
         run: |-
@@ -80,6 +96,7 @@ jobs:
           echo -n "${{ secrets.OSSRH_GPG_SECRET_KEY }}" | base64 --decode | gpg --batch --import
           gpg --list-secret-keys --keyid-format LONG
           echo -n "${{ secrets.OSSRH_GPG_SECRET_KEY }}" | base64 --decode > $GITHUB_WORKSPACE/release.gpg
+          
       - name: Publish to Maven Central
         run: |
           ./gradlew publishToSonatype -Psemver.overrideVersion=${{ steps.ci-release-create-outputs.outputs.semVersion }} $(if [ "${{github.event.release.prerelease}}" = "true" ]; then echo 'closeSonatypeStagingRepository'; else echo 'closeAndReleaseSonatypeStagingRepository'; fi) \
