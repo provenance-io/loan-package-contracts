@@ -118,19 +118,62 @@ subprojects {
     }
 
     publishing {
-        repositories {
-            maven {
-                url = uri("https://nexus.figure.com/repository/figure")
-                credentials {
-                    username = System.getenv("NEXUS_USER")
-                    password = System.getenv("NEXUS_PASS")
+        publications {
+            create<MavenPublication>("maven") {
+                groupId = "io.provenance.loan-package"
+                artifactId = subProjectName
+
+                from(components["java"])
+
+                pom {
+                    name.set("Provenance Loan Package Contracts")
+                    description.set("P8e Loan Package Contracts for use with p8e-cee-api.")
+                    url.set("https://provenance.io")
+
+                    licenses {
+                        license {
+                            name.set("The Apache License, Version 2.0")
+                            url.set("http://www.apache.org/licenses/LICENSE-2.0.txt")
+                        }
+                    }
+
+                    developers {
+                        developer {
+                            id.set("cworsnop-figure")
+                            name.set("Cody Worsnop")
+                            email.set("cworsnop@figure.com")
+                        }
+                    }
+
+                    scm {
+                        connection.set("git@github.com:provenance-io/loan-package-contracts.git")
+                        developerConnection.set("git@github.com:provenance-io/loan-package-contracts.git")
+                        url.set("https://github.com/provenance-io/loan-package-contracts")
+                    }
                 }
             }
-            publications {
-                create<MavenPublication>("maven") {
-                    from(components["java"])
-                }
+        }
+
+        signing {
+            sign(publishing.publications["maven"])
+        }
+
+        tasks.javadoc {
+            if(JavaVersion.current().isJava9Compatible) {
+                (options as StandardJavadocDocletOptions).addBooleanOption("html5", true)
             }
+        }
+    }
+}
+
+nexusPublishing {
+    repositories {
+        sonatype {
+            nexusUrl.set(uri(RepositoryLocations.Sonatype))
+            snapshotRepositoryUrl.set(uri(RepositoryLocations.SonatypeSnapshot))
+            username.set(findProject("ossrhUsername")?.toString() ?: System.getenv("OSSRH_USERNAME"))
+            password.set(findProject("ossrhPassword")?.toString() ?: System.getenv("OSSRH_PASSWORD"))
+            stagingProfileId.set("3180ca260b82a7") // prevents querying for the staging profile id, performance optimization
         }
     }
 }
