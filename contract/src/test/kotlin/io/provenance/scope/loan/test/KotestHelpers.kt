@@ -7,23 +7,29 @@ import io.kotest.matchers.should
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.types.beInstanceOf
 import io.kotest.property.Arb
+import io.kotest.property.arbitrary.UUIDVersion
 import io.kotest.property.arbitrary.bind
 import io.kotest.property.arbitrary.boolean
+import io.kotest.property.arbitrary.filter
 import io.kotest.property.arbitrary.list
+import io.kotest.property.arbitrary.map
 import io.kotest.property.arbitrary.string
 import io.kotest.property.arbitrary.uInt
+import io.kotest.property.arbitrary.uuid
 import io.provenance.scope.loan.utility.ContractEnforcement
 import io.provenance.scope.loan.utility.ContractViolation
 import io.provenance.scope.loan.utility.ContractViolationException
 import io.provenance.scope.loan.utility.ContractViolationMap
 import io.provenance.scope.loan.utility.UnexpectedContractStateException
 import tech.figure.util.v1beta1.Checksum as FigureTechChecksum
+import tech.figure.util.v1beta1.UUID as FigureTechUUID
 
 /**
  * Generators of [Arb]itrary instances.
- * Values denoted as "anyFoo" should return a valid _or_ invalid instance of Foo.
  */
 internal object LoanPackageArbs {
+    /* Primitives */
+    val anyNonEmptyString: Arb<String> = Arb.string().filter { it.isNotBlank() }
     /* Contract requirements */
     val anyContractViolation: Arb<ContractViolation> = Arb.string()
     val anyContractEnforcement: Arb<ContractEnforcement> = Arb.bind(
@@ -46,6 +52,11 @@ internal object LoanPackageArbs {
         FigureTechChecksum.newBuilder().apply {
             checksum = checksumValue
             algorithm = algorithmType
+        }.build()
+    }
+    val anyUuid: Arb<FigureTechUUID> = Arb.uuid(UUIDVersion.V4).map { arbUuidV4 ->
+        FigureTechUUID.newBuilder().apply {
+            value = arbUuidV4.toString()
         }.build()
     }
 }

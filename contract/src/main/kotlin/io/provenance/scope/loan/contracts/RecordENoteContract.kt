@@ -10,28 +10,18 @@ import io.provenance.scope.contract.proto.Specifications
 import io.provenance.scope.contract.spec.P8eContract
 import io.provenance.scope.loan.LoanScopeFacts
 import io.provenance.scope.loan.utility.ContractRequirementType.VALID_INPUT
-import io.provenance.scope.loan.utility.isValid
-import io.provenance.scope.loan.utility.orError
+import io.provenance.scope.loan.utility.eNoteValidation
 import io.provenance.scope.loan.utility.validateRequirements
 
 @Participants(roles = [Specifications.PartyType.OWNER])
 @ScopeSpecification(["tech.figure.loan"])
 open class RecordENoteContract : P8eContract() {
-
+    // TODO: Add function modifying servicing data record with servicing data as input
     @Function(invokedBy = Specifications.PartyType.OWNER)
     @Record(LoanScopeFacts.eNote)
     open fun recordENote(@Input(LoanScopeFacts.eNote) eNote: ENote) = eNote.also {
-        validateRequirements(VALID_INPUT,
-            // TODO: Decide which fields should only be required if DART is listed as mortgagee of record/active custodian
-            eNote.controller.controllerUuid.isValid()    orError "ENote missing controller UUID",
-            eNote.controller.controllerName.isNotBlank() orError "ENote missing controller Name",
-            eNote.eNote.id.isValid()                     orError "ENote missing ID",
-            eNote.eNote.uri.isNotBlank()                 orError "ENote missing uri",
-            eNote.eNote.contentType.isNotBlank()         orError "ENote missing content type",
-            eNote.eNote.documentType.isNotBlank()        orError "ENote missing document type",
-            eNote.eNote.checksum.isValid()               orError "ENote missing checksum",
-            eNote.signedDate.isValid()                   orError "ENote missing signed date",
-            eNote.vaultName.isNotBlank()                 orError "ENote missing vault name",
-        )
+        validateRequirements(VALID_INPUT) {
+            eNoteValidation(eNote)
+        }
     }
 }

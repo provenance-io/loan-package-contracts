@@ -9,8 +9,8 @@ import io.provenance.scope.contract.proto.Specifications.PartyType
 import io.provenance.scope.contract.spec.P8eContract
 import io.provenance.scope.loan.LoanScopeFacts
 import io.provenance.scope.loan.utility.ContractRequirementType.VALID_INPUT
+import io.provenance.scope.loan.utility.documentValidation
 import io.provenance.scope.loan.utility.isValid
-import io.provenance.scope.loan.utility.orError
 import io.provenance.scope.loan.utility.validateRequirements
 import tech.figure.loan.v1beta1.LoanDocuments
 
@@ -33,13 +33,7 @@ open class AppendLoanDocContract(
                 }
             }
             newDocs.documentList.forEach { doc ->
-                requireThat(
-                    doc.id.isValid()              orError "Document missing ID",
-                    doc.uri.isNotBlank()          orError "Document with ID ${doc.id} is missing URI",
-                    doc.contentType.isNotBlank()  orError "Document with ID ${doc.id} is missing content type",
-                    doc.documentType.isNotBlank() orError "Document with ID ${doc.id} is missing document type",
-                    doc.checksum.isValid()        orError "Document with ID ${doc.id} is missing checksum",
-                )
+                documentValidation(doc)
                 doc.checksum.checksum?.let { newDocChecksum ->
                     if (existingDocChecksums[newDocChecksum] != true) { // TODO: Confirm that we want to silently ignore duplicates
                         newDocList.addDocument(doc)

@@ -5,9 +5,9 @@ import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.core.spec.style.WordSpec
 import io.kotest.matchers.string.shouldContain
 import io.kotest.matchers.string.shouldContainIgnoringCase
-import io.provenance.scope.loan.test.Constructors.contractWithEmptyExistingValidationRecord
-import io.provenance.scope.loan.test.Constructors.contractWithSingleValidationIteration
 import io.provenance.scope.loan.test.Constructors.randomProtoUuid
+import io.provenance.scope.loan.test.Constructors.resultsContractWithEmptyExistingRecord
+import io.provenance.scope.loan.test.Constructors.resultsContractWithSingleRequest
 import io.provenance.scope.loan.test.Constructors.validResultSubmission
 import io.provenance.scope.loan.utility.ContractViolationException
 import io.provenance.scope.loan.utility.IllegalContractStateException
@@ -18,7 +18,7 @@ class RecordLoanValidationResultsUnitTest : WordSpec({
         "executed without a validation request existing in the scope" should {
             "throw an appropriate exception" {
                 shouldThrow<IllegalContractStateException> {
-                    contractWithEmptyExistingValidationRecord.apply {
+                    resultsContractWithEmptyExistingRecord.apply {
                         recordLoanValidationResults(validResultSubmission(randomProtoUuid))
                     }
                 }.let { exception ->
@@ -26,11 +26,11 @@ class RecordLoanValidationResultsUnitTest : WordSpec({
                 }
             }
         }
-        "given an invalid input" should {
+        "given an empty input" should {
             "throw an appropriate exception" {
                 ValidationResponse.getDefaultInstance().let { emptyResultSubmission ->
                     shouldThrow<ContractViolationException> {
-                        contractWithSingleValidationIteration(randomProtoUuid).apply {
+                        resultsContractWithSingleRequest(randomProtoUuid).apply {
                             recordLoanValidationResults(emptyResultSubmission)
                         }
                     }.let { exception ->
@@ -43,7 +43,7 @@ class RecordLoanValidationResultsUnitTest : WordSpec({
             "not throw an exception" {
                 shouldNotThrow<ContractViolationException> {
                     randomProtoUuid.let { iterationRequestId ->
-                        contractWithSingleValidationIteration(
+                        resultsContractWithSingleRequest(
                             requestID = iterationRequestId,
                             validatorName = "My Favorite Provider",
                         ).apply {

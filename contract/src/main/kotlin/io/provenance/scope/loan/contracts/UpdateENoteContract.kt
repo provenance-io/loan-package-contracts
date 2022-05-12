@@ -11,8 +11,8 @@ import io.provenance.scope.contract.spec.P8eContract
 import io.provenance.scope.loan.LoanScopeFacts
 import io.provenance.scope.loan.LoanScopeInputs
 import io.provenance.scope.loan.utility.ContractRequirementType
+import io.provenance.scope.loan.utility.eNoteDocumentValidation
 import io.provenance.scope.loan.utility.isSet
-import io.provenance.scope.loan.utility.isValid
 import io.provenance.scope.loan.utility.orError
 import io.provenance.scope.loan.utility.validateRequirements
 import tech.figure.util.v1beta1.DocumentMetadata
@@ -29,13 +29,9 @@ open class UpdateENoteContract(
         validateRequirements(ContractRequirementType.LEGAL_SCOPE_STATE,
             existingENote.isSet() orError "Cannot create eNote using this contract",
         )
-        validateRequirements(ContractRequirementType.VALID_INPUT,
-            newENote.id.isValid()              orError "ENote missing ID",
-            newENote.uri.isNotBlank()          orError "ENote missing uri",
-            newENote.contentType.isNotBlank()  orError "ENote missing content type",
-            newENote.documentType.isNotBlank() orError "ENote missing document type",
-            newENote.checksum.isValid()        orError "ENote missing checksum",
-        )
+        validateRequirements(ContractRequirementType.VALID_INPUT) {
+            eNoteDocumentValidation(newENote)
+        }
         return existingENote.toBuilder().setENote(newENote).build()
     }
 }

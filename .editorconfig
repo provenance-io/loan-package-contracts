@@ -7,8 +7,13 @@ insert_final_newline=true
 # possible values: number (e.g. 120) (package name, imports & comments are ignored), "off"
 # it's automatically set to 100 on `ktlint --android ...` (per Android Kotlin Style Guide)
 max_line_length=150
-[contract/**/contracts/*.{kt, kts}]
-# Rules disabled to allow for easier readability of certain contract code
-disabled_rules=wrapping,no-multi-spaces
+
+### buildSrc
 [buildSrc/**.{kt, kts}]
 disabled_rules=filename
+
+### Contract input validation - to improve readability
+[contract/**/contracts/*.kt]
+disabled_rules=wrapping,no-multi-spaces
+[contract/**/utility/LoanContractValidations.kt]
+disabled_rules=wrapping,no-multi-spaces

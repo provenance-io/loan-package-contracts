@@ -4,6 +4,7 @@ import com.google.protobuf.Any
 import io.kotest.core.spec.style.WordSpec
 import io.kotest.matchers.shouldBe
 import io.kotest.property.Arb
+import io.kotest.property.arbitrary.UUIDVersion
 import io.kotest.property.arbitrary.double
 import io.kotest.property.arbitrary.localDate
 import io.kotest.property.arbitrary.localDateTime
@@ -21,7 +22,7 @@ import tech.figure.util.v1beta1.Date as FigureTechDate
 import tech.figure.util.v1beta1.Money as FigureTechMoney
 import tech.figure.util.v1beta1.UUID as FigureTechUUID
 
-class DataValidationExtensionsTest : WordSpec({
+class DataValidationExtensionsUnitTest : WordSpec({
     "Message.isSet" should {
         "return false for any default instance" {
             ValidationIteration.getDefaultInstance().isSet() shouldBe false
@@ -93,7 +94,7 @@ class DataValidationExtensionsTest : WordSpec({
             }
         }
         "return true for any valid instance" {
-            forAll(Arb.uuid()) { randomJavaUuidV4 ->
+            forAll(Arb.uuid(UUIDVersion.V4)) { randomJavaUuidV4 ->
                 FigureTechUUID.newBuilder().apply {
                     value = randomJavaUuidV4.toString()
                 }.build().isValid()
