@@ -1,7 +1,11 @@
 package io.provenance.scope.loan.test
 
+import io.dartinc.registry.v1beta1.ENote
+import io.provenance.scope.loan.contracts.RecordLoanContract
+import io.provenance.scope.loan.contracts.RecordLoanValidationRequestContract
 import io.provenance.scope.loan.contracts.RecordLoanValidationResultsContract
 import io.provenance.scope.util.toProtoTimestamp
+import tech.figure.asset.v1beta1.Asset
 import tech.figure.validation.v1beta1.LoanValidation
 import tech.figure.validation.v1beta1.ValidationItem
 import tech.figure.validation.v1beta1.ValidationIteration
@@ -17,12 +21,33 @@ object Constructors {
         get() = FigureTechUUID.newBuilder().apply {
             value = JavaUUID.randomUUID().toString()
         }.build()
-
-    val contractWithEmptyExistingValidationRecord: RecordLoanValidationResultsContract
+    val recordContractWithEmptyScope: RecordLoanContract
+        get() = RecordLoanContract(
+            existingAsset = Asset.getDefaultInstance(),
+            existingENote = ENote.getDefaultInstance(),
+        )
+    val resultsContractWithEmptyExistingRecord: RecordLoanValidationResultsContract
         get() = RecordLoanValidationResultsContract(
             LoanValidation.getDefaultInstance()
         )
-    fun contractWithSingleValidationIteration(
+
+    val requestContractWithEmptyExistingRecord: RecordLoanValidationRequestContract
+        get() = RecordLoanValidationRequestContract(
+            LoanValidation.getDefaultInstance()
+        )
+    fun validRequest(
+        requestID: FigureTechUUID,
+        requesterName: String = "someArbitraryRequesterName",
+        validatorName: String = "yetAnotherRandomProviderName",
+    ): ValidationRequest = ValidationRequest.newBuilder().also { requestBuilder ->
+        requestBuilder.requestId = requestID
+        requestBuilder.ruleSetId = randomProtoUuid
+        requestBuilder.snapshotUri = randomProtoUuid.value
+        requestBuilder.effectiveTime = OffsetDateTime.now().toProtoTimestamp()
+        requestBuilder.requesterName = requesterName
+        requestBuilder.validatorName = validatorName
+    }.build()
+    fun resultsContractWithSingleRequest(
         requestID: FigureTechUUID,
         validatorName: String = "anotherRandomProviderName",
     ) = RecordLoanValidationResultsContract(
@@ -30,12 +55,10 @@ object Constructors {
             validationRecordBuilder.clearIteration()
             validationRecordBuilder.addIteration(
                 ValidationIteration.newBuilder().also { iterationBuilder ->
-                    iterationBuilder.request = ValidationRequest.newBuilder().also { requestBuilder ->
-                        requestBuilder.requestId = requestID
-                        requestBuilder.ruleSetId = randomProtoUuid
-                        requestBuilder.effectiveTime = OffsetDateTime.now().toProtoTimestamp()
-                        requestBuilder.validatorName = validatorName
-                    }.build()
+                    iterationBuilder.request = validRequest(
+                        requestID = requestID,
+                        validatorName = validatorName,
+                    )
                 }.build()
             )
         }.build()

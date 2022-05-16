@@ -15,7 +15,7 @@ import io.kotest.property.checkAll
 import io.provenance.scope.loan.test.LoanPackageArbs
 import io.provenance.scope.loan.test.shouldHaveViolationCount
 
-class ContractRequirementsTest : WordSpec({
+class ContractRequirementsUnitTest : WordSpec({
     /* Helpers */
     fun getExpectedViolationCount(enforcements: List<ContractEnforcement>) =
         enforcements.fold(

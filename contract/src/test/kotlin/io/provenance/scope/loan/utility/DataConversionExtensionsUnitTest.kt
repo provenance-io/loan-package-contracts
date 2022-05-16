@@ -13,7 +13,7 @@ import tech.figure.proto.util.toProtoAny
 import tech.figure.util.v1beta1.Checksum as FigureTechChecksum
 import tech.figure.util.v1beta1.UUID as FigureTechUUID
 
-class DataConversionExtensionsTest : WordSpec({
+class DataConversionExtensionsUnitTest : WordSpec({
     "tryUnpackingAs" should {
         "successfully unpack a packed protobuf as the same type that was packed" {
             checkAll(LoanPackageArbs.anyChecksum) { randomChecksum ->
@@ -34,10 +34,10 @@ class DataConversionExtensionsTest : WordSpec({
     }
     "toLoan" should {
         "throw an exception for unpacking when called on a non-nullable inapplicable protobuf" {
-            checkAll(Arb.string(), Arb.string(minSize = 1)) { randomString, randomNonEmptyString ->
+            checkAll(Arb.string(), Arb.string()) { randomChecksumString, randomAlgorithmString ->
                 FigureTechChecksum.newBuilder().apply {
-                    checksum = randomString
-                    algorithm = randomNonEmptyString
+                    checksum = randomChecksumString
+                    algorithm = randomAlgorithmString
                 }.build().let { randomChecksum ->
                     shouldThrow<UnexpectedContractStateException> {
                         randomChecksum?.toProtoAny()?.toLoan()

@@ -15,7 +15,7 @@ import io.provenance.scope.loan.utility.validateRequirements
 import tech.figure.servicing.v1beta1.LoanStateOuterClass.LoanStateMetadata
 import tech.figure.servicing.v1beta1.LoanStateOuterClass.ServicingData
 
-@Participants(roles = [PartyType.OWNER])
+@Participants(roles = [PartyType.OWNER]) // TODO: Eventually update to servicer
 @ScopeSpecification(["tech.figure.loan"])
 open class AppendLoanStatesContract(
     @Record(LoanScopeFacts.servicingData) val existingServicingData: ServicingData,
@@ -27,13 +27,14 @@ open class AppendLoanStatesContract(
         val updatedServicingData = ServicingData.newBuilder().mergeFrom(existingServicingData)
         validateRequirements(VALID_INPUT) {
             for (state in newLoanStates) {
+                // TODO: Improve check for duplicates (ID, effectiveTime, & checksum) & confirm if/which we want to silently ignore or raise violation
                 requireThat(
                     state.id.isValid()              orError "Invalid id",
                     state.effectiveTime.isValid()   orError "Invalid effective time",
                     state.uri.isNotBlank()          orError "Invalid accrued interest",
                     state.checksum.isValid()        orError "Invalid checksum"
                 )
-                if (existingServicingData.loanStateList.none { it.effectiveTime == state.effectiveTime }) { // TODO: Improve check for duplicates
+                if (existingServicingData.loanStateList.none { it.effectiveTime == state.effectiveTime }) {
                     updatedServicingData.addLoanState(state)
                 }
             }

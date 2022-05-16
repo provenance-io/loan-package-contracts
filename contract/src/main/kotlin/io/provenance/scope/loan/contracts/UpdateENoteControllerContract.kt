@@ -12,8 +12,8 @@ import io.provenance.scope.contract.spec.P8eContract
 import io.provenance.scope.loan.LoanScopeFacts
 import io.provenance.scope.loan.LoanScopeInputs
 import io.provenance.scope.loan.utility.ContractRequirementType
+import io.provenance.scope.loan.utility.eNoteControllerValidation
 import io.provenance.scope.loan.utility.isSet
-import io.provenance.scope.loan.utility.isValid
 import io.provenance.scope.loan.utility.orError
 import io.provenance.scope.loan.utility.validateRequirements
 
@@ -29,10 +29,9 @@ open class UpdateENoteControllerContract(
         validateRequirements(ContractRequirementType.LEGAL_SCOPE_STATE,
             existingENote.isSet() orError "Cannot create eNote using this contract",
         )
-        validateRequirements(ContractRequirementType.VALID_INPUT,
-            newController.controllerUuid.isValid()    orError "Controller UUID is missing",
-            newController.controllerName.isNotBlank() orError "Controller Name is missing",
-        )
+        validateRequirements(ContractRequirementType.VALID_INPUT) {
+            eNoteControllerValidation(newController)
+        }
         return existingENote.toBuilder().setController(newController).build()
     }
 }
