@@ -6,22 +6,34 @@ import io.provenance.scope.contract.annotations.Input
 import io.provenance.scope.contract.annotations.Participants
 import io.provenance.scope.contract.annotations.Record
 import io.provenance.scope.contract.annotations.ScopeSpecification
-import io.provenance.scope.contract.proto.Specifications
+import io.provenance.scope.contract.proto.Specifications.PartyType
 import io.provenance.scope.contract.spec.P8eContract
 import io.provenance.scope.loan.LoanScopeFacts
 import io.provenance.scope.loan.utility.ContractRequirementType.VALID_INPUT
 import io.provenance.scope.loan.utility.eNoteValidation
+import io.provenance.scope.loan.utility.updateServicingData
 import io.provenance.scope.loan.utility.validateRequirements
+import tech.figure.servicing.v1beta1.LoanStateOuterClass.ServicingData
 
-@Participants(roles = [Specifications.PartyType.OWNER])
+@Participants(roles = [PartyType.OWNER])
 @ScopeSpecification(["tech.figure.loan"])
-open class RecordENoteContract : P8eContract() {
-    // TODO: Add function modifying servicing data record with servicing data as input
-    @Function(invokedBy = Specifications.PartyType.OWNER)
+open class RecordENoteContract(
+    @Record(LoanScopeFacts.servicingData) val existingServicingData: ServicingData, // TODO: Make optional?
+) : P8eContract() {
+
+    @Function(invokedBy = PartyType.OWNER)
     @Record(LoanScopeFacts.eNote)
-    open fun recordENote(@Input(LoanScopeFacts.eNote) eNote: ENote) = eNote.also {
+    open fun recordENote(@Input(LoanScopeFacts.eNote) eNote: ENote): ENote = eNote.also { input ->
         validateRequirements(VALID_INPUT) {
-            eNoteValidation(eNote)
+            eNoteValidation(input)
         }
     }
+
+    @Function(invokedBy = PartyType.OWNER)
+    @Record(LoanScopeFacts.servicingData)
+    open fun recordServicingData(@Input(LoanScopeFacts.servicingData) newServicingData: ServicingData): ServicingData =
+        updateServicingData(
+            existingServicingData = existingServicingData,
+            newServicingData = newServicingData,
+        )
 }

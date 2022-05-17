@@ -17,13 +17,13 @@ import io.provenance.scope.loan.utility.isSet
 import io.provenance.scope.loan.utility.orError
 import io.provenance.scope.loan.utility.validateRequirements
 
-@Participants([PartyType.OWNER/*, PartyType.CONTROLLER*/]) // TODO: Add controller or ensure Authz grant to controller is made
+@Participants([PartyType.OWNER, PartyType.CUSTODIAN]) // TODO: Change temporary placeholder of "CUSTODIAN" to "CONTROLLER" once latter is defined
 @ScopeSpecification(["tech.figure.loan"])
 open class UpdateENoteControllerContract(
     @Record(LoanScopeFacts.eNote) val existingENote: ENote,
 ) : P8eContract() {
 
-    @Function(invokedBy = PartyType.OWNER/*PartyType.CONTROLLER*/) // TODO: Change to controller or ensure Authz grant to controller is made
+    @Function(invokedBy = PartyType.CUSTODIAN) // TODO: Change temporary placeholder of "CUSTODIAN" to "CONTROLLER" once latter is defined
     @Record(LoanScopeFacts.eNote)
     open fun updateENoteController(@Input(LoanScopeInputs.eNoteControllerUpdate) newController: Controller): ENote {
         validateRequirements(ContractRequirementType.LEGAL_SCOPE_STATE,

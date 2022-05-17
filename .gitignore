@@ -41,6 +41,9 @@ build/
 .project
 .classpath
 
+# Java memory dump
+*.hprof
+
 # p8e files
 ContractHash*.kt
 ProtoHash*.kt

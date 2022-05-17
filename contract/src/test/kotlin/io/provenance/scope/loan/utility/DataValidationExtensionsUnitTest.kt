@@ -2,6 +2,7 @@ package io.provenance.scope.loan.utility
 
 import com.google.protobuf.Any
 import io.kotest.core.spec.style.WordSpec
+import io.kotest.core.test.TestCaseOrder
 import io.kotest.matchers.shouldBe
 import io.kotest.property.Arb
 import io.kotest.property.arbitrary.UUIDVersion
@@ -13,6 +14,7 @@ import io.kotest.property.arbitrary.uuid
 import io.kotest.property.checkAll
 import io.kotest.property.forAll
 import io.provenance.scope.loan.test.Constructors.randomProtoUuid
+import io.provenance.scope.loan.test.LoanPackageArbs.anyNonUuidString
 import io.provenance.scope.util.toProtoTimestamp
 import tech.figure.validation.v1beta1.ValidationIteration
 import tech.figure.validation.v1beta1.ValidationRequest
@@ -82,14 +84,9 @@ class DataValidationExtensionsUnitTest : WordSpec({
             FigureTechUUID.getDefaultInstance().isValid() shouldBe false
         }
         "return false for an invalid instance" {
-            checkAll(Arb.string(minSize = 1, maxSize = 35)) { randomShortString ->
+            checkAll(anyNonUuidString) { randomNonUuidString ->
                 FigureTechUUID.newBuilder().apply {
-                    value = randomShortString
-                }.build().isValid() shouldBe false
-            }
-            checkAll(Arb.string(minSize = 37)) { randomLongString ->
-                FigureTechUUID.newBuilder().apply {
-                    value = randomLongString
+                    value = randomNonUuidString
                 }.build().isValid() shouldBe false
             }
         }
@@ -110,4 +107,6 @@ class DataValidationExtensionsUnitTest : WordSpec({
             }
         }
     }
-})
+}) {
+    override fun testCaseOrder() = TestCaseOrder.Random
+}

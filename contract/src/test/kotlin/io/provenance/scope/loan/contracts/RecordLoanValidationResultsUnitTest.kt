@@ -3,12 +3,16 @@ package io.provenance.scope.loan.contracts
 import io.kotest.assertions.throwables.shouldNotThrow
 import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.core.spec.style.WordSpec
+import io.kotest.core.test.TestCaseOrder
 import io.kotest.matchers.string.shouldContain
 import io.kotest.matchers.string.shouldContainIgnoringCase
+import io.kotest.property.checkAll
 import io.provenance.scope.loan.test.Constructors.randomProtoUuid
 import io.provenance.scope.loan.test.Constructors.resultsContractWithEmptyExistingRecord
 import io.provenance.scope.loan.test.Constructors.resultsContractWithSingleRequest
 import io.provenance.scope.loan.test.Constructors.validResultSubmission
+import io.provenance.scope.loan.test.LoanPackageArbs.anyNonEmptyString
+import io.provenance.scope.loan.test.LoanPackageArbs.anyUuid
 import io.provenance.scope.loan.utility.ContractViolationException
 import io.provenance.scope.loan.utility.IllegalContractStateException
 import tech.figure.validation.v1beta1.ValidationResponse
@@ -41,16 +45,16 @@ class RecordLoanValidationResultsUnitTest : WordSpec({
         }
         "given a valid input" should {
             "not throw an exception" {
-                shouldNotThrow<ContractViolationException> {
-                    randomProtoUuid.let { iterationRequestId ->
+                checkAll(anyUuid, anyNonEmptyString) { randomUuid, randomValidatorName ->
+                    shouldNotThrow<ContractViolationException> {
                         resultsContractWithSingleRequest(
-                            requestID = iterationRequestId,
-                            validatorName = "My Favorite Provider",
+                            requestID = randomUuid,
+                            validatorName = randomValidatorName,
                         ).apply {
                             recordLoanValidationResults(
                                 validResultSubmission(
-                                    iterationRequestID = iterationRequestId,
-                                    resultSetProvider = "My Favorite Provider",
+                                    iterationRequestID = randomUuid,
+                                    resultSetProvider = randomValidatorName,
                                 )
                             )
                         }
@@ -59,4 +63,6 @@ class RecordLoanValidationResultsUnitTest : WordSpec({
             }
         }
     }
-})
+}) {
+    override fun testCaseOrder() = TestCaseOrder.Random
+}
