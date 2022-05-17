@@ -3,6 +3,7 @@ package io.provenance.scope.loan.utility
 import io.kotest.assertions.throwables.shouldNotThrow
 import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.core.spec.style.WordSpec
+import io.kotest.core.test.TestCaseOrder
 import io.kotest.matchers.ints.shouldBeGreaterThanOrEqual
 import io.kotest.matchers.ints.shouldBeInRange
 import io.kotest.matchers.ints.shouldBeLessThan
@@ -140,4 +141,6 @@ class ContractRequirementsUnitTest : WordSpec({
             }
         }
     }
-})
+}) {
+    override fun testCaseOrder() = TestCaseOrder.Random
+}

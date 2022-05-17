@@ -11,13 +11,14 @@ import io.provenance.scope.contract.spec.P8eContract
 import io.provenance.scope.loan.LoanScopeFacts
 import io.provenance.scope.loan.utility.ContractRequirementType.VALID_INPUT
 import io.provenance.scope.loan.utility.UnexpectedContractStateException
-import io.provenance.scope.loan.utility.documentListInputValidation
+import io.provenance.scope.loan.utility.documentValidation
 import io.provenance.scope.loan.utility.eNoteValidation
 import io.provenance.scope.loan.utility.isSet
 import io.provenance.scope.loan.utility.isValid
 import io.provenance.scope.loan.utility.orError
 import io.provenance.scope.loan.utility.servicingRightsInputValidation
 import io.provenance.scope.loan.utility.toLoan
+import io.provenance.scope.loan.utility.updateServicingData
 import io.provenance.scope.loan.utility.validateRequirements
 import tech.figure.asset.v1beta1.Asset
 import tech.figure.loan.v1beta1.LoanDocuments
@@ -49,6 +50,7 @@ open class RecordLoanContract(
                     (existingAsset.id == newAsset.id)                            orError "Cannot change asset ID",
                     (existingAsset.type == newAsset.type)                        orError "Cannot change asset type",
                     // (existingLoan.originatorUuid == existingLoan.originatorUuid) orError "Cannot change loan originator UUID", // TODO: Remove?
+                    (existingLoan.id == newLoan.id)                              orError "Cannot change loan ID", // TODO: Verify if this is desired
                     (existingLoan.originatorName == existingLoan.originatorName) orError "Cannot change loan originator name",
                 )
             } else {
@@ -70,11 +72,21 @@ open class RecordLoanContract(
 
     @Function(invokedBy = PartyType.OWNER)
     @Record(LoanScopeFacts.documents)
-    open fun recordDocuments(@Input(LoanScopeFacts.documents) documents: LoanDocuments) = documents.also(documentListInputValidation)
+    open fun recordDocuments(@Input(LoanScopeFacts.documents) documents: LoanDocuments) = documents.also { input ->
+        validateRequirements(VALID_INPUT) {
+            requireThat(
+                input.documentList.isNotEmpty() orError "Must supply at least one document" // TODO: Verify desired; not thrown for optional input
+            )
+            input.documentList.forEach { document ->
+                documentValidation(document)
+            }
+        }
+    }
 
     @Function(invokedBy = PartyType.OWNER)
     @Record(LoanScopeFacts.servicingData)
-    open fun recordServicingData(@Input(LoanScopeFacts.servicingData) servicingData: ServicingData) = servicingData // TODO: Validate input
+    open fun recordServicingData(@Input(LoanScopeFacts.servicingData) servicingData: ServicingData) =
+        updateServicingData(newServicingData = servicingData) // TODO: Add existing record to constructor, annotated as optional?
 
     @Function(invokedBy = PartyType.OWNER)
     @Record(LoanScopeFacts.loanValidations)

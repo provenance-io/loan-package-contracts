@@ -3,9 +3,9 @@ package io.provenance.scope.loan.contracts
 import io.dartinc.registry.v1beta1.ENote
 import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.core.spec.style.WordSpec
+import io.kotest.core.test.TestCaseOrder
 import io.kotest.matchers.string.shouldContainIgnoringCase
 import io.kotest.property.checkAll
-import io.provenance.scope.loan.test.Constructors.randomProtoUuid
 import io.provenance.scope.loan.test.Constructors.recordContractWithEmptyScope
 import io.provenance.scope.loan.test.LoanPackageArbs.anyNonEmptyString
 import io.provenance.scope.loan.test.LoanPackageArbs.anyUuid
@@ -43,32 +43,71 @@ class RecordLoanContractUnitTest : WordSpec({
                 }
             }
         }
-        "given an input with invalid changes to existing data" should {
+        "given an input with invalid changes to the existing asset" should {
             "throw an appropriate exception" {
-                val existingAsset = Asset.newBuilder().apply {
-                    id = randomProtoUuid // To mark the existing asset as being set
-                    putKv(
-                        "loan",
-                        Loan.newBuilder().also { loanBuilder ->
-                            loanBuilder.id = randomProtoUuid
-                        }.build().toProtoAny()
-                    )
-                }.build()
-                val newAsset = Asset.newBuilder().also { assetBuilder ->
-                    assetBuilder.putKv(
-                        "loan",
-                        Loan.newBuilder().also { loanBuilder ->
-                            loanBuilder.id = randomProtoUuid
-                        }.build().toProtoAny()
-                    )
-                }.build()
-                shouldThrow<ContractViolationException> { // Assuming no UUID collision...
-                    RecordLoanContract(
-                        existingAsset = existingAsset,
-                        existingENote = ENote.getDefaultInstance(),
-                    ).recordAsset(newAsset)
-                }.let { exception ->
-                    exception.message shouldContainIgnoringCase "Cannot change asset ID"
+                checkAll(anyUuid, anyUuid, anyUuid) { randomExistingUuid, randomNewUuid, randomLoanId ->
+                    val existingAsset = Asset.newBuilder().also { assetBuilder ->
+                        assetBuilder.id = randomExistingUuid // To mark the existing asset as being set
+                        assetBuilder.putKv(
+                            "loan",
+                            Loan.newBuilder().also { loanBuilder ->
+                                loanBuilder.id = randomLoanId
+                            }.build().toProtoAny()
+                        )
+                    }.build()
+                    val newAsset = Asset.newBuilder().also { assetBuilder ->
+                        assetBuilder.id = randomNewUuid
+                        assetBuilder.putKv(
+                            "loan",
+                            Loan.newBuilder().also { loanBuilder ->
+                                loanBuilder.id = randomLoanId
+                            }.build().toProtoAny()
+                        )
+                    }.build()
+                    if (randomExistingUuid != randomNewUuid) {
+                        shouldThrow<ContractViolationException> {
+                            RecordLoanContract(
+                                existingAsset = existingAsset,
+                                existingENote = ENote.getDefaultInstance(),
+                            ).recordAsset(newAsset)
+                        }.let { exception ->
+                            exception.message shouldContainIgnoringCase "Cannot change asset ID"
+                        }
+                    }
+                }
+            }
+        }
+        "given an input with invalid changes to the existing loan" should {
+            "throw an appropriate exception" {
+                checkAll(anyUuid, anyUuid, anyUuid) { randomExistingUuid, randomNewUuid, randomAssetId ->
+                    val existingAsset = Asset.newBuilder().also { assetBuilder ->
+                        assetBuilder.id = randomAssetId // To mark the existing asset as being set
+                        assetBuilder.putKv(
+                            "loan",
+                            Loan.newBuilder().also { loanBuilder ->
+                                loanBuilder.id = randomExistingUuid
+                            }.build().toProtoAny()
+                        )
+                    }.build()
+                    val newAsset = Asset.newBuilder().also { assetBuilder ->
+                        assetBuilder.id = randomAssetId
+                        assetBuilder.putKv(
+                            "loan",
+                            Loan.newBuilder().also { loanBuilder ->
+                                loanBuilder.id = randomNewUuid
+                            }.build().toProtoAny()
+                        )
+                    }.build()
+                    if (randomExistingUuid != randomNewUuid) {
+                        shouldThrow<ContractViolationException> {
+                            RecordLoanContract(
+                                existingAsset = existingAsset,
+                                existingENote = ENote.getDefaultInstance(),
+                            ).recordAsset(newAsset)
+                        }.let { exception ->
+                            exception.message shouldContainIgnoringCase "Cannot change loan ID"
+                        }
+                    }
                 }
             }
         }
@@ -162,4 +201,6 @@ class RecordLoanContractUnitTest : WordSpec({
             }
         }
     }
-})
+}) {
+    override fun testCaseOrder() = TestCaseOrder.Random
+}
