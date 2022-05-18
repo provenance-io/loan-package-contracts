@@ -10,21 +10,26 @@ import io.provenance.scope.contract.proto.Specifications.PartyType
 import io.provenance.scope.contract.spec.P8eContract
 import io.provenance.scope.loan.LoanScopeFacts
 import io.provenance.scope.loan.utility.ContractRequirementType.VALID_INPUT
-import io.provenance.scope.loan.utility.UnexpectedContractStateException
+import io.provenance.scope.loan.utility.documentModificationValidation
 import io.provenance.scope.loan.utility.documentValidation
 import io.provenance.scope.loan.utility.eNoteValidation
 import io.provenance.scope.loan.utility.isSet
 import io.provenance.scope.loan.utility.isValid
 import io.provenance.scope.loan.utility.orError
+import io.provenance.scope.loan.utility.raiseError
 import io.provenance.scope.loan.utility.servicingRightsInputValidation
-import io.provenance.scope.loan.utility.toLoan
+import io.provenance.scope.loan.utility.toFigureTechLoan
+import io.provenance.scope.loan.utility.toMISMOLoan
+import io.provenance.scope.loan.utility.tryUnpackingAs
 import io.provenance.scope.loan.utility.updateServicingData
 import io.provenance.scope.loan.utility.validateRequirements
 import tech.figure.asset.v1beta1.Asset
 import tech.figure.loan.v1beta1.LoanDocuments
+import tech.figure.loan.v1beta1.MISMOLoanMetadata
 import tech.figure.servicing.v1beta1.LoanStateOuterClass.ServicingData
 import tech.figure.servicing.v1beta1.ServicingRightsOuterClass.ServicingRights
 import tech.figure.validation.v1beta1.LoanValidation
+import tech.figure.loan.v1beta1.Loan as FigureTechLoan
 
 @Participants(roles = [PartyType.OWNER])
 @ScopeSpecification(["tech.figure.loan"])
@@ -37,30 +42,59 @@ open class RecordLoanContract(
     @Record(LoanScopeFacts.asset)
     open fun recordAsset(@Input(LoanScopeFacts.asset) newAsset: Asset) = newAsset.also {
         validateRequirements(VALID_INPUT) {
-            val newLoan = newAsset.kvMap["loan"]?.toLoan()
-                ?: throw UnexpectedContractStateException("No key \"loan\" was found in the input asset")
             if (existingAsset.isSet()) {
-                val existingLoan = existingAsset.kvMap["loan"]?.toLoan()
-                    ?: throw UnexpectedContractStateException("No key \"loan\" was found in the existing asset record")
                 requireThat(
                     // Flag that the asset is an eNote
-                    // existingLoan.isENote.isFalse()                               orError "Asset cannot be updated", // TODO: Determine how to do
+                    // existingLoan.isENote.isFalse()     orError "Asset cannot be updated", // TODO: Determine how to do
                     // optional: make sure nothing important changed
                     // examples:
-                    (existingAsset.id == newAsset.id)                            orError "Cannot change asset ID",
-                    (existingAsset.type == newAsset.type)                        orError "Cannot change asset type",
-                    // (existingLoan.originatorUuid == existingLoan.originatorUuid) orError "Cannot change loan originator UUID", // TODO: Remove?
-                    (existingLoan.id == newLoan.id)                              orError "Cannot change loan ID", // TODO: Verify if this is desired
-                    (existingLoan.originatorName == existingLoan.originatorName) orError "Cannot change loan originator name",
+                    (existingAsset.id == newAsset.id)     orError "Cannot change asset ID",
+                    (existingAsset.type == newAsset.type) orError "Cannot change asset type",
                 )
             } else {
                 requireThat(
                     // other validation rules, such as:
-                    newAsset.id.isValid()               orError "Asset ID is missing",
-                    newAsset.type.isNotBlank()          orError "Asset type is missing",
-                    // newLoan.originatorUuid.isValid()    orError "asset.kv.loan.originatorUuid is missing", // TODO: Remove?
-                    newLoan.originatorName.isNotBlank() orError "asset.kv.loan.originatorName is missing",
+                    newAsset.id.isValid()      orError "Asset is missing valid ID",
+                    newAsset.type.isNotBlank() orError "Asset is missing type",
                 )
+            }
+            if (newAsset.containsKv("loan") xor newAsset.containsKv("mismoLoan")) {
+                newAsset.kvMap["loan"]?.let { newLoanValue ->
+                    newLoanValue.tryUnpackingAs<FigureTechLoan>("input asset's \"loan\"") { newLoan ->
+                        if (existingAsset.isSet()) {
+                            existingAsset.kvMap["loan"]?.toFigureTechLoan()?.let { existingLoan ->
+                                requireThat(
+                                    (existingLoan.id == newLoan.id)                          orError "Cannot change loan ID",
+                                    (existingLoan.originatorName == newLoan.originatorName) orError "Cannot change loan originator name",
+                                )
+                            } ?: raiseError("The input asset had key \"loan\" but the existing asset did not")
+                        } else {
+                            requireThat(
+                                newLoan.id.isValid()                orError "Loan is missing valid ID",
+                                newLoan.originatorName.isNotBlank() orError "Loan is missing originator name",
+                            )
+                        }
+                    }
+                }
+                newAsset.kvMap["mismoLoan"]?.let { newLoanValue ->
+                    newLoanValue.tryUnpackingAs<MISMOLoanMetadata>("input asset's \"mismoLoan\"") { newLoan ->
+                        if (existingAsset.isSet()) {
+                            existingAsset.kvMap["mismoLoan"]?.toMISMOLoan()?.let { existingLoan ->
+                                documentModificationValidation(existingLoan.document, newLoan.document)
+                                requireThat(
+                                    (existingLoan.uli == newLoan.uli) orError "Cannot change loan ULI",
+                                )
+                            } ?: raiseError("The input asset had key \"mismoLoan\" but the existing asset did not")
+                        } else {
+                            // TODO: Investigate wrapping protoc validate.rules call into ContractViolation somehow instead
+                            requireThat(
+                                (newLoan.uli.length in 23..45) orError "Loan ULI is invalid", // TODO: Any other requirements for ULI?
+                            )
+                        }
+                    }
+                }
+            } else {
+                raiseError("Exactly one of \"loan\" or \"mismoLoan\" must be a key in the input asset")
             }
         }
     }

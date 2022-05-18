@@ -9,7 +9,9 @@ import io.kotest.matchers.should
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.types.beInstanceOf
 import io.kotest.property.Arb
+import io.kotest.property.arbitrary.Codepoint
 import io.kotest.property.arbitrary.UUIDVersion
+import io.kotest.property.arbitrary.alphanumeric
 import io.kotest.property.arbitrary.bind
 import io.kotest.property.arbitrary.boolean
 import io.kotest.property.arbitrary.filter
@@ -39,6 +41,8 @@ internal object LoanPackageArbs {
     /* Primitives */
     val anyNonEmptyString: Arb<String> = Arb.string().filter { it.isNotBlank() }
     val anyNonUuidString: Arb<String> = Arb.string().filterNot { it.length == 36 }
+    val anyUli: Arb<String> = Arb.string(minSize = 23, maxSize = 45, codepoints = Codepoint.alphanumeric()) // TODO: Is this correct?
+    val anyNonUliString: Arb<String> = Arb.string().filterNot { it.length in 23..45 } // TODO: Should be complement of anyUli
     /* Contract requirements */
     val anyContractViolation: Arb<ContractViolation> = Arb.string()
     val anyContractEnforcement: Arb<ContractEnforcement> = Arb.bind(
@@ -53,7 +57,7 @@ internal object LoanPackageArbs {
     ) { violationList, countList ->
         violationList.zip(countList).toMap().toMutableMap()
     }
-    /* Figure Tech Protobufs */
+    /* Protobufs */
     val anyValidChecksum: Arb<FigureTechChecksum> = Arb.bind(
         anyNonEmptyString,
         Arb.string(),
