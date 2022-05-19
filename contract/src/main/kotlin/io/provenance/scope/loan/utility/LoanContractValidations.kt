@@ -6,6 +6,31 @@ import tech.figure.servicing.v1beta1.ServicingRightsOuterClass.ServicingRights
 import tech.figure.util.v1beta1.DocumentMetadata
 import io.dartinc.registry.v1beta1.Controller as ENoteController
 
+internal val documentModificationValidation: ContractEnforcementContext.(
+    DocumentMetadata,
+    DocumentMetadata,
+) -> Unit = { existingDocument, newDocument ->
+    existingDocument.checksum.checksum.let { existingChecksum ->
+        if (existingChecksum == newDocument.checksum.checksum) {
+            val checksumSnippet = if (existingChecksum.isNotBlank()) {
+                " with checksum $existingChecksum"
+            } else {
+                ""
+            }
+            requireThat(
+                (existingDocument.id == newDocument.id)
+                    orError "Cannot change ID of existing document$checksumSnippet",
+                (existingDocument.uri == newDocument.uri)
+                    orError "Cannot change URI of existing document$checksumSnippet",
+                (existingDocument.contentType == newDocument.contentType)
+                    orError "Cannot change content type of existing document$checksumSnippet",
+                (existingDocument.documentType == newDocument.documentType)
+                    orError "Cannot change content type of existing document$checksumSnippet",
+            )
+        }
+    }
+}
+
 internal val documentValidation: ContractEnforcementContext.(DocumentMetadata) -> Unit = { document ->
     val documentIdSnippet = if (document.id.isSet()) {
         " with ID ${document.id.value}"

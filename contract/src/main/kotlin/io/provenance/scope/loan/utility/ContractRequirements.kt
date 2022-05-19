@@ -61,6 +61,8 @@ internal enum class ContractRequirementType(
 internal infix fun Boolean.orError(error: ContractViolation): ContractEnforcement =
     Pair(this, error)
 
+internal fun ContractEnforcementContext.raiseError(error: ContractViolation) = requireThat(false to error)
+
 /**
  * Performs validation of one or more [ContractEnforcement]s.
  */

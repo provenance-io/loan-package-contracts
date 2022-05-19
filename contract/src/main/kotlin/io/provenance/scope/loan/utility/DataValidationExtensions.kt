@@ -9,7 +9,7 @@ import tech.figure.util.v1beta1.Money as FigureTechMoney
 import tech.figure.util.v1beta1.UUID as FigureTechUUID
 
 @Suppress("TooGenericExceptionCaught")
-private fun tryOrFalse(fn: () -> Any): Boolean =
+fun tryOrFalse(fn: () -> Any): Boolean =
     try {
         fn()
         true

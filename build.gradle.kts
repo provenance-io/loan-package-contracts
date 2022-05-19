@@ -104,6 +104,9 @@ allprojects {
         kotlinOptions {
             languageVersion = "1.6"
             jvmTarget = "11"
+            freeCompilerArgs = listOf(
+                "-Xcontext-receivers"
+            )
         }
     }
 }
