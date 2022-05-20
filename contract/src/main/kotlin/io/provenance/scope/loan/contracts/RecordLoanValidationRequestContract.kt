@@ -27,11 +27,11 @@ open class RecordLoanValidationRequestContract(
     @Record(LoanScopeFacts.loanValidations)
     open fun recordLoanValidationRequest(@Input(LoanScopeInputs.validationRequest) submission: ValidationRequest): LoanValidation {
         validateRequirements(VALID_INPUT,
-            submission.requestId.isValid()        orError "Request ID is missing",
-            submission.effectiveTime.isValid()    orError "Request timestamp is missing",
-            submission.snapshotUri.isNotBlank()   orError "Loan snapshot URI is missing",
-            submission.validatorName.isNotBlank() orError "Validator name is missing",
-            submission.requesterName.isNotBlank() orError "Requester name is missing",
+            submission.requestId.isValid()        orError "Request must have valid ID",
+            submission.effectiveTime.isValid()    orError "Request is missing timestamp",
+            submission.snapshotUri.isNotBlank()   orError "Request is missing loan snapshot URI",
+            submission.validatorName.isNotBlank() orError "Request is missing validator name",
+            submission.requesterName.isNotBlank() orError "Request is missing requester name",
             validationRecord.iterationList.none { iteration ->
                 iteration.request.requestId == submission.requestId
             } orError "A validation iteration with the same request ID already exists",

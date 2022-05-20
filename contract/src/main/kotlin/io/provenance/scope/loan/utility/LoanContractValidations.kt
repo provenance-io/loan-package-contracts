@@ -1,9 +1,11 @@
 package io.provenance.scope.loan.utility
 
 import io.dartinc.registry.v1beta1.ENote
+import tech.figure.loan.v1beta1.LoanDocuments
 import tech.figure.servicing.v1beta1.LoanStateOuterClass.LoanStateMetadata
 import tech.figure.servicing.v1beta1.ServicingRightsOuterClass.ServicingRights
 import tech.figure.util.v1beta1.DocumentMetadata
+import tech.figure.validation.v1beta1.LoanValidation
 import io.dartinc.registry.v1beta1.Controller as ENoteController
 
 internal val documentModificationValidation: ContractEnforcementContext.(
@@ -38,7 +40,7 @@ internal val documentValidation: ContractEnforcementContext.(DocumentMetadata) -
         ""
     }
     requireThat(
-        document.id.isValid()              orError "Document missing valid ID",
+        document.id.isValid()              orError "Document must have valid ID",
         document.uri.isNotBlank()          orError "Document$documentIdSnippet is missing URI",
         document.contentType.isNotBlank()  orError "Document$documentIdSnippet is missing content type",
         document.documentType.isNotBlank() orError "Document$documentIdSnippet is missing document type",
@@ -55,12 +57,18 @@ internal val eNoteControllerValidation: ContractEnforcementContext.(ENoteControl
 
 internal val eNoteDocumentValidation: ContractEnforcementContext.(DocumentMetadata) -> Unit = { document ->
     requireThat(
-        document.id.isValid()              orError "ENote missing valid ID",
-        document.uri.isNotBlank()          orError "ENote missing URI",
-        document.contentType.isNotBlank()  orError "ENote missing content type",
-        document.documentType.isNotBlank() orError "ENote missing document type",
-        document.checksum.isValid()        orError "ENote missing checksum",
+        document.id.isValid()              orError "ENote must have valid ID",
+        document.uri.isNotBlank()          orError "ENote is missing URI",
+        document.contentType.isNotBlank()  orError "ENote is missing content type",
+        document.documentType.isNotBlank() orError "ENote is missing document type",
+        document.checksum.isValid()        orError "ENote is missing checksum",
     )
+}
+
+internal val eNoteInputValidation: (ENote) -> Unit = { eNote ->
+    validateRequirements(ContractRequirementType.VALID_INPUT) {
+        eNoteValidation(eNote)
+    }
 }
 
 internal val eNoteValidation: ContractEnforcementContext.(ENote) -> Unit = { eNote ->
@@ -68,9 +76,27 @@ internal val eNoteValidation: ContractEnforcementContext.(ENote) -> Unit = { eNo
     eNoteControllerValidation(eNote.controller)
     eNoteDocumentValidation(eNote.eNote)
     requireThat(
-        eNote.signedDate.isValid()   orError "ENote missing signed date",
-        eNote.vaultName.isNotBlank() orError "ENote missing vault name",
+        eNote.signedDate.isValid()   orError "ENote is missing signed date",
+        eNote.vaultName.isNotBlank() orError "ENote is missing vault name",
     )
+}
+
+internal val loanDocumentInputValidation: (LoanDocuments) -> Unit = { loanDocuments ->
+    validateRequirements(ContractRequirementType.VALID_INPUT) {
+        requireThat(
+            loanDocuments.documentList.isNotEmpty() orError "Must supply at least one document" // TODO: Verify desired; not thrown for optional input
+        )
+        val incomingDocChecksums = mutableMapOf<String, Boolean>()
+        loanDocuments.documentList.forEach { document ->
+            documentValidation(document)
+            document.checksum.takeIf { it.isValid() }?.checksum?.let { checksum ->
+                if (incomingDocChecksums[checksum] == true) {
+                    raiseError("Loan document with checksum $checksum already provided in input")
+                }
+                incomingDocChecksums[checksum] = true
+            }
+        }
+    }
 }
 
 internal val loanStateValidation: ContractEnforcementContext.(LoanStateMetadata) -> Unit = { loanState ->
@@ -80,16 +106,29 @@ internal val loanStateValidation: ContractEnforcementContext.(LoanStateMetadata)
         ""
     }
     requireThat(
-        loanState.id.isValid()              orError "Loan state missing valid ID",
-        loanState.effectiveTime.isValid()   orError "Loan state$idSnippet missing effective time",
-        loanState.uri.isNotBlank()          orError "Loan state$idSnippet missing URI",
-        loanState.checksum.isValid()        orError "Loan state$idSnippet missing checksum"
+        loanState.id.isValid()                        orError "Loan state must have valid ID",
+        loanState.effectiveTime.isValidForLoanState() orError "Loan state$idSnippet must have valid effective time",
+        loanState.uri.isNotBlank()                    orError "Loan state$idSnippet is missing URI",
+        loanState.checksum.isValid()                  orError "Loan state$idSnippet is missing checksum"
     )
+}
+
+internal val loanValidationInputValidation: (LoanValidation) -> Unit = { validationRecord ->
+    validateRequirements(ContractRequirementType.VALID_INPUT) {
+        if (validationRecord.iterationCount > 0) {
+            val incomingValidationRequests = mutableMapOf<String, Boolean>()
+            validationRecord.iterationList.forEach { iteration ->
+                // TODO: Implement - after DRYing logic in existing request and result recording contracts, in same manner as eNote
+            }
+        } else {
+            raiseError("Must supply at least one validation iteration")
+        }
+    }
 }
 
 internal val servicingRightsInputValidation: (ServicingRights) -> Unit = { servicingRights ->
     validateRequirements(ContractRequirementType.VALID_INPUT,
-        servicingRights.servicerId.isValid()      orError "Missing servicer UUID",
-        servicingRights.servicerName.isNotBlank() orError "Missing servicer name",
+        servicingRights.servicerId.isValid()      orError "Servicing rights must have valid servicer UUID",
+        servicingRights.servicerName.isNotBlank() orError "Servicing rights missing servicer name",
     )
 }

@@ -9,12 +9,15 @@ import io.provenance.scope.contract.annotations.ScopeSpecification
 import io.provenance.scope.contract.proto.Specifications.PartyType
 import io.provenance.scope.contract.spec.P8eContract
 import io.provenance.scope.loan.LoanScopeFacts
+import io.provenance.scope.loan.LoanScopeProperties.assetLoanKey
+import io.provenance.scope.loan.LoanScopeProperties.assetMismoKey
 import io.provenance.scope.loan.utility.ContractRequirementType.VALID_INPUT
 import io.provenance.scope.loan.utility.documentModificationValidation
-import io.provenance.scope.loan.utility.documentValidation
 import io.provenance.scope.loan.utility.eNoteValidation
 import io.provenance.scope.loan.utility.isSet
 import io.provenance.scope.loan.utility.isValid
+import io.provenance.scope.loan.utility.loanDocumentInputValidation
+import io.provenance.scope.loan.utility.loanValidationInputValidation
 import io.provenance.scope.loan.utility.orError
 import io.provenance.scope.loan.utility.raiseError
 import io.provenance.scope.loan.utility.servicingRightsInputValidation
@@ -44,47 +47,43 @@ open class RecordLoanContract(
         validateRequirements(VALID_INPUT) {
             if (existingAsset.isSet()) {
                 requireThat(
-                    // Flag that the asset is an eNote
-                    // existingLoan.isENote.isFalse()     orError "Asset cannot be updated", // TODO: Determine how to do
-                    // optional: make sure nothing important changed
-                    // examples:
                     (existingAsset.id == newAsset.id)     orError "Cannot change asset ID",
                     (existingAsset.type == newAsset.type) orError "Cannot change asset type",
                 )
             } else {
                 requireThat(
-                    // other validation rules, such as:
-                    newAsset.id.isValid()      orError "Asset is missing valid ID",
+                    newAsset.id.isValid()      orError "Asset must have valid ID",
                     newAsset.type.isNotBlank() orError "Asset is missing type",
                 )
             }
-            if (newAsset.containsKv("loan") xor newAsset.containsKv("mismoLoan")) {
+            if (newAsset.containsKv(assetLoanKey) xor newAsset.containsKv(assetMismoKey)) {
                 newAsset.kvMap["loan"]?.let { newLoanValue ->
-                    newLoanValue.tryUnpackingAs<FigureTechLoan>("input asset's \"loan\"") { newLoan ->
+                    newLoanValue.tryUnpackingAs<FigureTechLoan>("input asset's \"${assetLoanKey}\"") { newLoan ->
                         if (existingAsset.isSet()) {
-                            existingAsset.kvMap["loan"]?.toFigureTechLoan()?.let { existingLoan ->
+                            existingAsset.kvMap[assetLoanKey]?.toFigureTechLoan()?.let { existingLoan ->
                                 requireThat(
-                                    (existingLoan.id == newLoan.id)                          orError "Cannot change loan ID",
+                                    (existingLoan.id == newLoan.id)                         orError "Cannot change loan ID",
                                     (existingLoan.originatorName == newLoan.originatorName) orError "Cannot change loan originator name",
                                 )
-                            } ?: raiseError("The input asset had key \"loan\" but the existing asset did not")
+                            } ?: raiseError("The input asset had key \"${assetLoanKey}\" but the existing asset did not")
                         } else {
                             requireThat(
-                                newLoan.id.isValid()                orError "Loan is missing valid ID",
+                                newLoan.id.isValid()                orError "Loan must have valid ID",
                                 newLoan.originatorName.isNotBlank() orError "Loan is missing originator name",
                             )
                         }
                     }
                 }
-                newAsset.kvMap["mismoLoan"]?.let { newLoanValue ->
-                    newLoanValue.tryUnpackingAs<MISMOLoanMetadata>("input asset's \"mismoLoan\"") { newLoan ->
+                newAsset.kvMap[assetMismoKey]?.let { newLoanValue ->
+                    newLoanValue.tryUnpackingAs<MISMOLoanMetadata>("input asset's \"${assetMismoKey}\"") { newLoan ->
                         if (existingAsset.isSet()) {
-                            existingAsset.kvMap["mismoLoan"]?.toMISMOLoan()?.let { existingLoan ->
+                            existingAsset.kvMap[assetMismoKey]?.toMISMOLoan()?.let { existingLoan ->
+                                // TODO: Allow doc with different checksum to replace existing one or not?
                                 documentModificationValidation(existingLoan.document, newLoan.document)
                                 requireThat(
                                     (existingLoan.uli == newLoan.uli) orError "Cannot change loan ULI",
                                 )
-                            } ?: raiseError("The input asset had key \"mismoLoan\" but the existing asset did not")
+                            } ?: raiseError("The input asset had key \"${assetMismoKey}\" but the existing asset did not")
                         } else {
                             // TODO: Investigate wrapping protoc validate.rules call into ContractViolation somehow instead
                             requireThat(
@@ -94,7 +93,7 @@ open class RecordLoanContract(
                     }
                 }
             } else {
-                raiseError("Exactly one of \"loan\" or \"mismoLoan\" must be a key in the input asset")
+                raiseError("Exactly one of \"${assetLoanKey}\" or \"${assetMismoKey}\" must be a key in the input asset")
             }
         }
     }
@@ -106,16 +105,7 @@ open class RecordLoanContract(
 
     @Function(invokedBy = PartyType.OWNER)
     @Record(LoanScopeFacts.documents)
-    open fun recordDocuments(@Input(LoanScopeFacts.documents) documents: LoanDocuments) = documents.also { input ->
-        validateRequirements(VALID_INPUT) {
-            requireThat(
-                input.documentList.isNotEmpty() orError "Must supply at least one document" // TODO: Verify desired; not thrown for optional input
-            )
-            input.documentList.forEach { document ->
-                documentValidation(document)
-            }
-        }
-    }
+    open fun recordDocuments(@Input(LoanScopeFacts.documents) documents: LoanDocuments) = documents.also(loanDocumentInputValidation)
 
     @Function(invokedBy = PartyType.OWNER)
     @Record(LoanScopeFacts.servicingData)
@@ -124,7 +114,9 @@ open class RecordLoanContract(
 
     @Function(invokedBy = PartyType.OWNER)
     @Record(LoanScopeFacts.loanValidations)
-    open fun recordValidationData(@Input(LoanScopeFacts.loanValidations) loanValidations: LoanValidation) = loanValidations // TODO: Validate input
+    open fun recordValidationData(@Input(LoanScopeFacts.loanValidations) loanValidations: LoanValidation) = loanValidations.also(
+        loanValidationInputValidation
+    )
 
     @Function(invokedBy = PartyType.OWNER)
     @Record(LoanScopeFacts.eNote)

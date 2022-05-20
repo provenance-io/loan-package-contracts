@@ -8,6 +8,7 @@ import io.provenance.scope.contract.annotations.ScopeSpecification
 import io.provenance.scope.contract.proto.Specifications.PartyType
 import io.provenance.scope.contract.spec.P8eContract
 import io.provenance.scope.loan.LoanScopeFacts
+import io.provenance.scope.loan.LoanScopeInputs
 import io.provenance.scope.loan.utility.ContractRequirementType
 import io.provenance.scope.loan.utility.appendLoanStates
 import io.provenance.scope.loan.utility.validateRequirements
@@ -22,7 +23,7 @@ open class AppendLoanStatesContract(
 
     @Function(invokedBy = PartyType.OWNER)
     @Record(LoanScopeFacts.servicingData)
-    open fun appendLoanStates(@Input(LoanScopeFacts.servicingData) newLoanStates: Collection<LoanStateMetadata>): ServicingData =
+    open fun appendLoanStates(@Input(LoanScopeInputs.newLoanStates) newLoanStates: Collection<LoanStateMetadata>): ServicingData =
         ServicingData.newBuilder(existingServicingData).also { servicingDataBuilder ->
             validateRequirements(ContractRequirementType.VALID_INPUT) {
                 appendLoanStates(servicingDataBuilder, newLoanStates)

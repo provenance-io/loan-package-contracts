@@ -31,6 +31,7 @@ import io.provenance.scope.loan.utility.ContractViolationException
 import io.provenance.scope.loan.utility.ContractViolationMap
 import io.provenance.scope.loan.utility.UnexpectedContractStateException
 import tech.figure.servicing.v1beta1.LoanStateOuterClass.LoanStateMetadata
+import java.time.Instant
 import tech.figure.util.v1beta1.Checksum as FigureTechChecksum
 import tech.figure.util.v1beta1.UUID as FigureTechUUID
 
@@ -91,13 +92,13 @@ internal object LoanPackageArbs {
             loanStateBuilder.uri = uri
         }.build()
     }
-    fun loanStateSet(size: Int, slippage: Int = 10): Arb<Set<LoanStateMetadata>> =
+    fun loanStateSet(size: Int, slippage: Int = 10): Arb<List<LoanStateMetadata>> =
         /** Since we need each *property* to be unique, we must fix the set size & construct the arbs from scratch with primitives */
         Arb.bind(
             Arb.set(gen = Arb.uuid(UUIDVersion.V4), size = size, slippage = slippage).map { it.toList() },
             Arb.set(gen = anyNonEmptyString, size = size, slippage = slippage).map { it.toList() },
             Arb.set(gen = anyNonEmptyString, size = size, slippage = slippage).map { it.toList() },
-            Arb.set(gen = anyTimestampComponents, size = size, slippage = slippage).map { it.toList() },
+            Arb.set(gen = anyPastNonEpochTimestampComponents, size = size, slippage = slippage).map { it.toList() },
         ) { randomIds, randomChecksums, randomUris, randomTimestamps ->
             randomIds.indices.map { i ->
                 LoanStateMetadata.newBuilder().also { loanStateBuilder ->
@@ -113,7 +114,7 @@ internal object LoanPackageArbs {
                         timestampBuilder.nanos = randomTimestamps[i].second
                     }.build()
                 }.build()
-            }.toSet()
+            }
         }
 }
 
@@ -121,6 +122,13 @@ private val anyTimestampComponents: Arb<Pair<Long, Int>> = Arb.pair(
     Arb.long(min = Timestamps.MIN_VALUE.seconds, max = Timestamps.MAX_VALUE.seconds),
     Arb.int(min = Timestamps.MIN_VALUE.nanos, max = Timestamps.MAX_VALUE.nanos),
 )
+
+private val anyPastNonEpochTimestampComponents: Arb<Pair<Long, Int>> = Instant.now().let { now ->
+    Arb.pair(
+        Arb.long(min = Timestamps.MIN_VALUE.seconds, max = now.epochSecond),
+        Arb.int(min = Timestamps.MIN_VALUE.nanos + 1, max = now.nano),
+    )
+}
 
 /**
  * Defines a custom [Matcher] to check the violation count value in a [ContractViolationException].

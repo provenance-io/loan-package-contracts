@@ -13,7 +13,13 @@ internal inline fun <reified T : Message> ProtobufAny.tryUnpackingAs(inputDescri
     try {
         unpackedResult = unpack(expectedType)
     } catch (suppressed: InvalidProtocolBufferException) {
-        listOf( // List of probable incorrect types to try parsing the input as, to potentially better inform the caller
+        /**
+         * If the parse fails, we want to yield a [ContractViolation], but we can also try to re-parse the receiver as a different type to potentially
+         * better inform the caller of the input violation.
+         * However, we must be careful not to supply too many protobufs to try, and especially not provide simple ones like a
+         * [tech.figure.util.v1beta1.UUID] that can be formed by a non-unique subset of the receiver's fields, to avoid _mis_informing the caller.
+         */
+        listOf(
             FigureTechLoan::class.java,
             MISMOLoanMetadata::class.java,
         ).filterNot { maybeActualType ->

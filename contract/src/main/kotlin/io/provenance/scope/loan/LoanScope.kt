@@ -24,6 +24,22 @@ object LoanScopeFacts {
 }
 
 /**
+ * Denotes string literals used to access specific properties within a loan scope's records, such as a key for a [protobuf Any]
+ * [com.google.protobuf.Any] value.
+ */
+internal object LoanScopeProperties {
+    /**
+     * Denotes the key that an [Asset][tech.figure.asset.v1beta1.Asset]'s `kvMap` should use to store a [Loan][tech.figure.loan.v1beta1.Loan].
+     */
+    const val assetLoanKey = "loan"
+    /**
+     * Denotes the key that an [Asset][tech.figure.asset.v1beta1.Asset]'s `kvMap` should use to store a [MISMOLoan]
+     * [tech.figure.loan.v1beta1.MISMOLoanMetadata].
+     */
+    const val assetMismoKey = "mismoLoan"
+}
+
+/**
  * Denotes the string literals used in [io.provenance.scope.contract.annotations.Input] annotations for
  * [LoanScopeSpecification] contract functions where the input type differs from the output type.
  */
@@ -32,6 +48,7 @@ object LoanScopeInputs {
     const val validationResponse = "resultSubmission"
     const val eNoteUpdate = "newENote"
     const val eNoteControllerUpdate = "newController"
+    const val newLoanStates = "newLoanStates"
 }
 
 /**
