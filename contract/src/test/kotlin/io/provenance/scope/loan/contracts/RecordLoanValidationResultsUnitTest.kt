@@ -38,7 +38,7 @@ class RecordLoanValidationResultsUnitTest : WordSpec({
                             recordLoanValidationResults(emptyResultSubmission)
                         }
                     }.let { exception ->
-                        exception.message shouldContain "Result set UUID is missing"
+                        exception.message shouldContain "Response is missing results"
                     }
                 }
             }

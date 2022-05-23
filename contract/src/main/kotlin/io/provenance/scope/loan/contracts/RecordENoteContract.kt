@@ -9,10 +9,8 @@ import io.provenance.scope.contract.annotations.ScopeSpecification
 import io.provenance.scope.contract.proto.Specifications.PartyType
 import io.provenance.scope.contract.spec.P8eContract
 import io.provenance.scope.loan.LoanScopeFacts
-import io.provenance.scope.loan.utility.ContractRequirementType.VALID_INPUT
-import io.provenance.scope.loan.utility.eNoteValidation
+import io.provenance.scope.loan.utility.eNoteInputValidation
 import io.provenance.scope.loan.utility.updateServicingData
-import io.provenance.scope.loan.utility.validateRequirements
 import tech.figure.servicing.v1beta1.LoanStateOuterClass.ServicingData
 
 @Participants(roles = [PartyType.OWNER])
@@ -23,11 +21,7 @@ open class RecordENoteContract(
 
     @Function(invokedBy = PartyType.OWNER)
     @Record(LoanScopeFacts.eNote)
-    open fun recordENote(@Input(LoanScopeFacts.eNote) eNote: ENote): ENote = eNote.also { input ->
-        validateRequirements(VALID_INPUT) {
-            eNoteValidation(input)
-        }
-    }
+    open fun recordENote(@Input(LoanScopeFacts.eNote) eNote: ENote): ENote = eNote.also(eNoteInputValidation)
 
     @Function(invokedBy = PartyType.OWNER)
     @Record(LoanScopeFacts.servicingData)

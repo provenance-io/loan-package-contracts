@@ -2,14 +2,20 @@ name: Build
 
 on:
   pull_request:
-    types: [ synchronize, opened, reopened, ready_for_review ]
+    types: [ synchronize, opened, reopened, ready_for_review, converted_to_draft ]
+  workflow_dispatch:
+    inputs:
+      linting:
+        type: boolean
+        description: Run the linter
+        required: false
+        default: false
 
 jobs:
   linting:
     name: Linting
     runs-on: ubuntu-latest
-    if: github.event.pull_request.draft == false
-
+    if: github.event.inputs.linting == true || github.event.pull_request.draft == false
     steps:
       - name: Checkout Code
         uses: actions/checkout@v3

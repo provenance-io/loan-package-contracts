@@ -7,6 +7,8 @@ import io.kotest.core.test.TestCaseOrder
 import io.kotest.matchers.string.shouldContain
 import io.kotest.matchers.string.shouldContainIgnoringCase
 import io.kotest.property.checkAll
+import io.provenance.scope.loan.LoanScopeProperties.assetLoanKey
+import io.provenance.scope.loan.LoanScopeProperties.assetMismoKey
 import io.provenance.scope.loan.test.Constructors.recordContractWithEmptyScope
 import io.provenance.scope.loan.test.LoanPackageArbs.anyNonEmptyString
 import io.provenance.scope.loan.test.LoanPackageArbs.anyNonUliString
@@ -31,9 +33,10 @@ class RecordLoanContractUnitTest : WordSpec({
                     shouldThrow<ContractViolationException> {
                         recordContractWithEmptyScope.recordAsset(emptyAssetWithoutLoan)
                     }.let { exception ->
-                        exception.message shouldContainIgnoringCase "Asset is missing valid ID"
+                        exception.message shouldContainIgnoringCase "Asset must have valid ID"
                         exception.message shouldContainIgnoringCase "Asset is missing type"
-                        exception.message shouldContainIgnoringCase "Exactly one of \"loan\" or \"mismoLoan\" must be a key in the input asset"
+                        exception.message shouldContainIgnoringCase
+                            "Exactly one of \"$assetLoanKey\" or \"$assetMismoKey\" must be a key in the input asset"
                     }
                 }
             }
@@ -46,7 +49,7 @@ class RecordLoanContractUnitTest : WordSpec({
                     shouldThrow<ContractViolationException> {
                         recordContractWithEmptyScope.recordAsset(assetWithBadLoanType)
                     }.let { exception ->
-                        exception.message shouldContain "Could not unpack the input asset's \"loan\" as $FigureTechLoanIdentifier"
+                        exception.message shouldContain "Could not unpack the input asset's \"$assetLoanKey\" as $FigureTechLoanIdentifier"
                     }
                 }
             }
@@ -59,7 +62,7 @@ class RecordLoanContractUnitTest : WordSpec({
                     shouldThrow<ContractViolationException> {
                         recordContractWithEmptyScope.recordAsset(assetWithBadLoanType)
                     }.let { exception ->
-                        exception.message shouldContain "Could not unpack the input asset's \"mismoLoan\" as $MISMOLoanIdentifier"
+                        exception.message shouldContain "Could not unpack the input asset's \"$assetMismoKey\" as $MISMOLoanIdentifier"
                     }
                 }
             }
@@ -75,7 +78,7 @@ class RecordLoanContractUnitTest : WordSpec({
                         shouldThrow<ContractViolationException> {
                             recordContractWithEmptyScope.recordAsset(assetWithInvalidId)
                         }.let { exception ->
-                            exception.message shouldContainIgnoringCase "Asset is missing valid ID"
+                            exception.message shouldContainIgnoringCase "Asset must have valid ID"
                         }
                     }
                 }
@@ -99,7 +102,7 @@ class RecordLoanContractUnitTest : WordSpec({
                         shouldThrow<ContractViolationException> {
                             recordContractWithEmptyScope.recordAsset(assetWithInvalidId)
                         }.let { exception ->
-                            exception.message shouldContainIgnoringCase "Loan is missing valid ID"
+                            exception.message shouldContainIgnoringCase "Loan must have valid ID"
                         }
                     }
                 }
@@ -223,7 +226,7 @@ class RecordLoanContractUnitTest : WordSpec({
                         ).recordAsset(newAsset)
                     }.let { exception ->
                         exception.message shouldContain
-                            "Expected input asset's \"loan\" to be a $FigureTechLoanIdentifier but was actually a $MISMOLoanIdentifier"
+                            "Expected input asset's \"$assetLoanKey\" to be a $FigureTechLoanIdentifier but was actually a $MISMOLoanIdentifier"
                     }
                 }
             }
@@ -256,7 +259,7 @@ class RecordLoanContractUnitTest : WordSpec({
                         ).recordAsset(newAsset)
                     }.let { exception ->
                         exception.message shouldContain
-                            "Expected input asset's \"mismoLoan\" to be a $MISMOLoanIdentifier but was actually a $FigureTechLoanIdentifier"
+                            "Expected input asset's \"$assetMismoKey\" to be a $MISMOLoanIdentifier but was actually a $FigureTechLoanIdentifier"
                     }
                 }
             }

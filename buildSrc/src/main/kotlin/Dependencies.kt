@@ -24,7 +24,7 @@ object Versions {
         const val Protobuf = "3.20.1"
         const val SemVer = "1.1.2"
         object Provenance {
-            const val Scope = "0.4.9"
+            const val Scope = "0.5.1"
             const val MetadataAssetModel = "0.1.8"
         }
     }

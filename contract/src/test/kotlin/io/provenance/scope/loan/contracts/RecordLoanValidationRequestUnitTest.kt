@@ -23,7 +23,7 @@ class RecordLoanValidationRequestUnitTest : WordSpec({
                             recordLoanValidationRequest(emptyResultSubmission)
                         }
                     }.let { exception ->
-                        exception.message shouldContain "Request ID is missing"
+                        exception.message shouldContain "Request must have valid ID"
                     }
                 }
             }

@@ -13,6 +13,7 @@ import io.provenance.scope.loan.utility.ContractRequirementType
 import io.provenance.scope.loan.utility.isSet
 import io.provenance.scope.loan.utility.isValid
 import io.provenance.scope.loan.utility.orError
+import io.provenance.scope.loan.utility.raiseError
 import io.provenance.scope.loan.utility.validateRequirements
 import tech.figure.validation.v1beta1.LoanValidation
 import tech.figure.validation.v1beta1.ValidationResponse
@@ -33,14 +34,18 @@ open class RecordLoanValidationResultsContract(
         )
         validateRequirements(ContractRequirementType.VALID_INPUT) {
             requireThat(
-                submission.results.resultSetUuid.isValid()          orError "Result set UUID is missing",
-                submission.requestId.isValid()                      orError "Request ID is missing",
-                submission.results.resultSetEffectiveTime.isValid() orError "Result set timestamp is missing",
-                (submission.results.validationExceptionCount >= 0)  orError "Invalid validation exception count",
-                (submission.results.validationWarningCount >= 0)    orError "Invalid validation warning count",
-                (submission.results.validationItemsCount > 0)       orError "No validation items were provided",
-                submission.results.resultSetProvider.isNotBlank()   orError "Result set provider is missing",
+                submission.requestId.isValid() orError "Response must have valid ID",
             )
+            submission.results.takeIf { it.isSet() }?.let { submittedResults ->
+                requireThat(
+                    submittedResults.resultSetUuid.isValid()          orError "Response is missing result set UUID",
+                    submittedResults.resultSetEffectiveTime.isValid() orError "Response is missing timestamp",
+                    (submittedResults.validationExceptionCount >= 0)  orError "Results report an invalid validation exception count",
+                    (submittedResults.validationWarningCount >= 0)    orError "Results report an invalid validation warning count",
+                    (submittedResults.validationItemsCount > 0)       orError "Results must have at least one validation item",
+                    submittedResults.resultSetProvider.isNotBlank()   orError "Results missing provider name",
+                )
+            } ?: raiseError("Response is missing results")
             validationRecord.iterationList.singleOrNull { iteration ->
                 iteration.request.requestId == submission.requestId
             }.let { maybeIteration ->

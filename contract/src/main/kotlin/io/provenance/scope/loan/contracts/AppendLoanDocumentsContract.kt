@@ -9,11 +9,14 @@ import io.provenance.scope.contract.proto.Specifications.PartyType
 import io.provenance.scope.contract.spec.P8eContract
 import io.provenance.scope.loan.LoanScopeFacts
 import io.provenance.scope.loan.utility.ContractRequirementType.VALID_INPUT
+import io.provenance.scope.loan.utility.documentModificationValidation
 import io.provenance.scope.loan.utility.documentValidation
 import io.provenance.scope.loan.utility.isValid
 import io.provenance.scope.loan.utility.orError
+import io.provenance.scope.loan.utility.raiseError
 import io.provenance.scope.loan.utility.validateRequirements
 import tech.figure.loan.v1beta1.LoanDocuments
+import tech.figure.util.v1beta1.DocumentMetadata
 
 @Participants(roles = [PartyType.OWNER]) // TODO: Should this eventually be changed to SERVICER?
 @ScopeSpecification(["tech.figure.loan"])
@@ -27,23 +30,32 @@ open class AppendLoanDocumentsContract(
         val newDocList = LoanDocuments.newBuilder().mergeFrom(existingDocs)
         validateRequirements(VALID_INPUT) {
             /* Primitive type used for protobuf keys to avoid comparison interference from unknown fields */
-            val existingDocChecksums = existingDocs.documentList.fold(mutableMapOf<String, Boolean>()) { acc, documentMetadata ->
+            val existingDocs = existingDocs.documentList.fold(mutableMapOf<String, DocumentMetadata>()) { acc, documentMetadata ->
                 acc.apply {
                     documentMetadata.checksum.takeIf { it.isValid() }?.checksum?.let { checksum ->
-                        acc[checksum] = true
+                        acc[checksum] = documentMetadata
                     }
                 }
             }
             requireThat(
                 newDocs.documentList.isNotEmpty() orError "Must supply at least one document"
             )
-            newDocs.documentList.forEach { doc ->
-                documentValidation(doc)
-                doc.checksum.checksum?.let { newDocChecksum ->
-                    if (existingDocChecksums[newDocChecksum] != true) { // TODO: Confirm if duplicates silently ignored, or do like AppendLoanStates
-                        newDocList.addDocument(doc)
-                        existingDocChecksums[newDocChecksum] = true
+            val incomingDocChecksums = mutableMapOf<String, Boolean>()
+            newDocs.documentList.forEach { newDocument ->
+                documentValidation(newDocument)
+                newDocument.checksum.checksum?.let { newDocChecksum ->
+                    if (incomingDocChecksums[newDocChecksum] == true) {
+                        raiseError("Loan document with checksum $newDocChecksum already provided in input")
                     }
+                    existingDocs[newDocChecksum]?.let { existingDocument ->
+                        documentModificationValidation(
+                            existingDocument,
+                            newDocument,
+                        )
+                    }
+                    /* Append new data - if a violation was found, the eventual thrown exception prevents the changes from persisting */
+                    newDocList.addDocument(newDocument)
+                    incomingDocChecksums[newDocChecksum] = true
                 }
             }
         }

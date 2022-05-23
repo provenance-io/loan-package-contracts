@@ -47,7 +47,7 @@ class AppendLoanStatesContractUnitTest : WordSpec({
                             )
                         )
                     }.let { exception ->
-                        exception.message shouldContainIgnoringCase "missing valid ID"
+                        exception.message shouldContainIgnoringCase "must have valid ID"
                         exception.message shouldContainIgnoringCase "missing URI"
                         exception.message shouldContainIgnoringCase "missing checksum"
                     }
