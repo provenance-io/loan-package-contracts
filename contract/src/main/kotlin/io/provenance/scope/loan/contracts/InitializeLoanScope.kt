@@ -30,9 +30,7 @@ import tech.figure.servicing.v1beta1.ServicingRightsOuterClass.ServicingRights
 import tech.figure.validation.v1beta1.LoanValidation
 import tech.figure.loan.v1beta1.Loan as FigureTechLoan
 
-/**
- * A contract designed to be a temporary workaround to pending support in `p8e-scope-sdk` for optional constructor record values.
- */
+// TODO: Delete this contract once optional records have been proven to work
 @Participants(roles = [PartyType.OWNER])
 @ScopeSpecification(["tech.figure.loan"])
 class InitializeLoanScope : P8eContract() {

@@ -33,6 +33,7 @@ object Constructors {
         get() = RecordLoanContract(
             existingAsset = Asset.getDefaultInstance(),
             existingENote = ENote.getDefaultInstance(),
+            existingServicingData = ServicingData.getDefaultInstance(),
         )
     val resultsContractWithEmptyExistingRecord: RecordLoanValidationResultsContract
         get() = RecordLoanValidationResultsContract(

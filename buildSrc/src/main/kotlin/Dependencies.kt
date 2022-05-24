@@ -14,7 +14,7 @@ object Versions {
     const val BouncyCastle = "1.70"
     object Plugins {
         const val NexusPublishing = "1.1.0"
-        const val P8ePublishing = "0.6.5"
+        const val P8ePublishing = "0.6.6"
         const val Protobuf = "0.8.18"
         const val SemVer = "0.3.13"
     }
@@ -24,7 +24,7 @@ object Versions {
         const val Protobuf = "3.20.1"
         const val SemVer = "1.1.2"
         object Provenance {
-            const val Scope = "0.5.1"
+            const val Scope = "0.6.0"
             const val MetadataAssetModel = "0.1.8"
         }
     }

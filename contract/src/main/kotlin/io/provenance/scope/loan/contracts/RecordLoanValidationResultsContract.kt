@@ -18,13 +18,13 @@ import io.provenance.scope.loan.utility.validateRequirements
 import tech.figure.validation.v1beta1.LoanValidation
 import tech.figure.validation.v1beta1.ValidationResponse
 
-@Participants(roles = [PartyType.OWNER]) // TODO: Ensure Authz grant to validator has been made
+@Participants(roles = [PartyType.OWNER]) // TODO: Change to VALIDATOR once latter is defined
 @ScopeSpecification(["tech.figure.loan"])
 open class RecordLoanValidationResultsContract(
     @Record(LoanScopeFacts.loanValidations) val validationRecord: LoanValidation,
 ) : P8eContract() {
 
-    @Function(invokedBy = PartyType.OWNER) // TODO: Ensure Authz grant to validator has been made
+    @Function(invokedBy = PartyType.OWNER) // TODO: Change to VALIDATOR once latter is defined
     @Record(LoanScopeFacts.loanValidations)
     open fun recordLoanValidationResults(
         @Input(LoanScopeInputs.validationResponse) submission: ValidationResponse
@@ -47,7 +47,7 @@ open class RecordLoanValidationResultsContract(
                 )
             } ?: raiseError("Response is missing results")
             validationRecord.iterationList.singleOrNull { iteration ->
-                iteration.request.requestId == submission.requestId
+                iteration.request.requestId == submission.requestId // For now, we won't support letting results arrive before the request
             }.let { maybeIteration ->
                 requireThat(
                     if (maybeIteration === null) {

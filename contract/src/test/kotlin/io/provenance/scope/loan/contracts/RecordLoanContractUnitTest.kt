@@ -19,6 +19,7 @@ import io.provenance.scope.loan.utility.ContractViolationException
 import tech.figure.asset.v1beta1.Asset
 import tech.figure.loan.v1beta1.MISMOLoanMetadata
 import tech.figure.proto.util.toProtoAny
+import tech.figure.servicing.v1beta1.LoanStateOuterClass.ServicingData
 import tech.figure.loan.v1beta1.Loan as FigureTechLoan
 import tech.figure.util.v1beta1.UUID as FigureTechUUID
 
@@ -151,6 +152,7 @@ class RecordLoanContractUnitTest : WordSpec({
                             RecordLoanContract(
                                 existingAsset = existingAsset,
                                 existingENote = ENote.getDefaultInstance(), // Unused
+                                existingServicingData = ServicingData.getDefaultInstance(), // Unused
                             ).recordAsset(newAsset)
                         }.let { exception ->
                             exception.message shouldContainIgnoringCase "Cannot change asset ID"
@@ -180,6 +182,7 @@ class RecordLoanContractUnitTest : WordSpec({
                             RecordLoanContract(
                                 existingAsset = existingAsset,
                                 existingENote = ENote.getDefaultInstance(), // Unused
+                                existingServicingData = ServicingData.getDefaultInstance(), // Unused
                             ).recordAsset(newAsset)
                         }.let { exception ->
                             exception.message shouldContainIgnoringCase "Cannot change asset type"
@@ -223,6 +226,7 @@ class RecordLoanContractUnitTest : WordSpec({
                         RecordLoanContract(
                             existingAsset = existingAsset,
                             existingENote = ENote.getDefaultInstance(), // Unused
+                            existingServicingData = ServicingData.getDefaultInstance(), // Unused
                         ).recordAsset(newAsset)
                     }.let { exception ->
                         exception.message shouldContain
@@ -256,6 +260,7 @@ class RecordLoanContractUnitTest : WordSpec({
                         RecordLoanContract(
                             existingAsset = existingAsset,
                             existingENote = ENote.getDefaultInstance(), // Unused
+                            existingServicingData = ServicingData.getDefaultInstance(), // Unused
                         ).recordAsset(newAsset)
                     }.let { exception ->
                         exception.message shouldContain
@@ -290,6 +295,7 @@ class RecordLoanContractUnitTest : WordSpec({
                             RecordLoanContract(
                                 existingAsset = existingAsset,
                                 existingENote = ENote.getDefaultInstance(), // Unused
+                                existingServicingData = ServicingData.getDefaultInstance(), // Unused
                             ).recordAsset(newAsset)
                         }.let { exception ->
                             exception.message shouldContainIgnoringCase "Cannot change loan ID"
@@ -324,6 +330,7 @@ class RecordLoanContractUnitTest : WordSpec({
                             RecordLoanContract(
                                 existingAsset = existingAsset,
                                 existingENote = ENote.getDefaultInstance(), // Unused
+                                existingServicingData = ServicingData.getDefaultInstance(), // Unused
                             ).recordAsset(newAsset)
                         }.let { exception ->
                             exception.message shouldContain "Cannot change loan ULI"
@@ -437,11 +444,6 @@ class RecordLoanContractUnitTest : WordSpec({
         "given an input to an empty scope with a valid eNote" xshould {
             "not throw an exception" {
                 // TODO: Implement
-            }
-        }
-        "given an eNote input to update an existing eNote record" xshould {
-            "throw an appropriate exception" {
-                // TODO: Remove once SkipIfFunctionExists annotation is added to recordENote function
             }
         }
     }
