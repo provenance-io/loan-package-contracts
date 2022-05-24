@@ -57,9 +57,10 @@ internal enum class ContractRequirementType(
 /**
  * Maps a contract requirement to the appropriate [ContractViolation] that should be raised if it is not met.
  * Equivalent to [kotlin.to].
+ * For convenience, null receivers will not raise a [ContractViolation].
  */
-internal infix fun Boolean.orError(error: ContractViolation): ContractEnforcement =
-    Pair(this, error)
+internal infix fun Boolean?.orError(error: ContractViolation): ContractEnforcement =
+    Pair(this ?: true, error)
 
 internal fun ContractEnforcementContext.raiseError(error: ContractViolation) = requireThat(false to error)
 

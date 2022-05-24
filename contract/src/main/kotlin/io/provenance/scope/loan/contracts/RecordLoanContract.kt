@@ -6,6 +6,7 @@ import io.provenance.scope.contract.annotations.Input
 import io.provenance.scope.contract.annotations.Participants
 import io.provenance.scope.contract.annotations.Record
 import io.provenance.scope.contract.annotations.ScopeSpecification
+import io.provenance.scope.contract.annotations.SkipIfRecordExists
 import io.provenance.scope.contract.proto.Specifications.PartyType
 import io.provenance.scope.contract.spec.P8eContract
 import io.provenance.scope.loan.LoanScopeFacts
@@ -13,7 +14,7 @@ import io.provenance.scope.loan.LoanScopeProperties.assetLoanKey
 import io.provenance.scope.loan.LoanScopeProperties.assetMismoKey
 import io.provenance.scope.loan.utility.ContractRequirementType.VALID_INPUT
 import io.provenance.scope.loan.utility.documentModificationValidation
-import io.provenance.scope.loan.utility.eNoteValidation
+import io.provenance.scope.loan.utility.eNoteInputValidation
 import io.provenance.scope.loan.utility.isSet
 import io.provenance.scope.loan.utility.isValid
 import io.provenance.scope.loan.utility.loanDocumentInputValidation
@@ -37,8 +38,9 @@ import tech.figure.loan.v1beta1.Loan as FigureTechLoan
 @Participants(roles = [PartyType.OWNER])
 @ScopeSpecification(["tech.figure.loan"])
 open class RecordLoanContract(
-    @Record(LoanScopeFacts.asset) val existingAsset: Asset,
-    @Record(LoanScopeFacts.eNote) val existingENote: ENote,
+    @Record(name = LoanScopeFacts.asset, optional = true) val existingAsset: Asset?,
+    @Record(name = LoanScopeFacts.eNote, optional = true) val existingENote: ENote?, // Must be in constructor for @SkipIfRecordExists to work
+    @Record(name = LoanScopeFacts.servicingData, optional = true) val existingServicingData: ServicingData?,
 ) : P8eContract() {
 
     @Function(invokedBy = PartyType.OWNER)
@@ -47,7 +49,7 @@ open class RecordLoanContract(
         validateRequirements(VALID_INPUT) {
             if (existingAsset.isSet()) {
                 requireThat(
-                    (existingAsset.id == newAsset.id)     orError "Cannot change asset ID",
+                    (existingAsset!!.id == newAsset.id)   orError "Cannot change asset ID",
                     (existingAsset.type == newAsset.type) orError "Cannot change asset type",
                 )
             } else {
@@ -60,7 +62,7 @@ open class RecordLoanContract(
                 newAsset.kvMap["loan"]?.let { newLoanValue ->
                     newLoanValue.tryUnpackingAs<FigureTechLoan>("input asset's \"${assetLoanKey}\"") { newLoan ->
                         if (existingAsset.isSet()) {
-                            existingAsset.kvMap[assetLoanKey]?.toFigureTechLoan()?.let { existingLoan ->
+                            existingAsset!!.kvMap[assetLoanKey]?.toFigureTechLoan()?.let { existingLoan ->
                                 requireThat(
                                     (existingLoan.id == newLoan.id)                         orError "Cannot change loan ID",
                                     (existingLoan.originatorName == newLoan.originatorName) orError "Cannot change loan originator name",
@@ -77,7 +79,7 @@ open class RecordLoanContract(
                 newAsset.kvMap[assetMismoKey]?.let { newLoanValue ->
                     newLoanValue.tryUnpackingAs<MISMOLoanMetadata>("input asset's \"${assetMismoKey}\"") { newLoan ->
                         if (existingAsset.isSet()) {
-                            existingAsset.kvMap[assetMismoKey]?.toMISMOLoan()?.let { existingLoan ->
+                            existingAsset!!.kvMap[assetMismoKey]?.toMISMOLoan()?.let { existingLoan ->
                                 // TODO: Allow doc with different checksum to replace existing one or not?
                                 documentModificationValidation(existingLoan.document, newLoan.document)
                                 requireThat(
@@ -110,7 +112,10 @@ open class RecordLoanContract(
     @Function(invokedBy = PartyType.OWNER)
     @Record(LoanScopeFacts.servicingData)
     open fun recordServicingData(@Input(LoanScopeFacts.servicingData) servicingData: ServicingData) =
-        updateServicingData(newServicingData = servicingData) // TODO: Add existing record to constructor, annotated as optional?
+        updateServicingData(
+            existingServicingData = existingServicingData ?: ServicingData.getDefaultInstance(),
+            newServicingData = servicingData,
+        )
 
     @Function(invokedBy = PartyType.OWNER)
     @Record(LoanScopeFacts.loanValidations)
@@ -120,14 +125,6 @@ open class RecordLoanContract(
 
     @Function(invokedBy = PartyType.OWNER)
     @Record(LoanScopeFacts.eNote)
-    open fun recordENote(@Input(LoanScopeFacts.eNote) eNote: ENote) = eNote.also {
-        validateRequirements(VALID_INPUT) {
-            if (existingENote.isSet()) {
-                requireThat((existingENote.eNote.checksum == it.eNote.checksum) orError
-                    "ENote with a different checksum already exists on chain for the specified scope; ENote modifications are not allowed!"
-                )
-            }
-            eNoteValidation(eNote)
-        }
-    }
+    @SkipIfRecordExists(LoanScopeFacts.eNote)
+    open fun recordENote(@Input(LoanScopeFacts.eNote) eNote: ENote) = eNote.also(eNoteInputValidation)
 }

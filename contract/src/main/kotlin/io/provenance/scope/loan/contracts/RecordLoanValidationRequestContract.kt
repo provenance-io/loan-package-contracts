@@ -20,7 +20,7 @@ import tech.figure.validation.v1beta1.ValidationRequest
 @Participants(roles = [PartyType.OWNER]) // TODO: Add/Change to VALIDATOR?
 @ScopeSpecification(["tech.figure.loan"])
 open class RecordLoanValidationRequestContract(
-    @Record(LoanScopeFacts.loanValidations) val validationRecord: LoanValidation,
+    @Record(name = LoanScopeFacts.loanValidations, optional = true) val validationRecord: LoanValidation?,
 ) : P8eContract() {
 
     @Function(invokedBy = PartyType.OWNER) // TODO: Add/Change to VALIDATOR?
@@ -32,11 +32,11 @@ open class RecordLoanValidationRequestContract(
             submission.snapshotUri.isNotBlank()   orError "Request is missing loan snapshot URI",
             submission.validatorName.isNotBlank() orError "Request is missing validator name",
             submission.requesterName.isNotBlank() orError "Request is missing requester name",
-            validationRecord.iterationList.none { iteration ->
+            validationRecord?.iterationList?.none { iteration ->
                 iteration.request.requestId == submission.requestId
             } orError "A validation iteration with the same request ID already exists",
         )
-        return validationRecord.toBuilder().also { recordBuilder ->
+        return (validationRecord?.toBuilder() ?: LoanValidation.newBuilder()).also { recordBuilder ->
             recordBuilder.addIteration(
                 ValidationIteration.newBuilder().also { iterationBuilder ->
                     iterationBuilder.request = submission

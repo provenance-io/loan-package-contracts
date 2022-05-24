@@ -18,25 +18,25 @@ import io.provenance.scope.loan.utility.validateRequirements
 import tech.figure.loan.v1beta1.LoanDocuments
 import tech.figure.util.v1beta1.DocumentMetadata
 
-@Participants(roles = [PartyType.OWNER]) // TODO: Should this eventually be changed to SERVICER?
+@Participants(roles = [PartyType.OWNER])
 @ScopeSpecification(["tech.figure.loan"])
 open class AppendLoanDocumentsContract(
-    @Record(LoanScopeFacts.documents) val existingDocs: LoanDocuments,
+    @Record(name = LoanScopeFacts.documents, optional = true) val existingDocs: LoanDocuments?,
 ) : P8eContract() {
 
-    @Function(invokedBy = PartyType.OWNER) // TODO: Should this eventually be changed to SERVICER?
+    @Function(invokedBy = PartyType.OWNER)
     @Record(LoanScopeFacts.documents)
     open fun appendDocuments(@Input(LoanScopeFacts.documents) newDocs: LoanDocuments): LoanDocuments {
-        val newDocList = LoanDocuments.newBuilder().mergeFrom(existingDocs)
+        val newDocList = existingDocs?.toBuilder() ?: LoanDocuments.newBuilder()
         validateRequirements(VALID_INPUT) {
             /* Primitive type used for protobuf keys to avoid comparison interference from unknown fields */
-            val existingDocs = existingDocs.documentList.fold(mutableMapOf<String, DocumentMetadata>()) { acc, documentMetadata ->
+            val existingDocumentMetadata = existingDocs?.documentList?.fold(mutableMapOf<String, DocumentMetadata>()) { acc, documentMetadata ->
                 acc.apply {
                     documentMetadata.checksum.takeIf { it.isValid() }?.checksum?.let { checksum ->
                         acc[checksum] = documentMetadata
                     }
                 }
-            }
+            } ?: emptyMap()
             requireThat(
                 newDocs.documentList.isNotEmpty() orError "Must supply at least one document"
             )
@@ -47,7 +47,7 @@ open class AppendLoanDocumentsContract(
                     if (incomingDocChecksums[newDocChecksum] == true) {
                         raiseError("Loan document with checksum $newDocChecksum already provided in input")
                     }
-                    existingDocs[newDocChecksum]?.let { existingDocument ->
+                    existingDocumentMetadata[newDocChecksum]?.let { existingDocument ->
                         documentModificationValidation(
                             existingDocument,
                             newDocument,

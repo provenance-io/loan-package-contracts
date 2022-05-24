@@ -16,7 +16,7 @@ import tech.figure.servicing.v1beta1.LoanStateOuterClass.ServicingData
 @Participants(roles = [PartyType.OWNER])
 @ScopeSpecification(["tech.figure.loan"])
 open class RecordENoteContract(
-    @Record(LoanScopeFacts.servicingData) val existingServicingData: ServicingData, // TODO: Make optional?
+    @Record(name = LoanScopeFacts.servicingData, optional = true) val existingServicingData: ServicingData?,
 ) : P8eContract() {
 
     @Function(invokedBy = PartyType.OWNER)
@@ -27,7 +27,7 @@ open class RecordENoteContract(
     @Record(LoanScopeFacts.servicingData)
     open fun recordServicingData(@Input(LoanScopeFacts.servicingData) newServicingData: ServicingData): ServicingData =
         updateServicingData(
-            existingServicingData = existingServicingData,
+            existingServicingData = existingServicingData ?: ServicingData.getDefaultInstance(),
             newServicingData = newServicingData,
         )
 }
