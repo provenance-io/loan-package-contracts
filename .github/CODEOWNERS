@@ -1,0 +1,10 @@
+# CODEOWNERS: https://help.github.com/articles/about-codeowners/
+
+# NOTE: Order is important; the last matching pattern takes the
+# most precedence.
+
+# Secondary repo maintainers, substitutes of the primary maintainers when they become MIA
+# * Currently, no accounts other than those listed as the primary maintainers below have write access
+
+# Primary repo maintainers
+* @cworsnop-figure @dkneisly-figure @rpatel-figure
