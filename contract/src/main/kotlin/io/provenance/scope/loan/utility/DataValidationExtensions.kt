@@ -11,7 +11,7 @@ import tech.figure.util.v1beta1.Money as FigureTechMoney
 import tech.figure.util.v1beta1.UUID as FigureTechUUID
 
 @Suppress("TooGenericExceptionCaught")
-internal fun tryOrFalse(fn: () -> Any): Boolean =
+internal fun <T> tryOrFalse(fn: () -> T): Boolean =
     try {
         fn()
         true

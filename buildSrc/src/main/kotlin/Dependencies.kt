@@ -9,6 +9,7 @@ object Versions {
     const val Kotlin = "1.6.21"
     const val GitHubRelease = "2.2.12"
     const val Kotest = "5.2.3"
+    const val Kover = "0.5.1"
     const val Ktlint = "0.45.2"
     const val KrotoPlus = "0.6.1"
     const val BouncyCastle = "1.70"
@@ -33,6 +34,7 @@ object Versions {
 object Plugins {
     val Kotlin = PluginSpec("kotlin")
     val KotlinJvm = PluginSpec("org.jetbrains.kotlin.jvm", Versions.Kotlin)
+    val Kover = PluginSpec("org.jetbrains.kotlinx.kover", Versions.Kover)
     val NexusPublishing = PluginSpec("io.github.gradle-nexus.publish-plugin", Versions.Plugins.NexusPublishing)
     val GitHubRelease = PluginSpec("com.github.breadmoirai.github-release", Versions.GitHubRelease)
     val P8ePublishing = PluginSpec("io.provenance.p8e.p8e-publish", Versions.Plugins.P8ePublishing)

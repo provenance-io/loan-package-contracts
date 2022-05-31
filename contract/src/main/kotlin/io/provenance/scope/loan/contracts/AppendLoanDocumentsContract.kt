@@ -12,7 +12,6 @@ import io.provenance.scope.loan.utility.ContractRequirementType.VALID_INPUT
 import io.provenance.scope.loan.utility.documentModificationValidation
 import io.provenance.scope.loan.utility.documentValidation
 import io.provenance.scope.loan.utility.isValid
-import io.provenance.scope.loan.utility.orError
 import io.provenance.scope.loan.utility.raiseError
 import io.provenance.scope.loan.utility.validateRequirements
 import tech.figure.loan.v1beta1.LoanDocuments
@@ -30,16 +29,16 @@ open class AppendLoanDocumentsContract(
         val newDocList = existingDocs?.toBuilder() ?: LoanDocuments.newBuilder()
         validateRequirements(VALID_INPUT) {
             /* Primitive type used for protobuf keys to avoid comparison interference from unknown fields */
-            val existingDocumentMetadata = existingDocs?.documentList?.fold(mutableMapOf<String, DocumentMetadata>()) { acc, documentMetadata ->
-                acc.apply {
+            val existingDocumentMetadata = mutableMapOf<String, DocumentMetadata>()
+            if (newDocs.documentList.isNotEmpty()) {
+                existingDocs?.documentList?.forEach { documentMetadata ->
                     documentMetadata.checksum.takeIf { it.isValid() }?.checksum?.let { checksum ->
-                        acc[checksum] = documentMetadata
+                        existingDocumentMetadata[checksum] = documentMetadata
                     }
                 }
-            } ?: emptyMap()
-            requireThat(
-                newDocs.documentList.isNotEmpty() orError "Must supply at least one document"
-            )
+            } else {
+                raiseError("Must supply at least one document")
+            }
             val incomingDocChecksums = mutableMapOf<String, Boolean>()
             newDocs.documentList.forEach { newDocument ->
                 documentValidation(newDocument)

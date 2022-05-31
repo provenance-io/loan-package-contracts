@@ -127,20 +127,46 @@ private fun ContractViolationMap.handleViolations(
  * Defines a body in which [ContractEnforcement]s can be freely defined and then collectively evaluated.
  */
 internal class ContractEnforcementContext(
-    val requirementType: ContractRequirementType,
+    private val requirementType: ContractRequirementType,
 ) {
     /**
      * A [ContractViolationMap] which can be updated by calls to [requireThat].
      */
     private val violations: ContractViolationMap = mutableMapOf()
+
+    /**
+     * Adds a [violation] to [violations].
+     */
+    private fun addViolation(violation: ContractViolation) {
+        violations[violation] = violations.getOrDefault(violation, 0U) + 1U
+    }
     /**
      * Adds [ContractViolation]s to a [ContractViolationMap] that have their corresponding requirement violated.
      */
-    fun requireThat(vararg enforcements: ContractEnforcement) = enforcements.forEach { (rule, violationReport) ->
+    fun requireThat(vararg enforcements: ContractEnforcement): List<ContractEnforcement> = enforcements.toList().onEach { (rule, violationReport) ->
         if (!rule) {
-            violations[violationReport] = violations.getOrDefault(violationReport, 0U) + 1U
+            addViolation(violationReport)
         }
     }
+
+    fun <T> List<T>.requireThatEach(iterationsDescription: String = "Iterations", requirement: (T) -> List<ContractEnforcement>) =
+        fold(mutableMapOf<String, List<UInt>>()) { acc, item ->
+            acc.also { map ->
+                requirement(item).forEachIndexed { index, (rule, violationReport) ->
+                    if (!rule) {
+                        map[violationReport] = map.getOrDefault(violationReport, emptyList()) + index.toUInt()
+                    }
+                }
+            }
+        }.forEach { (violationMessage, iterations) ->
+            val iterationsLimit = 5
+            iterations.joinToString(
+                limit = iterationsLimit,
+                truncated = "...(${(iterations.size - iterationsLimit)} more omitted)",
+            ).let { iterationIndicesSnippet ->
+                addViolation("$violationMessage [$iterationsDescription $iterationIndicesSnippet]")
+            }
+        }
     /**
      * See [io.provenance.scope.loan.utility.handleViolations].
      */

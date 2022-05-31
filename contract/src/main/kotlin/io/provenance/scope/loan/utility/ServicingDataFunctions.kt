@@ -4,8 +4,6 @@ import io.provenance.scope.util.toOffsetDateTime
 import tech.figure.servicing.v1beta1.LoanStateOuterClass.LoanStateMetadata
 import tech.figure.servicing.v1beta1.LoanStateOuterClass.ServicingData
 
-/* TODO: Adjust signatures and/or use Kotlin's new context receivers to make this file more digestable */
-
 internal fun updateServicingData(
     existingServicingData: ServicingData = ServicingData.getDefaultInstance(),
     newServicingData: ServicingData,
@@ -20,27 +18,28 @@ internal fun updateServicingData(
     }
 }.build()
 
-internal val appendLoanStates: ContractEnforcementContext.(
-    ServicingData.Builder,
-    Collection<LoanStateMetadata>,
-) -> Unit = { servicingDataBuilder, newLoanStates ->
-    requireThat(
-        newLoanStates.isNotEmpty() orError "Must supply at least one loan state" // TODO: Verify not thrown for empty/optional input
-    )
+internal fun ContractEnforcementContext.appendLoanStates(
+    servicingDataBuilder: ServicingData.Builder,
+    newLoanStates: Collection<LoanStateMetadata>,
+) {
     /* Primitive types used for protobuf keys to avoid comparison interference from unknown fields */
     val existingStateChecksums = mutableMapOf<String, Boolean>()
     val existingStateIds = mutableMapOf<String, Boolean>()
     val existingStateTimes = mutableMapOf<Pair<Long, Int>, Boolean>()
-    servicingDataBuilder.loanStateList.forEach { loanState ->
-        loanState?.checksum.takeIf { it.isValid() }?.checksum?.let { checksum ->
-            existingStateChecksums[checksum] = true
+    if (newLoanStates.isNotEmpty()) {
+        servicingDataBuilder.loanStateList.forEach { loanState ->
+            loanState?.checksum.takeIf { it.isValid() }?.checksum?.let { checksum ->
+                existingStateChecksums[checksum] = true
+            }
+            loanState?.id.takeIf { it.isValid() }?.value?.let { id ->
+                existingStateIds[id] = true
+            }
+            loanState?.effectiveTime.takeIf { it.isValid() }?.let { effectiveTime ->
+                existingStateTimes[effectiveTime.seconds to effectiveTime.nanos] = true
+            }
         }
-        loanState?.id.takeIf { it.isValid() }?.value?.let { id ->
-            existingStateIds[id] = true
-        }
-        loanState?.effectiveTime.takeIf { it.isValid() }?.let { effectiveTime ->
-            existingStateTimes[effectiveTime.seconds to effectiveTime.nanos] = true
-        }
+    } else {
+        raiseError("Must supply at least one loan state")
     }
     val incomingStateChecksums = mutableMapOf<String, Boolean>()
     val incomingStateIds = mutableMapOf<String, Boolean>()
