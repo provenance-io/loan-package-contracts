@@ -3,6 +3,9 @@ name: Build
 on:
   pull_request:
     types: [ synchronize, opened, reopened, ready_for_review, converted_to_draft ]
+  push:
+    branches:
+      - main
   workflow_dispatch:
     inputs:
       linting:
@@ -23,6 +26,7 @@ on:
 
 concurrency:
   group: ${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   linting:
@@ -48,7 +52,12 @@ jobs:
     name: Build
     runs-on: ubuntu-latest
     env:
-      RUN_CODE_COVERAGE: ${{ github.event.inputs.runCodeCoverage == true || github.event.pull_request.draft == false }}
+      RUN_CODE_COVERAGE: |
+        ${{
+          github.event.inputs.runCodeCoverage == true ||
+          github.event.pull_request.draft == false ||
+          github.event.push == true
+        }}
     steps:
       - name: Checkout
         uses: actions/checkout@v3
