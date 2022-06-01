@@ -6,13 +6,16 @@ import tech.figure.servicing.v1beta1.LoanStateOuterClass.LoanStateMetadata
 import tech.figure.servicing.v1beta1.ServicingRightsOuterClass.ServicingRights
 import tech.figure.util.v1beta1.DocumentMetadata
 import tech.figure.validation.v1beta1.LoanValidation
+import tech.figure.validation.v1beta1.ValidationRequest
+import tech.figure.validation.v1beta1.ValidationResults
 import io.dartinc.registry.v1beta1.Controller as ENoteController
 
-internal val documentModificationValidation: ContractEnforcementContext.(
-    DocumentMetadata,
-    DocumentMetadata,
-) -> Unit = { existingDocument, newDocument ->
+internal fun ContractEnforcementContext.documentModificationValidation(
+    existingDocument: DocumentMetadata,
+    newDocument: DocumentMetadata,
+) {
     existingDocument.checksum.checksum.let { existingChecksum ->
+        // TODO: Should we raise a violation if the checksum's algorithm is changed?
         if (existingChecksum == newDocument.checksum.checksum) {
             val checksumSnippet = if (existingChecksum.isNotBlank()) {
                 " with checksum $existingChecksum"
@@ -34,18 +37,20 @@ internal val documentModificationValidation: ContractEnforcementContext.(
 }
 
 internal val documentValidation: ContractEnforcementContext.(DocumentMetadata) -> Unit = { document ->
-    val documentIdSnippet = if (document.id.isSet()) {
-        " with ID ${document.id.value}"
-    } else {
-        ""
-    }
-    requireThat(
-        document.id.isValid()              orError "Document must have valid ID",
-        document.uri.isNotBlank()          orError "Document$documentIdSnippet is missing URI",
-        document.contentType.isNotBlank()  orError "Document$documentIdSnippet is missing content type",
-        document.documentType.isNotBlank() orError "Document$documentIdSnippet is missing document type",
-        document.checksum.isValid()        orError "Document$documentIdSnippet is missing checksum",
-    )
+    document.takeIf { it.isSet() }?.let { setDocument ->
+        val documentIdSnippet = if (setDocument.id.isSet()) {
+            " with ID ${setDocument.id.value}"
+        } else {
+            ""
+        }
+        requireThat(
+            setDocument.id.isValid()              orError "Document must have valid ID",
+            setDocument.uri.isNotBlank()          orError "Document$documentIdSnippet is missing URI",
+            setDocument.contentType.isNotBlank()  orError "Document$documentIdSnippet is missing content type",
+            setDocument.documentType.isNotBlank() orError "Document$documentIdSnippet is missing document type",
+            setDocument.checksum.isValid()        orError "Document$documentIdSnippet is missing checksum",
+        )
+    } ?: raiseError("Document is not set")
 }
 
 internal val eNoteControllerValidation: ContractEnforcementContext.(ENoteController) -> Unit = { controller ->
@@ -84,7 +89,7 @@ internal val eNoteValidation: ContractEnforcementContext.(ENote) -> Unit = { eNo
 internal val loanDocumentInputValidation: (LoanDocuments) -> Unit = { loanDocuments ->
     validateRequirements(ContractRequirementType.VALID_INPUT) {
         requireThat(
-            loanDocuments.documentList.isNotEmpty() orError "Must supply at least one document" // TODO: Verify desired; not thrown for optional input
+            loanDocuments.documentList.isNotEmpty() orError "Must supply at least one document"
         )
         val incomingDocChecksums = mutableMapOf<String, Boolean>()
         loanDocuments.documentList.forEach { document ->
@@ -116,9 +121,18 @@ internal val loanStateValidation: ContractEnforcementContext.(LoanStateMetadata)
 internal val loanValidationInputValidation: (LoanValidation) -> Unit = { validationRecord ->
     validateRequirements(ContractRequirementType.VALID_INPUT) {
         if (validationRecord.iterationCount > 0) {
-            val incomingValidationRequests = mutableMapOf<String, Boolean>()
-            validationRecord.iterationList.forEach { iteration ->
-                // TODO: Implement - after DRYing logic in existing request and result recording contracts, in same manner as eNote
+            val incomingIterationRequestIds = mutableMapOf<String, UInt>()
+            validationRecord.iterationList.requireThatEach { iteration ->
+                iteration.request.requestId.takeIf { it.isSet() }?.value?.let { iterationId ->
+                    incomingIterationRequestIds[iterationId] = incomingIterationRequestIds.getOrDefault(iterationId, 0U) + 1U
+                }
+                /** TODO: Find out if there is another way to do this, instead of having to concatenate lists */
+                return@requireThatEach loanValidationRequestValidation(iteration.request) + loanValidationResultsValidation(iteration.results)
+            }
+            incomingIterationRequestIds.entries.forEach { (iterationId, count) ->
+                if (count > 1U) {
+                    raiseError("Request ID $iterationId is not unique ($count usages)")
+                }
             }
         } else {
             raiseError("Must supply at least one validation iteration")
@@ -126,9 +140,39 @@ internal val loanValidationInputValidation: (LoanValidation) -> Unit = { validat
     }
 }
 
+internal val loanValidationResultsValidation: ContractEnforcementContext.(ValidationResults) -> List<ContractEnforcement> = { results ->
+    results.takeIf { it.isSet() }?.let { setResults ->
+        requireThat(
+            setResults.resultSetUuid.isValid()          orError "Results must have valid result set UUID",
+            setResults.resultSetEffectiveTime.isValid() orError "Results are missing timestamp",
+            (setResults.validationExceptionCount >= 0)  orError "Results report an invalid validation exception count",
+            (setResults.validationWarningCount >= 0)    orError "Results report an invalid validation warning count",
+            (setResults.validationItemsCount > 0)       orError "Results must have at least one validation item",
+            setResults.resultSetProvider.isNotBlank()   orError "Results missing provider name",
+        )
+    } ?: raiseError("Results are not set")
+}
+
+internal val loanValidationRequestValidation: ContractEnforcementContext.(ValidationRequest) -> List<ContractEnforcement> = { request ->
+    request.takeIf { it.isSet() }?.let { setRequest ->
+        requireThat(
+            setRequest.requestId.isValid()        orError "Request must have valid ID",
+            setRequest.effectiveTime.isValid()    orError "Request is missing timestamp",
+            setRequest.snapshotUri.isNotBlank()   orError "Request is missing loan snapshot URI", // TODO: Change to block height in model v0.1.9
+            setRequest.validatorName.isNotBlank() orError "Request is missing validator name",
+            setRequest.requesterName.isNotBlank() orError "Request is missing requester name",
+        )
+    } ?: raiseError("Request is not set")
+}
+
 internal val servicingRightsInputValidation: (ServicingRights) -> Unit = { servicingRights ->
     validateRequirements(ContractRequirementType.VALID_INPUT,
         servicingRights.servicerId.isValid()      orError "Servicing rights must have valid servicer UUID",
         servicingRights.servicerName.isNotBlank() orError "Servicing rights missing servicer name",
     )
+}
+
+internal val uliValidation: ContractEnforcementContext.(String) -> Unit = { uli ->
+    // TODO: Investigate wrapping certain protoc validate.rules call into a ContractEnforcement
+    requireThat((uli.length in 23..45) orError "Loan ULI is invalid") // TODO: Any other requirements for ULI that our contracts can enforce?
 }

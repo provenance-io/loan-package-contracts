@@ -13,22 +13,17 @@ import io.provenance.scope.loan.LoanScopeFacts
 import io.provenance.scope.loan.LoanScopeInputs
 import io.provenance.scope.loan.utility.ContractRequirementType
 import io.provenance.scope.loan.utility.eNoteControllerValidation
-import io.provenance.scope.loan.utility.isSet
-import io.provenance.scope.loan.utility.orError
 import io.provenance.scope.loan.utility.validateRequirements
 
 @Participants([PartyType.OWNER, PartyType.CUSTODIAN]) // TODO: Change temporary placeholder of "CUSTODIAN" to "CONTROLLER" once latter is defined
 @ScopeSpecification(["tech.figure.loan"])
 open class UpdateENoteControllerContract(
-    @Record(LoanScopeFacts.eNote) val existingENote: ENote,
+    @Record(name = LoanScopeFacts.eNote, optional = false) val existingENote: ENote,
 ) : P8eContract() {
 
     @Function(invokedBy = PartyType.CUSTODIAN) // TODO: Change temporary placeholder of "CUSTODIAN" to "CONTROLLER" once latter is defined
     @Record(LoanScopeFacts.eNote)
     open fun updateENoteController(@Input(LoanScopeInputs.eNoteControllerUpdate) newController: Controller): ENote {
-        validateRequirements(ContractRequirementType.LEGAL_SCOPE_STATE,
-            existingENote.isSet() orError "Cannot create eNote using this contract",
-        )
         validateRequirements(ContractRequirementType.VALID_INPUT) {
             eNoteControllerValidation(newController)
         }

@@ -11,11 +11,13 @@ import io.provenance.scope.loan.test.Constructors.randomProtoUuid
 import io.provenance.scope.loan.test.Constructors.resultsContractWithEmptyExistingRecord
 import io.provenance.scope.loan.test.Constructors.resultsContractWithSingleRequest
 import io.provenance.scope.loan.test.Constructors.validResultSubmission
+import io.provenance.scope.loan.test.LoanPackageArbs.anyInvalidUuid
 import io.provenance.scope.loan.test.LoanPackageArbs.anyNonEmptyString
 import io.provenance.scope.loan.test.LoanPackageArbs.anyUuid
 import io.provenance.scope.loan.utility.ContractViolationException
 import io.provenance.scope.loan.utility.IllegalContractStateException
 import tech.figure.validation.v1beta1.ValidationResponse
+import tech.figure.validation.v1beta1.ValidationResults
 
 class RecordLoanValidationResultsUnitTest : WordSpec({
     "recordLoanValidationResults" When {
@@ -38,7 +40,26 @@ class RecordLoanValidationResultsUnitTest : WordSpec({
                             recordLoanValidationResults(emptyResultSubmission)
                         }
                     }.let { exception ->
-                        exception.message shouldContain "Response is missing results"
+                        exception.message shouldContain "Results are not set"
+                    }
+                }
+            }
+        }
+        "given an invalid input" should {
+            "throw an appropriate exception" {
+                checkAll(anyInvalidUuid) { randomInvalidId ->
+                    shouldThrow<ContractViolationException> {
+                        resultsContractWithSingleRequest(randomProtoUuid).apply {
+                            recordLoanValidationResults(
+                                submission = ValidationResponse.newBuilder().also { responseBuilder ->
+                                    responseBuilder.results = ValidationResults.newBuilder().also { resultsBuilder ->
+                                        resultsBuilder.resultSetUuid = randomInvalidId
+                                    }.build()
+                                }.build()
+                            )
+                        }
+                    }.let { exception ->
+                        exception.message shouldContain "Results must have valid result set UUID"
                     }
                 }
             }

@@ -8,6 +8,7 @@ import io.provenance.scope.loan.contracts.RecordLoanValidationResultsContract
 import io.provenance.scope.util.toProtoTimestamp
 import tech.figure.asset.v1beta1.Asset
 import tech.figure.servicing.v1beta1.LoanStateOuterClass.ServicingData
+import tech.figure.servicing.v1beta1.ServicingRightsOuterClass.ServicingRights
 import tech.figure.validation.v1beta1.LoanValidation
 import tech.figure.validation.v1beta1.ValidationItem
 import tech.figure.validation.v1beta1.ValidationIteration
@@ -34,6 +35,7 @@ object Constructors {
             existingAsset = Asset.getDefaultInstance(),
             existingENote = ENote.getDefaultInstance(),
             existingServicingData = ServicingData.getDefaultInstance(),
+            existingServicingRights = ServicingRights.getDefaultInstance(),
         )
     val resultsContractWithEmptyExistingRecord: RecordLoanValidationResultsContract
         get() = RecordLoanValidationResultsContract(
@@ -51,7 +53,7 @@ object Constructors {
     ): ValidationRequest = ValidationRequest.newBuilder().also { requestBuilder ->
         requestBuilder.requestId = requestID
         requestBuilder.ruleSetId = randomProtoUuid
-        requestBuilder.snapshotUri = randomProtoUuid.value
+        requestBuilder.snapshotUri = randomProtoUuid.value // TODO: Change to block height in model v0.1.9
         requestBuilder.effectiveTime = OffsetDateTime.now().toProtoTimestamp()
         requestBuilder.requesterName = requesterName
         requestBuilder.validatorName = validatorName

@@ -12,6 +12,7 @@ import io.provenance.scope.loan.LoanScopeFacts
 import io.provenance.scope.loan.LoanScopeProperties.assetLoanKey
 import io.provenance.scope.loan.LoanScopeProperties.assetMismoKey
 import io.provenance.scope.loan.utility.ContractRequirementType.VALID_INPUT
+import io.provenance.scope.loan.utility.documentValidation
 import io.provenance.scope.loan.utility.eNoteInputValidation
 import io.provenance.scope.loan.utility.isValid
 import io.provenance.scope.loan.utility.loanDocumentInputValidation
@@ -20,6 +21,7 @@ import io.provenance.scope.loan.utility.orError
 import io.provenance.scope.loan.utility.raiseError
 import io.provenance.scope.loan.utility.servicingRightsInputValidation
 import io.provenance.scope.loan.utility.tryUnpackingAs
+import io.provenance.scope.loan.utility.uliValidation
 import io.provenance.scope.loan.utility.updateServicingData
 import io.provenance.scope.loan.utility.validateRequirements
 import tech.figure.asset.v1beta1.Asset
@@ -38,7 +40,6 @@ class InitializeLoanScope : P8eContract() {
     @Function(invokedBy = PartyType.OWNER)
     @Record(LoanScopeFacts.asset)
     fun recordAsset(@Input(LoanScopeFacts.asset) asset: Asset) = asset.also {
-        // TODO: Not DRYing this body since the asset record is only modified by RecordLoanContract and this
         validateRequirements(VALID_INPUT) {
             requireThat(
                 asset.id.isValid()      orError "Asset must have valid ID",
@@ -52,10 +53,8 @@ class InitializeLoanScope : P8eContract() {
                     )
                 }
                 asset.kvMap[assetMismoKey]?.tryUnpackingAs<MISMOLoanMetadata>("input asset's \"${assetMismoKey}\"") { newLoan ->
-                    // TODO: Investigate wrapping protoc validate.rules call into ContractViolation somehow instead
-                    requireThat(
-                        (newLoan.uli.length in 23..45) orError "Loan ULI is invalid", // TODO: Any other requirements for ULI?
-                    )
+                    documentValidation(newLoan.document)
+                    uliValidation(newLoan.uli)
                 }
             } else {
                 raiseError("Exactly one of \"$assetLoanKey\" or \"$assetMismoKey\" must be a key in the input asset")

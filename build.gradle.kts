@@ -18,6 +18,7 @@ buildscript {
 plugins {
     pluginSpecs(
         Plugins.KotlinJvm,
+        Plugins.Kover,
         Plugins.GitHubRelease,
         Plugins.NexusPublishing,
         Plugins.P8ePublishing,

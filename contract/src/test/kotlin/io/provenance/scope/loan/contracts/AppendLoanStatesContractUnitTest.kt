@@ -14,6 +14,7 @@ import io.kotest.property.arbitrary.int
 import io.kotest.property.arbitrary.pair
 import io.kotest.property.checkAll
 import io.provenance.scope.loan.test.Constructors.appendLoanStatesContractWithNoExistingStates
+import io.provenance.scope.loan.test.KotestConfig
 import io.provenance.scope.loan.test.LoanPackageArbs.anyUuid
 import io.provenance.scope.loan.test.LoanPackageArbs.anyValidChecksum
 import io.provenance.scope.loan.test.LoanPackageArbs.anyValidLoanState
@@ -36,14 +37,14 @@ class AppendLoanStatesContractUnitTest : WordSpec({
                 }
             }
         }
-        "given at least one loan state with invalid fields" should {
+        "given at least one input loan state with invalid fields" should {
             "throw an appropriate exception" {
-                checkAll(anyValidLoanState) { randomLoanState ->
+                checkAll(anyValidLoanState) { randomValidLoanState ->
                     shouldThrow<ContractViolationException> {
                         appendLoanStatesContractWithNoExistingStates.appendLoanStates(
                             listOf(
                                 LoanStateMetadata.getDefaultInstance(),
-                                randomLoanState,
+                                randomValidLoanState,
                             )
                         )
                     }.let { exception ->
@@ -54,7 +55,7 @@ class AppendLoanStatesContractUnitTest : WordSpec({
                 }
             }
         }
-        "given loan states which duplicate existing loan state checksums" should {
+        "given input loan states which duplicate existing loan state checksums" should {
             "throw an appropriate exception" {
                 checkAll(anyValidLoanState, anyValidLoanState, anyValidChecksum) { randomExistingLoanState, randomNewLoanState, randomChecksum ->
                     shouldThrow<ContractViolationException> {
@@ -80,7 +81,7 @@ class AppendLoanStatesContractUnitTest : WordSpec({
                 }
             }
         }
-        "given loan states which duplicate existing loan state IDs" should {
+        "given input loan states which duplicate existing loan state IDs" should {
             "throw an appropriate exception" {
                 checkAll(anyValidLoanState, anyValidLoanState, anyUuid) { randomExistingLoanState, randomNewLoanState, randomUuid ->
                     shouldThrow<ContractViolationException> {
@@ -106,7 +107,7 @@ class AppendLoanStatesContractUnitTest : WordSpec({
                 }
             }
         }
-        "given loan states which duplicate existing loan state times" should {
+        "given input loan states which duplicate existing loan state times" should {
             "throw an appropriate exception" {
                 checkAll(anyValidLoanState, anyValidLoanState, anyValidTimestamp) { randomExistingLoanState, randomNewLoanState, randomTimestamp ->
                     shouldThrow<ContractViolationException> {
@@ -132,9 +133,24 @@ class AppendLoanStatesContractUnitTest : WordSpec({
                 }
             }
         }
-        "given only new & valid loan states" should {
+        "given an input of loan states with duplicate checksums" xshould {
+            "throw an appropriate exception" {
+                // TODO: Implement
+            }
+        }
+        "given an input of loan states with duplicate IDs" xshould {
+            "throw an appropriate exception" {
+                // TODO: Implement
+            }
+        }
+        "given an input of loan states with duplicate times" xshould {
+            "throw an appropriate exception" {
+                // TODO: Implement
+            }
+        }
+        "given only new & valid input loan states" should {
             "not throw an exception" {
-                val stateCountRange = 2..4 // Reduce the upper bound of this range (to no lower than 3) to decrease the execution time
+                val stateCountRange = 2..(if (KotestConfig.runTestsExtended) 4 else 3) // Keep upper bound low since runtime is Θ(n^2)
                 val arbitraryStateCountAndSplit = Arb.int(stateCountRange).flatMap { randomStateCount ->
                     Arb.pair(arbitrary { randomStateCount }, Arb.int(0..max(randomStateCount - 1, 1)))
                 }

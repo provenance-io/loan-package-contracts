@@ -14,6 +14,7 @@ import io.provenance.scope.loan.LoanScopeProperties.assetLoanKey
 import io.provenance.scope.loan.LoanScopeProperties.assetMismoKey
 import io.provenance.scope.loan.utility.ContractRequirementType.VALID_INPUT
 import io.provenance.scope.loan.utility.documentModificationValidation
+import io.provenance.scope.loan.utility.documentValidation
 import io.provenance.scope.loan.utility.eNoteInputValidation
 import io.provenance.scope.loan.utility.isSet
 import io.provenance.scope.loan.utility.isValid
@@ -25,6 +26,7 @@ import io.provenance.scope.loan.utility.servicingRightsInputValidation
 import io.provenance.scope.loan.utility.toFigureTechLoan
 import io.provenance.scope.loan.utility.toMISMOLoan
 import io.provenance.scope.loan.utility.tryUnpackingAs
+import io.provenance.scope.loan.utility.uliValidation
 import io.provenance.scope.loan.utility.updateServicingData
 import io.provenance.scope.loan.utility.validateRequirements
 import tech.figure.asset.v1beta1.Asset
@@ -39,8 +41,9 @@ import tech.figure.loan.v1beta1.Loan as FigureTechLoan
 @ScopeSpecification(["tech.figure.loan"])
 open class RecordLoanContract(
     @Record(name = LoanScopeFacts.asset, optional = true) val existingAsset: Asset?,
-    @Record(name = LoanScopeFacts.eNote, optional = true) val existingENote: ENote?, // Must be in constructor for @SkipIfRecordExists to work
+    @Record(name = LoanScopeFacts.eNote, optional = true) val existingENote: ENote?,
     @Record(name = LoanScopeFacts.servicingData, optional = true) val existingServicingData: ServicingData?,
+    @Record(name = LoanScopeFacts.servicingRights, optional = true) val existingServicingRights: ServicingRights?,
 ) : P8eContract() {
 
     @Function(invokedBy = PartyType.OWNER)
@@ -78,6 +81,7 @@ open class RecordLoanContract(
                 }
                 newAsset.kvMap[assetMismoKey]?.let { newLoanValue ->
                     newLoanValue.tryUnpackingAs<MISMOLoanMetadata>("input asset's \"${assetMismoKey}\"") { newLoan ->
+                        documentValidation(newLoan.document)
                         if (existingAsset.isSet()) {
                             existingAsset!!.kvMap[assetMismoKey]?.toMISMOLoan()?.let { existingLoan ->
                                 // TODO: Allow doc with different checksum to replace existing one or not?
@@ -87,10 +91,7 @@ open class RecordLoanContract(
                                 )
                             } ?: raiseError("The input asset had key \"${assetMismoKey}\" but the existing asset did not")
                         } else {
-                            // TODO: Investigate wrapping protoc validate.rules call into ContractViolation somehow instead
-                            requireThat(
-                                (newLoan.uli.length in 23..45) orError "Loan ULI is invalid", // TODO: Any other requirements for ULI?
-                            )
+                            uliValidation(newLoan.uli)
                         }
                     }
                 }
@@ -102,6 +103,7 @@ open class RecordLoanContract(
 
     @Function(invokedBy = PartyType.OWNER)
     @Record(LoanScopeFacts.servicingRights)
+    @SkipIfRecordExists(LoanScopeFacts.servicingRights)
     open fun recordServicingRights(@Input(LoanScopeFacts.servicingRights) servicingRights: ServicingRights) =
         servicingRights.also(servicingRightsInputValidation)
 

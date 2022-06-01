@@ -10,7 +10,7 @@ import io.provenance.scope.contract.spec.P8eContract
 import io.provenance.scope.loan.LoanScopeFacts
 import io.provenance.scope.loan.LoanScopeInputs
 import io.provenance.scope.loan.utility.ContractRequirementType.VALID_INPUT
-import io.provenance.scope.loan.utility.isValid
+import io.provenance.scope.loan.utility.loanValidationRequestValidation
 import io.provenance.scope.loan.utility.orError
 import io.provenance.scope.loan.utility.validateRequirements
 import tech.figure.validation.v1beta1.LoanValidation
@@ -26,16 +26,14 @@ open class RecordLoanValidationRequestContract(
     @Function(invokedBy = PartyType.OWNER) // TODO: Add/Change to VALIDATOR?
     @Record(LoanScopeFacts.loanValidations)
     open fun recordLoanValidationRequest(@Input(LoanScopeInputs.validationRequest) submission: ValidationRequest): LoanValidation {
-        validateRequirements(VALID_INPUT,
-            submission.requestId.isValid()        orError "Request must have valid ID",
-            submission.effectiveTime.isValid()    orError "Request is missing timestamp",
-            submission.snapshotUri.isNotBlank()   orError "Request is missing loan snapshot URI",
-            submission.validatorName.isNotBlank() orError "Request is missing validator name",
-            submission.requesterName.isNotBlank() orError "Request is missing requester name",
-            validationRecord?.iterationList?.none { iteration ->
-                iteration.request.requestId == submission.requestId
-            } orError "A validation iteration with the same request ID already exists",
-        )
+        validateRequirements(VALID_INPUT) {
+            loanValidationRequestValidation(submission)
+            requireThat(
+                validationRecord?.iterationList?.none { iteration ->
+                    iteration.request.requestId == submission.requestId
+                } orError "A validation iteration with the same request ID already exists",
+            )
+        }
         return (validationRecord?.toBuilder() ?: LoanValidation.newBuilder()).also { recordBuilder ->
             recordBuilder.addIteration(
                 ValidationIteration.newBuilder().also { iterationBuilder ->

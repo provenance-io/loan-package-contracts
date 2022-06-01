@@ -26,12 +26,14 @@ import io.kotest.property.arbitrary.string
 import io.kotest.property.arbitrary.uInt
 import io.kotest.property.arbitrary.uuid
 import io.provenance.scope.loan.utility.ContractEnforcement
-import io.provenance.scope.loan.utility.ContractViolation
 import io.provenance.scope.loan.utility.ContractViolationException
 import io.provenance.scope.loan.utility.ContractViolationMap
 import io.provenance.scope.loan.utility.UnexpectedContractStateException
+import tech.figure.loan.v1beta1.MISMOLoanMetadata
 import tech.figure.servicing.v1beta1.LoanStateOuterClass.LoanStateMetadata
+import tech.figure.util.v1beta1.DocumentMetadata
 import java.time.Instant
+import tech.figure.loan.v1beta1.Loan as FigureTechLoan
 import tech.figure.util.v1beta1.Checksum as FigureTechChecksum
 import tech.figure.util.v1beta1.UUID as FigureTechUUID
 
@@ -42,10 +44,9 @@ internal object LoanPackageArbs {
     /* Primitives */
     val anyNonEmptyString: Arb<String> = Arb.string().filter { it.isNotBlank() }
     val anyNonUuidString: Arb<String> = Arb.string().filterNot { it.length == 36 }
-    val anyUli: Arb<String> = Arb.string(minSize = 23, maxSize = 45, codepoints = Codepoint.alphanumeric()) // TODO: Is this correct?
+    val anyValidUli: Arb<String> = Arb.string(minSize = 23, maxSize = 45, codepoints = Codepoint.alphanumeric()) // TODO: Refine if at all possible
     val anyNonUliString: Arb<String> = Arb.string().filterNot { it.length in 23..45 } // TODO: Should be complement of anyUli
     /* Contract requirements */
-    val anyContractViolation: Arb<ContractViolation> = Arb.string()
     val anyContractEnforcement: Arb<ContractEnforcement> = Arb.bind(
         Arb.boolean(),
         Arb.string(),
@@ -53,7 +54,7 @@ internal object LoanPackageArbs {
         ContractEnforcement(requirement, violationReport)
     }
     val anyContractViolationMap: Arb<ContractViolationMap> = Arb.bind(
-        Arb.list(anyContractViolation),
+        Arb.list(Arb.string()),
         Arb.list(Arb.uInt()),
     ) { violationList, countList ->
         violationList.zip(countList).toMap().toMutableMap()
@@ -62,10 +63,10 @@ internal object LoanPackageArbs {
     val anyValidChecksum: Arb<FigureTechChecksum> = Arb.bind(
         anyNonEmptyString,
         Arb.string(),
-    ) { checksumValue, algorithmType ->
-        FigureTechChecksum.newBuilder().apply {
-            checksum = checksumValue
-            algorithm = algorithmType
+    ) { checksum, algorithmType ->
+        FigureTechChecksum.newBuilder().also { checksumBuilder ->
+            checksumBuilder.checksum = checksum
+            checksumBuilder.algorithm = algorithmType
         }.build()
     }
     val anyUuid: Arb<FigureTechUUID> = Arb.uuid(UUIDVersion.V4).map { arbUuidV4 ->
@@ -73,10 +74,50 @@ internal object LoanPackageArbs {
             value = arbUuidV4.toString()
         }.build()
     }
+    val anyValidDocumentMetadata: Arb<DocumentMetadata> = Arb.bind(
+        anyUuid,
+        anyValidChecksum,
+        anyNonEmptyString,
+        anyNonEmptyString,
+        anyNonEmptyString,
+        anyNonEmptyString,
+    ) { id, checksumValue, contentType, documentType, filename, uri ->
+        DocumentMetadata.newBuilder().also { documentBuilder ->
+            documentBuilder.id = id
+            documentBuilder.checksum = checksumValue
+            documentBuilder.contentType = contentType
+            documentBuilder.documentType = documentType
+            documentBuilder.fileName = filename
+            documentBuilder.uri = uri
+        }.build()
+    }
+    val anyInvalidUuid: Arb<FigureTechUUID> = anyNonUuidString.map { arbInvalidUuid ->
+        FigureTechUUID.newBuilder().apply {
+            value = arbInvalidUuid
+        }.build()
+    }
     val anyValidTimestamp: Arb<Timestamp> = anyTimestampComponents.map { (seconds, nanoSeconds) ->
         Timestamp.newBuilder().also { timestampBuilder ->
             timestampBuilder.seconds = seconds
             timestampBuilder.nanos = nanoSeconds
+        }.build()
+    }
+    val anyValidFigureTechLoan: Arb<FigureTechLoan> = Arb.bind(
+        anyUuid,
+        anyNonEmptyString,
+    ) { loanId, originatorName ->
+        FigureTechLoan.newBuilder().also { loanBuilder ->
+            loanBuilder.id = loanId
+            loanBuilder.originatorName = originatorName
+        }.build()
+    }
+    val anyValidMismoLoan: Arb<MISMOLoanMetadata> = Arb.bind(
+        anyValidUli,
+        anyValidDocumentMetadata,
+    ) { uli, document ->
+        MISMOLoanMetadata.newBuilder().also { loanBuilder ->
+            loanBuilder.uli = uli
+            loanBuilder.document = document
         }.build()
     }
     val anyValidLoanState: Arb<LoanStateMetadata> = Arb.bind(
@@ -124,10 +165,21 @@ private val anyTimestampComponents: Arb<Pair<Long, Int>> = Arb.pair(
 )
 
 private val anyPastNonEpochTimestampComponents: Arb<Pair<Long, Int>> = Instant.now().let { now ->
-    Arb.pair(
-        Arb.long(min = Timestamps.MIN_VALUE.seconds, max = now.epochSecond),
-        Arb.int(min = Timestamps.MIN_VALUE.nanos + 1, max = now.nano),
-    )
+    if (KotestConfig.runTestsExtended) {
+        Arb.pair(
+            Arb.long(min = Timestamps.MIN_VALUE.seconds, max = now.epochSecond),
+            Arb.int(min = Timestamps.MIN_VALUE.nanos, max = now.nano),
+        ).filterNot { (seconds, nanoSeconds) ->
+            seconds == Timestamps.MIN_VALUE.seconds && nanoSeconds == Timestamps.MIN_VALUE.nanos
+        }
+    } else {
+        Arb.pair(
+            Arb.long(min = Timestamps.MIN_VALUE.seconds, max = now.epochSecond),
+            Arb.int(min = Timestamps.MIN_VALUE.nanos + 1, max = now.nano), // Minor sacrifice of case where nanos = 0, in exchange for faster runs
+        )
+    }.filterNot { (seconds, nanoSeconds) ->
+        seconds == 0L && nanoSeconds == 0
+    }
 }
 
 /**

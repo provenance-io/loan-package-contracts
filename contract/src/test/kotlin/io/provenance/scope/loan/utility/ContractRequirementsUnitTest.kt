@@ -77,6 +77,11 @@ class ContractRequirementsUnitTest : WordSpec({
             }
         }
         "invoked with a function body" should {
+            "!properly handle calling requireThatEach on a collection with violations in multiple iterations" {
+                shouldThrow<IllegalContractStateException> {
+                    // TODO: Implement
+                }
+            }
             "return state violations only for failed conditions" {
                 checkAll(
                     Arb.list(LoanPackageArbs.anyContractEnforcement),

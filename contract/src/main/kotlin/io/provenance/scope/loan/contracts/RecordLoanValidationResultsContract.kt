@@ -12,8 +12,8 @@ import io.provenance.scope.loan.LoanScopeInputs
 import io.provenance.scope.loan.utility.ContractRequirementType
 import io.provenance.scope.loan.utility.isSet
 import io.provenance.scope.loan.utility.isValid
+import io.provenance.scope.loan.utility.loanValidationResultsValidation
 import io.provenance.scope.loan.utility.orError
-import io.provenance.scope.loan.utility.raiseError
 import io.provenance.scope.loan.utility.validateRequirements
 import tech.figure.validation.v1beta1.LoanValidation
 import tech.figure.validation.v1beta1.ValidationResponse
@@ -36,16 +36,7 @@ open class RecordLoanValidationResultsContract(
             requireThat(
                 submission.requestId.isValid() orError "Response must have valid ID",
             )
-            submission.results.takeIf { it.isSet() }?.let { submittedResults ->
-                requireThat(
-                    submittedResults.resultSetUuid.isValid()          orError "Response is missing result set UUID",
-                    submittedResults.resultSetEffectiveTime.isValid() orError "Response is missing timestamp",
-                    (submittedResults.validationExceptionCount >= 0)  orError "Results report an invalid validation exception count",
-                    (submittedResults.validationWarningCount >= 0)    orError "Results report an invalid validation warning count",
-                    (submittedResults.validationItemsCount > 0)       orError "Results must have at least one validation item",
-                    submittedResults.resultSetProvider.isNotBlank()   orError "Results missing provider name",
-                )
-            } ?: raiseError("Response is missing results")
+            loanValidationResultsValidation(submission.results)
             validationRecord.iterationList.singleOrNull { iteration ->
                 iteration.request.requestId == submission.requestId // For now, we won't support letting results arrive before the request
             }.let { maybeIteration ->
