@@ -18,8 +18,9 @@ import io.provenance.scope.loan.utility.ContractViolationException
 import io.provenance.scope.loan.utility.IllegalContractStateException
 import tech.figure.validation.v1beta1.ValidationResponse
 import tech.figure.validation.v1beta1.ValidationResults
+import kotlin.random.Random
 
-class RecordLoanValidationResultsUnitTest : WordSpec({
+class RecordLoanValidationResultsUnitTest : WordSpec({ // TODO: Refactor usage of Random context
     "recordLoanValidationResults" When {
         "executed without a validation request existing in the scope" should {
             "throw an appropriate exception" {
@@ -36,8 +37,8 @@ class RecordLoanValidationResultsUnitTest : WordSpec({
             "throw an appropriate exception" {
                 ValidationResponse.getDefaultInstance().let { emptyResultSubmission ->
                     shouldThrow<ContractViolationException> {
-                        resultsContractWithSingleRequest(randomProtoUuid).apply {
-                            recordLoanValidationResults(emptyResultSubmission)
+                        Random.run {
+                            resultsContractWithSingleRequest(randomProtoUuid).recordLoanValidationResults(emptyResultSubmission)
                         }
                     }.let { exception ->
                         exception.message shouldContain "Results are not set"
@@ -49,8 +50,8 @@ class RecordLoanValidationResultsUnitTest : WordSpec({
             "throw an appropriate exception" {
                 checkAll(anyInvalidUuid) { randomInvalidId ->
                     shouldThrow<ContractViolationException> {
-                        resultsContractWithSingleRequest(randomProtoUuid).apply {
-                            recordLoanValidationResults(
+                        Random.run {
+                            resultsContractWithSingleRequest(randomProtoUuid).recordLoanValidationResults(
                                 submission = ValidationResponse.newBuilder().also { responseBuilder ->
                                     responseBuilder.results = ValidationResults.newBuilder().also { resultsBuilder ->
                                         resultsBuilder.resultSetUuid = randomInvalidId
@@ -68,11 +69,11 @@ class RecordLoanValidationResultsUnitTest : WordSpec({
             "not throw an exception" {
                 checkAll(anyUuid, anyNonEmptyString) { randomUuid, randomValidatorName ->
                     shouldNotThrow<ContractViolationException> {
-                        resultsContractWithSingleRequest(
-                            requestID = randomUuid,
-                            validatorName = randomValidatorName,
-                        ).apply {
-                            recordLoanValidationResults(
+                        Random.run {
+                            resultsContractWithSingleRequest(
+                                requestID = randomUuid,
+                                validatorName = randomValidatorName,
+                            ).recordLoanValidationResults(
                                 validResultSubmission(
                                     iterationRequestID = randomUuid,
                                     resultSetProvider = randomValidatorName,
