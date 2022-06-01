@@ -85,3 +85,13 @@ jobs:
         with:
           name: "test-results"
           path: "**/build/test-results/**/*.xml"
+
+  event_file:
+    name: "Upload event file"
+    runs-on: ubuntu-latest
+    steps:
+      - name: Upload event file
+        uses: actions/upload-artifact@v3
+        with:
+          name: Event File
+          path: ${{ github.event_path }}
