@@ -26,7 +26,7 @@ object Versions {
         const val SemVer = "1.1.2"
         object Provenance {
             const val Scope = "0.6.0"
-            const val MetadataAssetModel = "0.1.8"
+            const val MetadataAssetModel = "0.1.9"
         }
     }
 }

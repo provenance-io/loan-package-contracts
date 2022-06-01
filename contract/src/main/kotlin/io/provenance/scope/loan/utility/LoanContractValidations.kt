@@ -158,7 +158,7 @@ internal val loanValidationRequestValidation: ContractEnforcementContext.(Valida
         requireThat(
             setRequest.requestId.isValid()        orError "Request must have valid ID",
             setRequest.effectiveTime.isValid()    orError "Request is missing timestamp",
-            setRequest.snapshotUri.isNotBlank()   orError "Request is missing loan snapshot URI", // TODO: Change to block height in model v0.1.9
+            (setRequest.blockHeight >= 0L)        orError "Request must have valid block height",
             setRequest.validatorName.isNotBlank() orError "Request is missing validator name",
             setRequest.requesterName.isNotBlank() orError "Request is missing requester name",
         )

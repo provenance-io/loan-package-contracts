@@ -13,8 +13,9 @@ import io.provenance.scope.loan.test.LoanPackageArbs.anyNonEmptyString
 import io.provenance.scope.loan.test.LoanPackageArbs.anyUuid
 import io.provenance.scope.loan.utility.ContractViolationException
 import tech.figure.validation.v1beta1.ValidationRequest
+import kotlin.random.Random
 
-class RecordLoanValidationRequestUnitTest : WordSpec({
+class RecordLoanValidationRequestUnitTest : WordSpec({ // TODO: Refactor usage of Random context
     "recordLoanValidationRequest" When {
         "given an empty input to an empty scope" should {
             "throw an appropriate exception" {
@@ -50,14 +51,14 @@ class RecordLoanValidationRequestUnitTest : WordSpec({
             "not throw an exception" {
                 checkAll(anyUuid, anyNonEmptyString) { randomUuid, randomValidator ->
                     shouldNotThrow<ContractViolationException> {
-                        requestContractWithEmptyExistingRecord.apply {
-                            recordLoanValidationRequest(
+                        requestContractWithEmptyExistingRecord.recordLoanValidationRequest(
+                            Random.run {
                                 validRequest(
                                     requestID = randomUuid,
                                     validatorName = randomValidator,
                                 )
-                            )
-                        }
+                            }
+                        )
                     }
                 }
             }

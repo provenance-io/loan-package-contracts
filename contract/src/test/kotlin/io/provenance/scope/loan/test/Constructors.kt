@@ -16,6 +16,7 @@ import tech.figure.validation.v1beta1.ValidationRequest
 import tech.figure.validation.v1beta1.ValidationResponse
 import tech.figure.validation.v1beta1.ValidationResults
 import java.time.OffsetDateTime
+import kotlin.random.Random
 import java.util.UUID as JavaUUID
 import tech.figure.util.v1beta1.UUID as FigureTechUUID
 
@@ -46,6 +47,7 @@ object Constructors {
         get() = RecordLoanValidationRequestContract(
             LoanValidation.getDefaultInstance()
         )
+    context(Random)
     fun validRequest(
         requestID: FigureTechUUID,
         requesterName: String = "someArbitraryRequesterName",
@@ -53,11 +55,12 @@ object Constructors {
     ): ValidationRequest = ValidationRequest.newBuilder().also { requestBuilder ->
         requestBuilder.requestId = requestID
         requestBuilder.ruleSetId = randomProtoUuid
-        requestBuilder.snapshotUri = randomProtoUuid.value // TODO: Change to block height in model v0.1.9
+        requestBuilder.blockHeight = nextLong(0, Long.MAX_VALUE)
         requestBuilder.effectiveTime = OffsetDateTime.now().toProtoTimestamp()
         requestBuilder.requesterName = requesterName
         requestBuilder.validatorName = validatorName
     }.build()
+    context(Random)
     fun resultsContractWithSingleRequest(
         requestID: FigureTechUUID,
         validatorName: String = "anotherRandomProviderName",
