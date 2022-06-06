@@ -1,6 +1,5 @@
 package io.provenance.scope.loan.contracts
 
-import io.kotest.assertions.throwables.shouldNotThrow
 import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.core.spec.style.WordSpec
 import io.kotest.core.test.TestCaseOrder
@@ -8,18 +7,19 @@ import io.kotest.matchers.ints.shouldBeExactly
 import io.kotest.matchers.string.shouldContain
 import io.kotest.matchers.string.shouldContainIgnoringCase
 import io.kotest.property.Arb
-import io.kotest.property.arbitrary.arbitrary
 import io.kotest.property.arbitrary.flatMap
 import io.kotest.property.arbitrary.int
 import io.kotest.property.arbitrary.pair
 import io.kotest.property.checkAll
 import io.provenance.scope.loan.test.Constructors.appendLoanStatesContractWithNoExistingStates
 import io.provenance.scope.loan.test.KotestConfig
-import io.provenance.scope.loan.test.LoanPackageArbs.anyUuid
-import io.provenance.scope.loan.test.LoanPackageArbs.anyValidChecksum
-import io.provenance.scope.loan.test.LoanPackageArbs.anyValidLoanState
-import io.provenance.scope.loan.test.LoanPackageArbs.anyValidTimestamp
-import io.provenance.scope.loan.test.LoanPackageArbs.loanStateSet
+import io.provenance.scope.loan.test.MetadataAssetModelArbs.anyPastNonEpochTimestamp
+import io.provenance.scope.loan.test.MetadataAssetModelArbs.anyUuid
+import io.provenance.scope.loan.test.MetadataAssetModelArbs.anyValidChecksum
+import io.provenance.scope.loan.test.MetadataAssetModelArbs.anyValidLoanState
+import io.provenance.scope.loan.test.MetadataAssetModelArbs.loanStateSet
+import io.provenance.scope.loan.test.shouldHaveViolationCount
+import io.provenance.scope.loan.test.toPair
 import io.provenance.scope.loan.utility.ContractViolationException
 import io.provenance.scope.util.toOffsetDateTime
 import tech.figure.servicing.v1beta1.LoanStateOuterClass.LoanStateMetadata
@@ -33,7 +33,7 @@ class AppendLoanStatesContractUnitTest : WordSpec({
                 shouldThrow<ContractViolationException> {
                     appendLoanStatesContractWithNoExistingStates.appendLoanStates(emptyList())
                 }.let { exception ->
-                    exception.message shouldContainIgnoringCase "Must supply at least one loan state"
+                    exception.message shouldContain "Servicing data is not set"
                 }
             }
         }
@@ -48,16 +48,21 @@ class AppendLoanStatesContractUnitTest : WordSpec({
                             )
                         )
                     }.let { exception ->
-                        exception.message shouldContainIgnoringCase "must have valid ID"
-                        exception.message shouldContainIgnoringCase "missing URI"
-                        exception.message shouldContainIgnoringCase "missing checksum"
+                        exception shouldHaveViolationCount 4U
+                        exception.message shouldContainIgnoringCase "Loan state must have valid ID"
+                        exception.message shouldContainIgnoringCase "Loan state is missing URI"
+                        exception.message shouldContainIgnoringCase "Loan state is missing checksum"
+                        exception.message shouldContainIgnoringCase "Loan state must have valid effective time"
                     }
                 }
             }
         }
         "given input loan states which duplicate existing loan state checksums" should {
             "throw an appropriate exception" {
-                checkAll(anyValidLoanState, anyValidLoanState, anyValidChecksum) { randomExistingLoanState, randomNewLoanState, randomChecksum ->
+                checkAll(
+                    loanStateSet(size = 2).toPair(),
+                    anyValidChecksum,
+                ) { (randomExistingLoanState, randomNewLoanState), randomChecksum ->
                     shouldThrow<ContractViolationException> {
                         AppendLoanStatesContract(
                             existingServicingData = ServicingData.newBuilder().also { servicingDataBuilder ->
@@ -76,6 +81,7 @@ class AppendLoanStatesContractUnitTest : WordSpec({
                             )
                         )
                     }.let { exception ->
+                        exception shouldHaveViolationCount 1U
                         exception.message shouldContain "Loan state with checksum ${randomChecksum.checksum} already exists"
                     }
                 }
@@ -83,7 +89,10 @@ class AppendLoanStatesContractUnitTest : WordSpec({
         }
         "given input loan states which duplicate existing loan state IDs" should {
             "throw an appropriate exception" {
-                checkAll(anyValidLoanState, anyValidLoanState, anyUuid) { randomExistingLoanState, randomNewLoanState, randomUuid ->
+                checkAll(
+                    loanStateSet(size = 2).toPair(),
+                    anyUuid,
+                ) { (randomExistingLoanState, randomNewLoanState), randomUuid ->
                     shouldThrow<ContractViolationException> {
                         AppendLoanStatesContract(
                             existingServicingData = ServicingData.newBuilder().also { servicingDataBuilder ->
@@ -102,6 +111,7 @@ class AppendLoanStatesContractUnitTest : WordSpec({
                             )
                         )
                     }.let { exception ->
+                        exception shouldHaveViolationCount 1U
                         exception.message shouldContain "Loan state with ID ${randomUuid.value} already exists"
                     }
                 }
@@ -109,7 +119,10 @@ class AppendLoanStatesContractUnitTest : WordSpec({
         }
         "given input loan states which duplicate existing loan state times" should {
             "throw an appropriate exception" {
-                checkAll(anyValidLoanState, anyValidLoanState, anyValidTimestamp) { randomExistingLoanState, randomNewLoanState, randomTimestamp ->
+                checkAll(
+                    loanStateSet(size = 2).toPair(),
+                    anyPastNonEpochTimestamp,
+                ) { (randomExistingLoanState, randomNewLoanState), randomTimestamp ->
                     shouldThrow<ContractViolationException> {
                         AppendLoanStatesContract(
                             existingServicingData = ServicingData.newBuilder().also { servicingDataBuilder ->
@@ -128,49 +141,114 @@ class AppendLoanStatesContractUnitTest : WordSpec({
                             )
                         )
                     }.let { exception ->
+                        exception shouldHaveViolationCount 1U
                         exception.message shouldContain "Loan state with effective time ${randomTimestamp.toOffsetDateTime()} already exists"
                     }
                 }
             }
         }
-        "given an input of loan states with duplicate checksums" xshould {
+        "given an input of loan states with duplicate checksums" should {
             "throw an appropriate exception" {
-                // TODO: Implement
+                checkAll(
+                    loanStateSet(size = 2).toPair(),
+                    anyValidChecksum,
+                ) { (randomFirstNewLoanState, randomSecondNewLoanState), randomChecksum ->
+                    shouldThrow<ContractViolationException> {
+                        AppendLoanStatesContract(
+                            existingServicingData = ServicingData.getDefaultInstance(),
+                        ).appendLoanStates(
+                            listOf(
+                                randomFirstNewLoanState.toBuilder().also { loanStateBuilder ->
+                                    loanStateBuilder.checksum = randomChecksum
+                                }.build(),
+                                randomSecondNewLoanState.toBuilder().also { loanStateBuilder ->
+                                    loanStateBuilder.checksum = randomChecksum
+                                }.build(),
+                            )
+                        )
+                    }.let { exception ->
+                        exception shouldHaveViolationCount 1U
+                        exception.message shouldContain "Loan state with checksum ${randomChecksum.checksum} is provided more than once in input"
+                    }
+                }
             }
         }
-        "given an input of loan states with duplicate IDs" xshould {
+        "given an input of loan states with duplicate IDs" should {
             "throw an appropriate exception" {
-                // TODO: Implement
+                checkAll(
+                    loanStateSet(size = 2).toPair(),
+                    anyUuid,
+                ) { (randomFirstNewLoanState, randomSecondNewLoanState), randomId ->
+                    shouldThrow<ContractViolationException> {
+                        AppendLoanStatesContract(
+                            existingServicingData = ServicingData.getDefaultInstance(),
+                        ).appendLoanStates(
+                            listOf(
+                                randomFirstNewLoanState.toBuilder().also { loanStateBuilder ->
+                                    loanStateBuilder.id = randomId
+                                }.build(),
+                                randomSecondNewLoanState.toBuilder().also { loanStateBuilder ->
+                                    loanStateBuilder.id = randomId
+                                }.build(),
+                            )
+                        )
+                    }.let { exception ->
+                        exception shouldHaveViolationCount 1U
+                        exception.message shouldContainIgnoringCase "Loan state with ID ${randomId.value} is provided more than once in input"
+                    }
+                }
             }
         }
-        "given an input of loan states with duplicate times" xshould {
+        "given an input of loan states with duplicate times" should {
             "throw an appropriate exception" {
-                // TODO: Implement
+                checkAll(
+                    loanStateSet(size = 2).toPair(),
+                    anyPastNonEpochTimestamp,
+                ) { (randomFirstNewLoanState, randomSecondNewLoanState), randomEffectiveTime ->
+                    shouldThrow<ContractViolationException> {
+                        AppendLoanStatesContract(
+                            existingServicingData = ServicingData.getDefaultInstance(),
+                        ).appendLoanStates(
+                            listOf(
+                                randomFirstNewLoanState.toBuilder().also { loanStateBuilder ->
+                                    loanStateBuilder.effectiveTime = randomEffectiveTime
+                                }.build(),
+                                randomSecondNewLoanState.toBuilder().also { loanStateBuilder ->
+                                    loanStateBuilder.effectiveTime = randomEffectiveTime
+                                }.build(),
+                            )
+                        )
+                    }.let { exception ->
+                        exception shouldHaveViolationCount 1U
+                        exception.message shouldContain
+                            "Loan state with effective time ${randomEffectiveTime.toOffsetDateTime()} is provided more than once in input"
+                    }
+                }
             }
         }
         "given only new & valid input loan states" should {
             "not throw an exception" {
-                val stateCountRange = 2..(if (KotestConfig.runTestsExtended) 4 else 3) // Keep upper bound low since runtime is Θ(n^2)
-                val arbitraryStateCountAndSplit = Arb.int(stateCountRange).flatMap { randomStateCount ->
-                    Arb.pair(arbitrary { randomStateCount }, Arb.int(0..max(randomStateCount - 1, 1)))
-                }
-                checkAll(arbitraryStateCountAndSplit) { (randomStateCount, randomSplit) ->
-                    checkAll(loanStateSet(size = randomStateCount)) { randomStateSet ->
-                        val (randomExistingStates, randomNewStates) = randomStateSet.let { orderedRandomStateSet ->
-                            orderedRandomStateSet.take(randomSplit) to orderedRandomStateSet.drop(randomSplit)
-                        }
-                        shouldNotThrow<ContractViolationException> {
-                            AppendLoanStatesContract(
-                                existingServicingData = ServicingData.newBuilder().also { servicingDataBuilder ->
-                                    servicingDataBuilder.clearLoanState()
-                                    servicingDataBuilder.addAllLoanState(randomExistingStates)
-                                }.build()
-                            ).appendLoanStates(
-                                randomNewStates
-                            ).let { outputRecord ->
-                                outputRecord.loanStateCount shouldBeExactly randomStateCount
-                            }
-                        }
+                val stateCountRange = 2..(if (KotestConfig.runTestsExtended) 8 else 3)
+                checkAll(
+                    Arb.int(stateCountRange).flatMap { randomStateCount ->
+                        Arb.pair(
+                            loanStateSet(size = randomStateCount),
+                            Arb.int(0..max(randomStateCount - 1, 1)),
+                        )
+                    }
+                ) { (randomStateSet, randomSplit) ->
+                    val (randomExistingStates, randomNewStates) = randomStateSet.let { orderedRandomStateSet ->
+                        orderedRandomStateSet.take(randomSplit) to orderedRandomStateSet.drop(randomSplit)
+                    }
+                    AppendLoanStatesContract(
+                        existingServicingData = ServicingData.newBuilder().also { servicingDataBuilder ->
+                            servicingDataBuilder.clearLoanState()
+                            servicingDataBuilder.addAllLoanState(randomExistingStates)
+                        }.build()
+                    ).appendLoanStates(
+                        randomNewStates
+                    ).let { outputRecord ->
+                        outputRecord.loanStateCount shouldBeExactly randomStateSet.size
                     }
                 }
             }

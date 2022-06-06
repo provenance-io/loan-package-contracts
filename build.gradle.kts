@@ -118,6 +118,7 @@ subprojects {
     apply {
         plugin("signing")
     }
+
     java {
         withJavadocJar()
         withSourcesJar()

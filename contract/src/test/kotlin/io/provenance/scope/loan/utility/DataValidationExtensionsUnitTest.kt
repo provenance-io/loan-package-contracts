@@ -9,15 +9,18 @@ import io.kotest.property.arbitrary.UUIDVersion
 import io.kotest.property.arbitrary.double
 import io.kotest.property.arbitrary.localDate
 import io.kotest.property.arbitrary.localDateTime
-import io.kotest.property.arbitrary.string
 import io.kotest.property.arbitrary.uuid
 import io.kotest.property.checkAll
 import io.kotest.property.forAll
-import io.provenance.scope.loan.test.Constructors.randomProtoUuid
-import io.provenance.scope.loan.test.LoanPackageArbs.anyNonUuidString
+import io.kotest.property.forNone
+import io.provenance.scope.loan.test.MetadataAssetModelArbs.anyUuid
+import io.provenance.scope.loan.test.PrimitiveArbs.anyNonEmptyString
+import io.provenance.scope.loan.test.PrimitiveArbs.anyNonUuidString
+import io.provenance.scope.loan.test.PrimitiveArbs.anyZoneOffset
 import io.provenance.scope.util.toProtoTimestamp
 import tech.figure.validation.v1beta1.ValidationIteration
 import tech.figure.validation.v1beta1.ValidationRequest
+import java.time.LocalDateTime
 import java.time.ZoneOffset
 import tech.figure.util.v1beta1.Checksum as FigureTechChecksum
 import tech.figure.util.v1beta1.Date as FigureTechDate
@@ -32,21 +35,48 @@ class DataValidationExtensionsUnitTest : WordSpec({
             Any.getDefaultInstance().isSet() shouldBe false
             Any.newBuilder().build().isSet() shouldBe false
         }
-        ValidationRequest.newBuilder().apply {
-            requestId = randomProtoUuid
-        }.build().let { modifiedValidationRequest ->
-            "return true for any altered object" {
-                modifiedValidationRequest.isSet() shouldBe true
+
+        "return true for any altered object" {
+            checkAll(anyUuid) { randomId ->
+                ValidationRequest.newBuilder().apply {
+                    requestId = randomId
+                }.build().let { modifiedValidationRequest ->
+                    modifiedValidationRequest.isSet() shouldBe true
+                }
             }
-            "return false for specific fields in an altered object" {
-                modifiedValidationRequest.effectiveTime.isSet() shouldBe false
+        }
+        "return false for specific fields in an altered object" {
+            checkAll(anyUuid) { randomId ->
+                ValidationRequest.newBuilder().apply {
+                    requestId = randomId
+                }.build().let { modifiedValidationRequest ->
+                    modifiedValidationRequest.isSet() shouldBe true
+                    modifiedValidationRequest.effectiveTime.isSet() shouldBe false
+                    modifiedValidationRequest.ruleSetId.isSet() shouldBe false
+                }
             }
         }
     }
+
     "Timestamp.isValid" should {
-        "return true for any UTC date" {
-            forAll(Arb.localDateTime()) { randomLocalDateTime ->
-                randomLocalDateTime.atOffset(ZoneOffset.UTC).toProtoTimestamp().isValid()
+        "return true for any date" {
+            forAll(Arb.localDateTime(), anyZoneOffset) { randomLocalDateTime, randomZoneOffset ->
+                randomLocalDateTime.atOffset(randomZoneOffset).toProtoTimestamp().isValid()
+            }
+        }
+    }
+    "Timestamp.isValidAndNotInFuture" should {
+        "return true for any date in the past" {
+            forAll(
+                Arb.localDateTime(maxLocalDateTime = LocalDateTime.now()),
+                anyZoneOffset,
+            ) { randomLocalDateTime, randomZoneOffset ->
+                randomLocalDateTime.atOffset(randomZoneOffset).toProtoTimestamp().isValidAndNotInFuture()
+            }
+        }
+        "return false for any date in the future" {
+            forNone(Arb.localDateTime(minLocalDateTime = LocalDateTime.now().plusDays(1L))) { randomLocalDateTime ->
+                randomLocalDateTime.atOffset(ZoneOffset.UTC).toProtoTimestamp().isValidAndNotInFuture()
             }
         }
     }
@@ -71,11 +101,19 @@ class DataValidationExtensionsUnitTest : WordSpec({
                 checksum = ""
             }.build().isValid() shouldBe false
         }
-        "return true for any non-empty string" {
-            forAll(Arb.string()) { randomString ->
+        "return false if the algorithm is set but not the checksum" {
+            forNone(anyNonEmptyString) { randomAlgorithm ->
+                FigureTechChecksum.newBuilder().apply {
+                    clearChecksum()
+                    algorithm = randomAlgorithm
+                }.build().isValid()
+            }
+        }
+        "return true for any non-empty checksum string" {
+            forAll(anyNonEmptyString) { randomString ->
                 FigureTechChecksum.newBuilder().apply {
                     checksum = randomString
-                }.build().isValid() == randomString.isNotBlank()
+                }.build().isValid()
             }
         }
     }
@@ -84,10 +122,10 @@ class DataValidationExtensionsUnitTest : WordSpec({
             FigureTechUUID.getDefaultInstance().isValid() shouldBe false
         }
         "return false for an invalid instance" {
-            checkAll(anyNonUuidString) { randomNonUuidString ->
+            forNone(anyNonUuidString) { randomNonUuidString ->
                 FigureTechUUID.newBuilder().apply {
                     value = randomNonUuidString
-                }.build().isValid() shouldBe false
+                }.build().isValid()
             }
         }
         "return true for any valid instance" {

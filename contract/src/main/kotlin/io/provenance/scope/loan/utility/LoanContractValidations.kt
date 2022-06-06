@@ -30,7 +30,7 @@ internal fun ContractEnforcementContext.documentModificationValidation(
                 (existingDocument.contentType == newDocument.contentType)
                     orError "Cannot change content type of existing document$checksumSnippet",
                 (existingDocument.documentType == newDocument.documentType)
-                    orError "Cannot change content type of existing document$checksumSnippet",
+                    orError "Cannot change document type of existing document$checksumSnippet",
             )
         }
     }
@@ -54,20 +54,24 @@ internal val documentValidation: ContractEnforcementContext.(DocumentMetadata) -
 }
 
 internal val eNoteControllerValidation: ContractEnforcementContext.(ENoteController) -> Unit = { controller ->
-    requireThat(
-        controller.controllerUuid.isValid()    orError "Missing controller UUID",
-        controller.controllerName.isNotBlank() orError "Missing controller name",
-    )
+    controller.takeIf { it.isSet() }?.let { setController ->
+        requireThat(
+            setController.controllerUuid.isValid()    orError "Controller must have valid UUID",
+            setController.controllerName.isNotBlank() orError "Controller is missing name",
+        )
+    } ?: raiseError("Controller is not set")
 }
 
 internal val eNoteDocumentValidation: ContractEnforcementContext.(DocumentMetadata) -> Unit = { document ->
-    requireThat(
-        document.id.isValid()              orError "ENote must have valid ID",
-        document.uri.isNotBlank()          orError "ENote is missing URI",
-        document.contentType.isNotBlank()  orError "ENote is missing content type",
-        document.documentType.isNotBlank() orError "ENote is missing document type",
-        document.checksum.isValid()        orError "ENote is missing checksum",
-    )
+    document.takeIf { it.isSet() }?.let { setENote ->
+        requireThat(
+            setENote.id.isValid()              orError "eNote must have valid ID",
+            setENote.uri.isNotBlank()          orError "eNote is missing URI",
+            setENote.contentType.isNotBlank()  orError "eNote is missing content type",
+            setENote.documentType.isNotBlank() orError "eNote is missing document type",
+            setENote.checksum.isValid()        orError "eNote is missing checksum",
+        )
+    } ?: raiseError("eNote document is not set")
 }
 
 internal val eNoteInputValidation: (ENote) -> Unit = { eNote ->
@@ -78,12 +82,14 @@ internal val eNoteInputValidation: (ENote) -> Unit = { eNote ->
 
 internal val eNoteValidation: ContractEnforcementContext.(ENote) -> Unit = { eNote ->
     // TODO: Decide which fields should only be required if DART is listed as mortgagee of record/active custodian
-    eNoteControllerValidation(eNote.controller)
-    eNoteDocumentValidation(eNote.eNote)
-    requireThat(
-        eNote.signedDate.isValid()   orError "ENote is missing signed date",
-        eNote.vaultName.isNotBlank() orError "ENote is missing vault name",
-    )
+    eNote.takeIf { it.isSet() }?.let { setENote ->
+        eNoteControllerValidation(setENote.controller)
+        eNoteDocumentValidation(setENote.eNote)
+        requireThat(
+            setENote.signedDate.isValidForSignedDate() orError "eNote must have valid signed date",
+            setENote.vaultName.isNotBlank()            orError "eNote is missing vault name",
+        )
+    } ?: raiseError("eNote is not set")
 }
 
 internal val loanDocumentInputValidation: (LoanDocuments) -> Unit = { loanDocuments ->
@@ -96,7 +102,7 @@ internal val loanDocumentInputValidation: (LoanDocuments) -> Unit = { loanDocume
             documentValidation(document)
             document.checksum.takeIf { it.isValid() }?.checksum?.let { checksum ->
                 if (incomingDocChecksums[checksum] == true) {
-                    raiseError("Loan document with checksum $checksum already provided in input")
+                    raiseError("Loan document with checksum $checksum is provided more than once in input")
                 }
                 incomingDocChecksums[checksum] = true
             }
@@ -143,12 +149,12 @@ internal val loanValidationInputValidation: (LoanValidation) -> Unit = { validat
 internal val loanValidationResultsValidation: ContractEnforcementContext.(ValidationResults) -> List<ContractEnforcement> = { results ->
     results.takeIf { it.isSet() }?.let { setResults ->
         requireThat(
-            setResults.resultSetUuid.isValid()          orError "Results must have valid result set UUID",
-            setResults.resultSetEffectiveTime.isValid() orError "Results are missing timestamp",
-            (setResults.validationExceptionCount >= 0)  orError "Results report an invalid validation exception count",
-            (setResults.validationWarningCount >= 0)    orError "Results report an invalid validation warning count",
-            (setResults.validationItemsCount > 0)       orError "Results must have at least one validation item",
-            setResults.resultSetProvider.isNotBlank()   orError "Results missing provider name",
+            setResults.resultSetUuid.isValid()                        orError "Results must have valid result set UUID",
+            setResults.resultSetEffectiveTime.isValidAndNotInFuture() orError "Results must have valid effective time",
+            (setResults.validationExceptionCount >= 0)                orError "Results report an invalid validation exception count",
+            (setResults.validationWarningCount >= 0)                  orError "Results report an invalid validation warning count",
+            (setResults.validationItemsCount > 0)                     orError "Results must have at least one validation item",
+            setResults.resultSetProvider.isNotBlank()                 orError "Results missing provider name",
         )
     } ?: raiseError("Results are not set")
 }
@@ -156,23 +162,30 @@ internal val loanValidationResultsValidation: ContractEnforcementContext.(Valida
 internal val loanValidationRequestValidation: ContractEnforcementContext.(ValidationRequest) -> List<ContractEnforcement> = { request ->
     request.takeIf { it.isSet() }?.let { setRequest ->
         requireThat(
-            setRequest.requestId.isValid()        orError "Request must have valid ID",
-            setRequest.effectiveTime.isValid()    orError "Request is missing timestamp",
-            (setRequest.blockHeight >= 0L)        orError "Request must have valid block height",
-            setRequest.validatorName.isNotBlank() orError "Request is missing validator name",
-            setRequest.requesterName.isNotBlank() orError "Request is missing requester name",
+            setRequest.requestId.isValid()                   orError "Request must have valid ID",
+            setRequest.effectiveTime.isValidAndNotInFuture() orError "Request must have valid effective time",
+            (setRequest.blockHeight >= 0L)                   orError "Request must have valid block height",
+            setRequest.validatorName.isNotBlank()            orError "Request is missing validator name",
+            setRequest.requesterName.isNotBlank()            orError "Request is missing requester name",
         )
     } ?: raiseError("Request is not set")
 }
 
 internal val servicingRightsInputValidation: (ServicingRights) -> Unit = { servicingRights ->
-    validateRequirements(ContractRequirementType.VALID_INPUT,
-        servicingRights.servicerId.isValid()      orError "Servicing rights must have valid servicer UUID",
-        servicingRights.servicerName.isNotBlank() orError "Servicing rights missing servicer name",
-    )
+    validateRequirements(ContractRequirementType.VALID_INPUT) {
+        servicingRights.takeIf { it.isSet() }?.let { setServicingRights ->
+            requireThat(
+                setServicingRights.servicerId.isValid()      orError "Servicing rights must have valid servicer UUID",
+                setServicingRights.servicerName.isNotBlank() orError "Servicing rights missing servicer name",
+            )
+        } ?: raiseError("Servicing rights are not set")
+    }
 }
 
 internal val uliValidation: ContractEnforcementContext.(String) -> Unit = { uli ->
     // TODO: Investigate wrapping certain protoc validate.rules call into a ContractEnforcement
-    requireThat((uli.length in 23..45) orError "Loan ULI is invalid") // TODO: Any other requirements for ULI that our contracts can enforce?
+    requireThat(
+        (uli.length in 23..45)                               orError "Loan ULI must be between 23 and 45 (inclusive) characters long",
+        uli.all { character -> character.isLetterOrDigit() } orError "Loan ULI must solely consist of alphanumeric characters",
+    )
 }

@@ -44,7 +44,7 @@ open class AppendLoanDocumentsContract(
                 documentValidation(newDocument)
                 newDocument.checksum.checksum?.let { newDocChecksum ->
                     if (incomingDocChecksums[newDocChecksum] == true) {
-                        raiseError("Loan document with checksum $newDocChecksum already provided in input")
+                        raiseError("Loan document with checksum $newDocChecksum is provided more than once in input")
                     }
                     existingDocumentMetadata[newDocChecksum]?.let { existingDocument ->
                         documentModificationValidation(

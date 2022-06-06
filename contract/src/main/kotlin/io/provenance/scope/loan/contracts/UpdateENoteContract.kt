@@ -22,6 +22,9 @@ open class UpdateENoteContract(
     @Record(name = LoanScopeFacts.eNote, optional = false) val existingENote: ENote,
 ) : P8eContract() {
 
+    /**
+     * TODO: We may need to replace this with AddENoteModification and AddENoteAssumption contracts, pending more insight on that process
+     */
     @Function(invokedBy = PartyType.OWNER) // TODO: Change to controller or ensure Authz grant to controller is made
     @Record(LoanScopeFacts.eNote)
     open fun updateENote(@Input(LoanScopeInputs.eNoteUpdate) newENote: DocumentMetadata): ENote {
