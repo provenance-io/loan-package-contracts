@@ -4,20 +4,24 @@ import io.dartinc.registry.v1beta1.ENote
 import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.core.spec.style.WordSpec
 import io.kotest.core.test.TestCaseOrder
+import io.kotest.matchers.shouldBe
 import io.kotest.matchers.string.shouldContain
 import io.kotest.matchers.string.shouldContainIgnoringCase
 import io.kotest.property.checkAll
 import io.provenance.scope.loan.LoanScopeProperties.assetLoanKey
 import io.provenance.scope.loan.LoanScopeProperties.assetMismoKey
 import io.provenance.scope.loan.test.Constructors.recordContractWithEmptyScope
-import io.provenance.scope.loan.test.LoanPackageArbs.anyInvalidUuid
-import io.provenance.scope.loan.test.LoanPackageArbs.anyNonEmptyString
-import io.provenance.scope.loan.test.LoanPackageArbs.anyNonUliString
-import io.provenance.scope.loan.test.LoanPackageArbs.anyUuid
-import io.provenance.scope.loan.test.LoanPackageArbs.anyValidFigureTechLoan
-import io.provenance.scope.loan.test.LoanPackageArbs.anyValidMismoLoan
-import io.provenance.scope.loan.test.LoanPackageArbs.anyValidUli
+import io.provenance.scope.loan.test.MetadataAssetModelArbs.anyInvalidUuid
+import io.provenance.scope.loan.test.MetadataAssetModelArbs.anyUuid
+import io.provenance.scope.loan.test.MetadataAssetModelArbs.anyValidFigureTechLoan
+import io.provenance.scope.loan.test.MetadataAssetModelArbs.anyValidMismoLoan
+import io.provenance.scope.loan.test.PrimitiveArbs.anyNonEmptyString
+import io.provenance.scope.loan.test.PrimitiveArbs.anyNonUliString
+import io.provenance.scope.loan.test.PrimitiveArbs.anyValidUli
+import io.provenance.scope.loan.test.shouldHaveViolationCount
 import io.provenance.scope.loan.utility.ContractViolationException
+import io.provenance.scope.loan.utility.toFigureTechLoan
+import io.provenance.scope.loan.utility.toMISMOLoan
 import tech.figure.asset.v1beta1.Asset
 import tech.figure.loan.v1beta1.MISMOLoanMetadata
 import tech.figure.proto.util.toProtoAny
@@ -37,6 +41,7 @@ class RecordLoanContractUnitTest : WordSpec({
                     shouldThrow<ContractViolationException> {
                         recordContractWithEmptyScope.recordAsset(emptyAssetWithoutLoan)
                     }.let { exception ->
+                        exception shouldHaveViolationCount 3U
                         exception.message shouldContainIgnoringCase "Asset must have valid ID"
                         exception.message shouldContainIgnoringCase "Asset is missing type"
                         exception.message shouldContainIgnoringCase
@@ -47,35 +52,46 @@ class RecordLoanContractUnitTest : WordSpec({
         }
         "given an input to an empty scope with a loan value not of the expected Figure Tech loan type" should {
             "throw an appropriate exception" {
-                Asset.newBuilder().also { assetBuilder ->
-                    assetBuilder.putKv("loan", FigureTechUUID.getDefaultInstance().toProtoAny())
-                }.build().let { assetWithBadLoanType ->
-                    shouldThrow<ContractViolationException> {
-                        recordContractWithEmptyScope.recordAsset(assetWithBadLoanType)
-                    }.let { exception ->
-                        exception.message shouldContain "Could not unpack the input asset's \"$assetLoanKey\" as $FigureTechLoanIdentifier"
+                checkAll(anyUuid, anyNonEmptyString) { randomAssetId, randomAssetType ->
+                    Asset.newBuilder().also { assetBuilder ->
+                        assetBuilder.id = randomAssetId
+                        assetBuilder.type = randomAssetType
+                        assetBuilder.putKv("loan", FigureTechUUID.getDefaultInstance().toProtoAny())
+                    }.build().let { assetWithBadLoanType ->
+                        shouldThrow<ContractViolationException> {
+                            recordContractWithEmptyScope.recordAsset(assetWithBadLoanType)
+                        }.let { exception ->
+                            exception shouldHaveViolationCount 1U
+                            exception.message shouldContain "Could not unpack the input asset's \"$assetLoanKey\" as $FigureTechLoanIdentifier"
+                        }
                     }
                 }
             }
         }
         "given an input to an empty scope with a loan value not of the expected MISMO loan type" should {
             "throw an appropriate exception" {
-                Asset.newBuilder().also { assetBuilder ->
-                    assetBuilder.putKv("mismoLoan", FigureTechUUID.getDefaultInstance().toProtoAny())
-                }.build().let { assetWithBadLoanType ->
-                    shouldThrow<ContractViolationException> {
-                        recordContractWithEmptyScope.recordAsset(assetWithBadLoanType)
-                    }.let { exception ->
-                        exception.message shouldContain "Could not unpack the input asset's \"$assetMismoKey\" as $MISMOLoanIdentifier"
+                checkAll(anyUuid, anyNonEmptyString) { randomAssetId, randomAssetType ->
+                    Asset.newBuilder().also { assetBuilder ->
+                        assetBuilder.id = randomAssetId
+                        assetBuilder.type = randomAssetType
+                        assetBuilder.putKv("mismoLoan", FigureTechUUID.getDefaultInstance().toProtoAny())
+                    }.build().let { assetWithBadLoanType ->
+                        shouldThrow<ContractViolationException> {
+                            recordContractWithEmptyScope.recordAsset(assetWithBadLoanType)
+                        }.let { exception ->
+                            exception shouldHaveViolationCount 1U
+                            exception.message shouldContain "Could not unpack the input asset's \"$assetMismoKey\" as $MISMOLoanIdentifier"
+                        }
                     }
                 }
             }
         }
         "given an input to an empty scope with invalid asset data" should {
             "throw an appropriate exception" {
-                checkAll(anyInvalidUuid) { randomInvalidAssetId ->
+                checkAll(anyInvalidUuid, anyNonEmptyString) { randomInvalidAssetId, randomAssetType ->
                     Asset.newBuilder().also { assetBuilder ->
                         assetBuilder.id = randomInvalidAssetId
+                        assetBuilder.type = randomAssetType
                     }.build().let { assetWithInvalidId ->
                         shouldThrow<ContractViolationException> {
                             recordContractWithEmptyScope.recordAsset(assetWithInvalidId)
@@ -88,13 +104,18 @@ class RecordLoanContractUnitTest : WordSpec({
         }
         "given an input to an empty scope with invalid Figure Tech loan data" should {
             "throw an appropriate exception" {
-                checkAll(anyUuid, anyNonEmptyString, anyInvalidUuid) { randomAssetId, randomType, randomInvalidLoanId ->
+                checkAll(
+                    anyUuid,
+                    anyNonEmptyString,
+                    anyValidFigureTechLoan,
+                    anyInvalidUuid,
+                ) { randomAssetId, randomType, randomLoan, randomInvalidLoanId ->
                     Asset.newBuilder().also { assetBuilder ->
                         assetBuilder.id = randomAssetId
                         assetBuilder.type = randomType
                         assetBuilder.putKv(
                             "loan",
-                            FigureTechLoan.newBuilder().also { loanBuilder ->
+                            randomLoan.toBuilder().also { loanBuilder ->
                                 loanBuilder.id = randomInvalidLoanId
                             }.build().toProtoAny()
                         )
@@ -102,21 +123,27 @@ class RecordLoanContractUnitTest : WordSpec({
                         shouldThrow<ContractViolationException> {
                             recordContractWithEmptyScope.recordAsset(assetWithInvalidId)
                         }.let { exception ->
+                            exception shouldHaveViolationCount 1U
                             exception.message shouldContainIgnoringCase "Loan must have valid ID"
                         }
                     }
                 }
             }
         }
-        "given an input to an empty scope with invalid MISMO loan data" should {
+        "given a MISMO loan input to an empty scope with a ULI of an invalid length" should {
             "throw an appropriate exception" {
-                checkAll(anyUuid, anyNonEmptyString, anyNonUliString) { randomAssetId, randomType, randomInvalidUli ->
+                checkAll(
+                    anyUuid,
+                    anyNonEmptyString,
+                    anyValidMismoLoan,
+                    anyNonUliString,
+                ) { randomAssetId, randomType, randomLoan, randomInvalidUli ->
                     Asset.newBuilder().also { assetBuilder ->
                         assetBuilder.id = randomAssetId
                         assetBuilder.type = randomType
                         assetBuilder.putKv(
                             "mismoLoan",
-                            MISMOLoanMetadata.newBuilder().also { loanBuilder ->
+                            randomLoan.toBuilder().also { loanBuilder ->
                                 loanBuilder.uli = randomInvalidUli
                             }.build().toProtoAny()
                         )
@@ -124,7 +151,7 @@ class RecordLoanContractUnitTest : WordSpec({
                         shouldThrow<ContractViolationException> {
                             recordContractWithEmptyScope.recordAsset(assetWithInvalidId)
                         }.let { exception ->
-                            exception.message shouldContainIgnoringCase "Loan ULI is invalid"
+                            exception.message shouldContainIgnoringCase "Loan ULI must be between 23 and 45 (inclusive) characters long"
                         }
                     }
                 }
@@ -156,6 +183,7 @@ class RecordLoanContractUnitTest : WordSpec({
                                 existingServicingRights = ServicingRights.getDefaultInstance(),
                             ).recordAsset(newAsset)
                         }.let { exception ->
+                            exception shouldHaveViolationCount 1U
                             exception.message shouldContainIgnoringCase "Cannot change asset ID"
                         }
                     }
@@ -188,6 +216,7 @@ class RecordLoanContractUnitTest : WordSpec({
                                 existingServicingRights = ServicingRights.getDefaultInstance(),
                             ).recordAsset(newAsset)
                         }.let { exception ->
+                            exception shouldHaveViolationCount 1U
                             exception.message shouldContainIgnoringCase "Cannot change asset type"
                         }
                     }
@@ -234,6 +263,7 @@ class RecordLoanContractUnitTest : WordSpec({
                             existingServicingRights = ServicingRights.getDefaultInstance(),
                         ).recordAsset(newAsset)
                     }.let { exception ->
+                        exception shouldHaveViolationCount 1U
                         exception.message shouldContain
                             "Expected input asset's \"$assetLoanKey\" to be a $FigureTechLoanIdentifier but was actually a $MISMOLoanIdentifier"
                     }
@@ -270,6 +300,7 @@ class RecordLoanContractUnitTest : WordSpec({
                             existingServicingRights = ServicingRights.getDefaultInstance(),
                         ).recordAsset(newAsset)
                     }.let { exception ->
+                        exception shouldHaveViolationCount 1U
                         exception.message shouldContain
                             "Expected input asset's \"$assetMismoKey\" to be a $MISMOLoanIdentifier but was actually a $FigureTechLoanIdentifier"
                     }
@@ -307,6 +338,7 @@ class RecordLoanContractUnitTest : WordSpec({
                                 existingServicingRights = ServicingRights.getDefaultInstance(),
                             ).recordAsset(newAsset)
                         }.let { exception ->
+                            exception shouldHaveViolationCount 1U
                             exception.message shouldContainIgnoringCase "Cannot change loan ID"
                         }
                     }
@@ -315,21 +347,29 @@ class RecordLoanContractUnitTest : WordSpec({
         }
         "given an input with invalid changes to the existing MISMO loan" should {
             "throw an appropriate exception" {
-                checkAll(anyValidUli, anyValidUli, anyUuid) { randomExistingUli, randomNewUli, randomAssetId ->
+                checkAll(
+                    anyValidUli,
+                    anyValidUli,
+                    anyUuid,
+                    anyNonEmptyString,
+                    anyValidMismoLoan,
+                ) { randomExistingUli, randomNewUli, randomAssetId, randomAssetType, randomLoan ->
                     val existingAsset = Asset.newBuilder().also { assetBuilder ->
-                        assetBuilder.id = randomAssetId // To mark the existing asset as being set
+                        assetBuilder.id = randomAssetId
+                        assetBuilder.type = randomAssetType
                         assetBuilder.putKv(
                             "mismoLoan",
-                            MISMOLoanMetadata.newBuilder().also { loanBuilder ->
+                            randomLoan.toBuilder().also { loanBuilder ->
                                 loanBuilder.uli = randomExistingUli
                             }.build().toProtoAny()
                         )
                     }.build()
                     val newAsset = Asset.newBuilder().also { assetBuilder ->
                         assetBuilder.id = randomAssetId
+                        assetBuilder.type = randomAssetType
                         assetBuilder.putKv(
                             "mismoLoan",
-                            MISMOLoanMetadata.newBuilder().also { loanBuilder ->
+                            randomLoan.toBuilder().also { loanBuilder ->
                                 loanBuilder.uli = randomNewUli
                             }.build().toProtoAny()
                         )
@@ -344,6 +384,7 @@ class RecordLoanContractUnitTest : WordSpec({
                                 existingServicingRights = ServicingRights.getDefaultInstance(),
                             ).recordAsset(newAsset)
                         }.let { exception ->
+                            exception shouldHaveViolationCount 1U
                             exception.message shouldContain "Cannot change loan ULI"
                         }
                     }
@@ -359,7 +400,11 @@ class RecordLoanContractUnitTest : WordSpec({
                             type = randomType
                             putKv("loan", randomLoan.toProtoAny())
                         }.build()
-                    )
+                    ).let { newAsset ->
+                        newAsset.id shouldBe randomAssetId
+                        newAsset.type shouldBe randomType
+                        newAsset.kvMap[assetLoanKey]!!.toFigureTechLoan() shouldBe randomLoan
+                    }
                 }
             }
         }
@@ -377,7 +422,11 @@ class RecordLoanContractUnitTest : WordSpec({
                             type = randomType
                             putKv("mismoLoan", randomLoan.toProtoAny())
                         }.build()
-                    )
+                    ).let { newAsset ->
+                        newAsset.id shouldBe randomAssetId
+                        newAsset.type shouldBe randomType
+                        newAsset.kvMap[assetMismoKey]!!.toMISMOLoan() shouldBe randomLoan
+                    }
                 }
             }
         }

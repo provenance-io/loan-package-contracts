@@ -10,7 +10,9 @@ class UnexpectedContractStateException(message: String, cause: Exception?) : Ill
 /**
  * Denotes an [Exception] thrown by [validateRequirements] when a contract is executed for an inapplicable loan scope.
  */
-class IllegalContractStateException(message: String) : IllegalStateException(message)
+class IllegalContractStateException(message: String, cause: Exception?) : IllegalStateException(message, cause) {
+    constructor(message: String) : this(message, null)
+}
 
 /**
  * Denotes an [Exception] thrown by [validateRequirements] when a contract is executed with invalid input.

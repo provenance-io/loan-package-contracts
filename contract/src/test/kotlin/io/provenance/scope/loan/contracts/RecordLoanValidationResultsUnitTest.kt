@@ -1,65 +1,87 @@
 package io.provenance.scope.loan.contracts
 
-import io.kotest.assertions.throwables.shouldNotThrow
 import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.core.spec.style.WordSpec
 import io.kotest.core.test.TestCaseOrder
 import io.kotest.matchers.string.shouldContain
 import io.kotest.matchers.string.shouldContainIgnoringCase
+import io.kotest.property.Arb
+import io.kotest.property.arbitrary.flatMap
+import io.kotest.property.arbitrary.int
 import io.kotest.property.checkAll
-import io.provenance.scope.loan.test.Constructors.randomProtoUuid
 import io.provenance.scope.loan.test.Constructors.resultsContractWithEmptyExistingRecord
-import io.provenance.scope.loan.test.Constructors.resultsContractWithSingleRequest
-import io.provenance.scope.loan.test.Constructors.validResultSubmission
-import io.provenance.scope.loan.test.LoanPackageArbs.anyInvalidUuid
-import io.provenance.scope.loan.test.LoanPackageArbs.anyNonEmptyString
-import io.provenance.scope.loan.test.LoanPackageArbs.anyUuid
+import io.provenance.scope.loan.test.KotestConfig
+import io.provenance.scope.loan.test.MetadataAssetModelArbs.anyInvalidUuid
+import io.provenance.scope.loan.test.MetadataAssetModelArbs.anyValidValidationRecord
+import io.provenance.scope.loan.test.MetadataAssetModelArbs.anyValidValidationResponse
+import io.provenance.scope.loan.test.breakOffLast
+import io.provenance.scope.loan.test.shouldHaveViolationCount
 import io.provenance.scope.loan.utility.ContractViolationException
 import io.provenance.scope.loan.utility.IllegalContractStateException
+import tech.figure.validation.v1beta1.LoanValidation
 import tech.figure.validation.v1beta1.ValidationResponse
-import tech.figure.validation.v1beta1.ValidationResults
-import kotlin.random.Random
 
-class RecordLoanValidationResultsUnitTest : WordSpec({ // TODO: Refactor usage of Random context
+class RecordLoanValidationResultsUnitTest : WordSpec({
     "recordLoanValidationResults" When {
         "executed without a validation request existing in the scope" should {
             "throw an appropriate exception" {
-                shouldThrow<IllegalContractStateException> {
-                    resultsContractWithEmptyExistingRecord.apply {
-                        recordLoanValidationResults(validResultSubmission(randomProtoUuid))
+                checkAll(anyValidValidationResponse) { randomValidationResponse ->
+                    shouldThrow<IllegalContractStateException> {
+                        resultsContractWithEmptyExistingRecord.recordLoanValidationResults(
+                            submission = randomValidationResponse,
+                        )
+                    }.let { exception ->
+                        exception.message shouldContainIgnoringCase "validation iteration must already exist"
                     }
-                }.let { exception ->
-                    exception.message shouldContainIgnoringCase "validation iteration must exist"
                 }
             }
         }
+        val anyValidValidationRecord = Arb.int(min = 1, max = (if (KotestConfig.runTestsExtended) 20 else 5)).flatMap { iterationCount ->
+            anyValidValidationRecord(iterationCount = iterationCount)
+        }
         "given an empty input" should {
             "throw an appropriate exception" {
-                ValidationResponse.getDefaultInstance().let { emptyResultSubmission ->
+                checkAll(anyValidValidationRecord) { randomExistingRecord ->
                     shouldThrow<ContractViolationException> {
-                        Random.run {
-                            resultsContractWithSingleRequest(randomProtoUuid).recordLoanValidationResults(emptyResultSubmission)
-                        }
+                        RecordLoanValidationResultsContract(
+                            validationRecord = randomExistingRecord,
+                        ).recordLoanValidationResults(
+                            submission = ValidationResponse.getDefaultInstance()
+                        )
                     }.let { exception ->
                         exception.message shouldContain "Results are not set"
                     }
                 }
             }
         }
-        "given an invalid input" should {
+        "given an input without a valid result set ID" should {
             "throw an appropriate exception" {
-                checkAll(anyInvalidUuid) { randomInvalidId ->
+                checkAll(
+                    anyValidValidationRecord,
+                    anyInvalidUuid,
+                ) { randomRecord, randomInvalidId ->
+                    val (existingIterations, randomNewIteration) = randomRecord.iterationList.breakOffLast()
                     shouldThrow<ContractViolationException> {
-                        Random.run {
-                            resultsContractWithSingleRequest(randomProtoUuid).recordLoanValidationResults(
-                                submission = ValidationResponse.newBuilder().also { responseBuilder ->
-                                    responseBuilder.results = ValidationResults.newBuilder().also { resultsBuilder ->
-                                        resultsBuilder.resultSetUuid = randomInvalidId
+                        RecordLoanValidationResultsContract(
+                            validationRecord = randomRecord.toBuilder().also { recordBuilder ->
+                                recordBuilder.clearIteration()
+                                recordBuilder.addAllIteration(existingIterations)
+                                recordBuilder.addIteration(
+                                    randomNewIteration.toBuilder().also { iterationBuilder ->
+                                        iterationBuilder.clearResults()
                                     }.build()
+                                )
+                            }.build(),
+                        ).recordLoanValidationResults(
+                            submission = ValidationResponse.newBuilder().also { responseBuilder ->
+                                responseBuilder.requestId = randomNewIteration.request.requestId
+                                responseBuilder.results = randomNewIteration.results.toBuilder().also { resultsBuilder ->
+                                    resultsBuilder.resultSetUuid = randomInvalidId
                                 }.build()
-                            )
-                        }
+                            }.build()
+                        )
                     }.let { exception ->
+                        exception shouldHaveViolationCount 1U
                         exception.message shouldContain "Results must have valid result set UUID"
                     }
                 }
@@ -67,20 +89,24 @@ class RecordLoanValidationResultsUnitTest : WordSpec({ // TODO: Refactor usage o
         }
         "given a valid input" should {
             "not throw an exception" {
-                checkAll(anyUuid, anyNonEmptyString) { randomUuid, randomValidatorName ->
-                    shouldNotThrow<ContractViolationException> {
-                        Random.run {
-                            resultsContractWithSingleRequest(
-                                requestID = randomUuid,
-                                validatorName = randomValidatorName,
-                            ).recordLoanValidationResults(
-                                validResultSubmission(
-                                    iterationRequestID = randomUuid,
-                                    resultSetProvider = randomValidatorName,
-                                )
+                checkAll(anyValidValidationRecord) { randomRecord ->
+                    val (existingIterations, randomNewIteration) = randomRecord.iterationList.breakOffLast()
+                    RecordLoanValidationResultsContract(
+                        validationRecord = LoanValidation.newBuilder().also { recordBuilder ->
+                            recordBuilder.clearIteration()
+                            recordBuilder.addAllIteration(existingIterations)
+                            recordBuilder.addIteration(
+                                randomNewIteration.toBuilder().also { iterationBuilder ->
+                                    iterationBuilder.clearResults()
+                                }.build()
                             )
-                        }
-                    }
+                        }.build(),
+                    ).recordLoanValidationResults(
+                        submission = ValidationResponse.newBuilder().also { responseBuilder ->
+                            responseBuilder.requestId = randomNewIteration.request.requestId
+                            responseBuilder.results = randomNewIteration.results
+                        }.build()
+                    )
                 }
             }
         }

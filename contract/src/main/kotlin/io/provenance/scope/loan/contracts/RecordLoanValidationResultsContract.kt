@@ -30,7 +30,7 @@ open class RecordLoanValidationResultsContract(
         @Input(LoanScopeInputs.validationResponse) submission: ValidationResponse
     ): LoanValidation {
         validateRequirements(ContractRequirementType.LEGAL_SCOPE_STATE,
-            validationRecord.isSet() orError "A validation iteration must exist for results to be submitted",
+            validationRecord.isSet() orError "A validation iteration must already exist for results to be submitted",
         )
         validateRequirements(ContractRequirementType.VALID_INPUT) {
             requireThat(

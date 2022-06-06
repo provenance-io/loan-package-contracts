@@ -24,6 +24,8 @@ object Versions {
         const val ProtocGenValidate = "0.6.7"
         const val Protobuf = "3.20.1"
         const val SemVer = "1.1.2"
+        const val JacksonKotlin = "2.13.3"
+        const val JacksonProtobuf = "0.9.12"
         object Provenance {
             const val Scope = "0.6.0"
             const val MetadataAssetModel = "0.1.9"
@@ -85,6 +87,16 @@ object Dependencies {
             exclude = setOf(
                 "com.google.protobuf:protobuf-java",
             )
+        )
+    }
+    object Jackson {
+        val KotlinModule = DependencySpec(
+            name = "com.fasterxml.jackson.module:jackson-module-kotlin",
+            version = Versions.Dependencies.JacksonKotlin,
+        )
+        val ProtobufModule = DependencySpec(
+            name = "com.hubspot.jackson:jackson-datatype-protobuf",
+            version = Versions.Dependencies.JacksonProtobuf,
         )
     }
     object Protobuf {

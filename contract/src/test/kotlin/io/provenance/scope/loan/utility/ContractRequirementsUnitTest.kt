@@ -13,7 +13,7 @@ import io.kotest.matchers.types.shouldBeTypeOf
 import io.kotest.property.Arb
 import io.kotest.property.arbitrary.list
 import io.kotest.property.checkAll
-import io.provenance.scope.loan.test.LoanPackageArbs
+import io.provenance.scope.loan.test.PrimitiveArbs
 import io.provenance.scope.loan.test.shouldHaveViolationCount
 
 class ContractRequirementsUnitTest : WordSpec({
@@ -44,7 +44,7 @@ class ContractRequirementsUnitTest : WordSpec({
                 }
             }
             "return state violations only for failed conditions" {
-                checkAll(Arb.list(LoanPackageArbs.anyContractEnforcement)) { enforcementList ->
+                checkAll(Arb.list(PrimitiveArbs.anyContractEnforcement)) { enforcementList ->
                     val expectedOverallViolationCount = getExpectedViolationCount(enforcementList)
                     if (expectedOverallViolationCount > 0U) {
                         shouldThrow<IllegalContractStateException> {
@@ -60,7 +60,7 @@ class ContractRequirementsUnitTest : WordSpec({
                 }
             }
             "return input violations only for failed conditions" {
-                checkAll(Arb.list(LoanPackageArbs.anyContractEnforcement)) { enforcementList ->
+                checkAll(Arb.list(PrimitiveArbs.anyContractEnforcement)) { enforcementList ->
                     val expectedOverallViolationCount = getExpectedViolationCount(enforcementList)
                     if (expectedOverallViolationCount > 0U) {
                         shouldThrow<ContractViolationException> {
@@ -84,8 +84,8 @@ class ContractRequirementsUnitTest : WordSpec({
             }
             "return state violations only for failed conditions" {
                 checkAll(
-                    Arb.list(LoanPackageArbs.anyContractEnforcement),
-                    Arb.list(LoanPackageArbs.anyContractEnforcement),
+                    Arb.list(PrimitiveArbs.anyContractEnforcement),
+                    Arb.list(PrimitiveArbs.anyContractEnforcement),
                 ) { enforcementListA, enforcementListB ->
                     val expectedOverallViolationCount = getExpectedViolationCount(enforcementListA + enforcementListB)
                     if (expectedOverallViolationCount > 0U) {
@@ -115,8 +115,8 @@ class ContractRequirementsUnitTest : WordSpec({
             }
             "return input violations only for failed conditions" {
                 checkAll(
-                    Arb.list(LoanPackageArbs.anyContractEnforcement),
-                    Arb.list(LoanPackageArbs.anyContractEnforcement),
+                    Arb.list(PrimitiveArbs.anyContractEnforcement),
+                    Arb.list(PrimitiveArbs.anyContractEnforcement),
                 ) { enforcementListA, enforcementListB ->
                     val expectedOverallViolationCount = getExpectedViolationCount(enforcementListA + enforcementListB)
                     if (expectedOverallViolationCount > 0U) {

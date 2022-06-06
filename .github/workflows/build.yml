@@ -46,17 +46,17 @@ jobs:
           java-version: '11'
 
       - name: Linting
-        run: ./gradlew clean ktlintCheck --parallel
+        run: ./gradlew clean ktlintCheck --parallel --refresh-dependencies
 
   build:
     name: Build
     runs-on: ubuntu-latest
     env:
-      RUN_CODE_COVERAGE: |
+      RUN_CODE_COVERAGE:
         ${{
-          github.event.inputs.runCodeCoverage == true ||
-          github.event.pull_request.draft == false ||
-          github.event.push == true
+          github.event.inputs.runCodeCoverage == 'true' ||
+          github.event.pull_request.draft == 'false' ||
+          github.event.push == 'true'
         }}
     steps:
       - name: Checkout
@@ -72,18 +72,18 @@ jobs:
 
       - name: Build with Gradle
         env:
-          RUN_KOTEST_EXTENDED: ${{ github.event.inputs.runTestsExtended == true || github.event.pull_request.draft == false }}
+          RUN_KOTEST_EXTENDED: ${{ github.event.inputs.runTestsExtended == 'true' || github.event.pull_request.draft == 'false' }}
         run: ./gradlew clean build --refresh-dependencies -Pversion=$VERSION -x koverReport
 
       - name: Check Contract Syntax
         run: ./gradlew p8eClean p8eCheck --info
 
       - name: Generate code coverage reports
-        if: ${{ env.RUN_CODE_COVERAGE == 'true' }}
+        if: env.RUN_CODE_COVERAGE == 'true'
         run: ./gradlew koverReport
 
       - name: Upload coverage reports
-        if: ${{ env.RUN_CODE_COVERAGE == 'true' }}
+        if: env.RUN_CODE_COVERAGE == 'true'
         uses: codecov/codecov-action@v3
         with:
           files: build/reports/kover/report.xml

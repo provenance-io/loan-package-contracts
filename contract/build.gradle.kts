@@ -23,6 +23,8 @@ dependencies {
         Dependencies.Kotest.Framework,
         Dependencies.Kotest.Assertions,
         Dependencies.Kotest.Property,
+        Dependencies.Jackson.KotlinModule,
+        Dependencies.Jackson.ProtobufModule,
     )
 }
 
