@@ -8,7 +8,7 @@ import org.gradle.plugin.use.PluginDependenciesSpec
 object Versions {
     const val Kotlin = "1.6.21"
     const val GitHubRelease = "2.2.12"
-    const val Kotest = "5.2.3"
+    const val Kotest = "5.3.0"
     const val Kover = "0.5.1"
     const val Ktlint = "0.45.2"
     const val KrotoPlus = "0.6.1"
