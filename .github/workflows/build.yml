@@ -54,9 +54,9 @@ jobs:
     env:
       RUN_CODE_COVERAGE:
         ${{
-          github.event.inputs.runCodeCoverage == 'true' ||
-          github.event.pull_request.draft == 'false' ||
-          github.event.push == 'true'
+          github.event.inputs.runCodeCoverage == true ||
+          github.event.pull_request.draft == false ||
+          github.event_name == 'push'
         }}
     steps:
       - name: Checkout
@@ -72,7 +72,7 @@ jobs:
 
       - name: Build with Gradle
         env:
-          RUN_KOTEST_EXTENDED: ${{ github.event.inputs.runTestsExtended == 'true' || github.event.pull_request.draft == 'false' }}
+          RUN_KOTEST_EXTENDED: ${{ github.event.inputs.runTestsExtended == true || github.event.pull_request.draft == false }}
         run: ./gradlew clean build --refresh-dependencies -Pversion=$VERSION -x koverReport
 
       - name: Check Contract Syntax

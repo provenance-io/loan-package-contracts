@@ -101,8 +101,9 @@ allprojects {
 
     tasks.withType<KotlinCompile>().all {
         sourceCompatibility = "11"
-        sourceCompatibility = "11"
+        targetCompatibility = "11"
         kotlinOptions {
+            apiVersion = "1.6"
             languageVersion = "1.6"
             jvmTarget = "11"
             freeCompilerArgs = listOf(

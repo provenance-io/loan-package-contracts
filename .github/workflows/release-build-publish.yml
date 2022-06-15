@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       publishing_environment:
-        description: 'environment the contracts should be bootstrapped to'
+        description: 'Environment the contracts should be bootstrapped to'
         required: true
         default: 'testnet'
         type: choice
