@@ -97,7 +97,7 @@ internal object MetadataAssetModelArbs {
     /* Protobufs */
     val anyValidChecksum: Arb<FigureTechChecksum> = Arb.bind(
         PrimitiveArbs.anyNonEmptyString,
-        Arb.string(),
+        PrimitiveArbs.anyNonEmptyString,
     ) { checksum, algorithm ->
         FigureTechChecksum.newBuilder().also { checksumBuilder ->
             checksumBuilder.checksum = checksum
@@ -108,7 +108,7 @@ internal object MetadataAssetModelArbs {
         /** Since we need each checksum to be unique, we must fix the set size & construct the arbs from scratch with primitives */
         Arb.bind(
             Arb.set(gen = PrimitiveArbs.anyNonEmptyString, size = size, slippage = slippage).map { it.toList() },
-            Arb.list(gen = Arb.string(), range = size..size),
+            Arb.list(gen = PrimitiveArbs.anyNonEmptyString, range = size..size),
         ) { checksums, algorithms ->
             checksums.indices.map { i ->
                 FigureTechChecksum.newBuilder().also { checksumBuilder ->
@@ -208,16 +208,14 @@ internal object MetadataAssetModelArbs {
         /** Since we need some properties to be unique, we must fix the set size & construct the arbs from scratch with primitives */
         Arb.bind(
             anyUuidSet(size = size, slippage = slippage),
-            Arb.set(gen = PrimitiveArbs.anyNonEmptyString, size = size, slippage = slippage).map { it.toList() },
+            anyChecksumSet(size = size, slippage = slippage),
             Arb.set(gen = PrimitiveArbs.anyNonEmptyString, size = size, slippage = slippage).map { it.toList() },
             Arb.set(gen = anyPastNonEpochTimestampComponents, size = size, slippage = slippage).map { it.toList() },
         ) { loanIds, randomChecksums, randomUris, randomTimestamps ->
             loanIds.indices.map { i ->
                 LoanStateMetadata.newBuilder().also { loanStateBuilder ->
                     loanStateBuilder.id = loanIds[i]
-                    loanStateBuilder.checksum = FigureTechChecksum.newBuilder().also { checksumBuilder ->
-                        checksumBuilder.checksum = randomChecksums[i]
-                    }.build()
+                    loanStateBuilder.checksum = randomChecksums[i]
                     loanStateBuilder.uri = randomUris[i]
                     loanStateBuilder.effectiveTime = Timestamp.newBuilder().also { timestampBuilder ->
                         timestampBuilder.seconds = randomTimestamps[i].first
