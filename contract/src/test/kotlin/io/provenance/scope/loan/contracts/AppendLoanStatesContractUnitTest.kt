@@ -23,6 +23,7 @@ import io.provenance.scope.loan.test.toPair
 import io.provenance.scope.loan.utility.ContractViolationException
 import io.provenance.scope.util.toOffsetDateTime
 import tech.figure.servicing.v1beta1.LoanStateOuterClass.LoanStateMetadata
+import tech.figure.servicing.v1beta1.LoanStateOuterClass.LoanStateSubmission
 import tech.figure.servicing.v1beta1.LoanStateOuterClass.ServicingData
 import kotlin.math.max
 
@@ -31,7 +32,7 @@ class AppendLoanStatesContractUnitTest : WordSpec({
         "given an empty input" should {
             "throw an appropriate exception" {
                 shouldThrow<ContractViolationException> {
-                    appendLoanStatesContractWithNoExistingStates.appendLoanStates(emptyList())
+                    appendLoanStatesContractWithNoExistingStates.appendLoanStates(LoanStateSubmission.getDefaultInstance())
                 }.let { exception ->
                     exception.message shouldContain "Servicing data is not set"
                 }
@@ -42,10 +43,14 @@ class AppendLoanStatesContractUnitTest : WordSpec({
                 checkAll(anyValidLoanState) { randomValidLoanState ->
                     shouldThrow<ContractViolationException> {
                         appendLoanStatesContractWithNoExistingStates.appendLoanStates(
-                            listOf(
-                                LoanStateMetadata.getDefaultInstance(),
-                                randomValidLoanState,
-                            )
+                            LoanStateSubmission.newBuilder().also { listBuilder ->
+                                listBuilder.addAllLoanState(
+                                    listOf(
+                                        LoanStateMetadata.getDefaultInstance(),
+                                        randomValidLoanState,
+                                    )
+                                )
+                            }.build()
                         )
                     }.let { exception ->
                         exception shouldHaveViolationCount 4U
@@ -74,11 +79,15 @@ class AppendLoanStatesContractUnitTest : WordSpec({
                                 )
                             }.build()
                         ).appendLoanStates(
-                            listOf(
-                                randomNewLoanState.toBuilder().also { loanStateBuilder ->
-                                    loanStateBuilder.checksum = randomChecksum
-                                }.build()
-                            )
+                            LoanStateSubmission.newBuilder().also { listBuilder ->
+                                listBuilder.addAllLoanState(
+                                    listOf(
+                                        randomNewLoanState.toBuilder().also { loanStateBuilder ->
+                                            loanStateBuilder.checksum = randomChecksum
+                                        }.build()
+                                    )
+                                )
+                            }.build()
                         )
                     }.let { exception ->
                         exception shouldHaveViolationCount 1U
@@ -104,11 +113,15 @@ class AppendLoanStatesContractUnitTest : WordSpec({
                                 )
                             }.build()
                         ).appendLoanStates(
-                            listOf(
-                                randomNewLoanState.toBuilder().also { loanStateBuilder ->
-                                    loanStateBuilder.id = randomUuid
-                                }.build()
-                            )
+                            LoanStateSubmission.newBuilder().also { listBuilder ->
+                                listBuilder.addAllLoanState(
+                                    listOf(
+                                        randomNewLoanState.toBuilder().also { loanStateBuilder ->
+                                            loanStateBuilder.id = randomUuid
+                                        }.build()
+                                    )
+                                )
+                            }.build()
                         )
                     }.let { exception ->
                         exception shouldHaveViolationCount 1U
@@ -134,11 +147,15 @@ class AppendLoanStatesContractUnitTest : WordSpec({
                                 )
                             }.build()
                         ).appendLoanStates(
-                            listOf(
-                                randomNewLoanState.toBuilder().also { loanStateBuilder ->
-                                    loanStateBuilder.effectiveTime = randomTimestamp
-                                }.build()
-                            )
+                            LoanStateSubmission.newBuilder().also { listBuilder ->
+                                listBuilder.addAllLoanState(
+                                    listOf(
+                                        randomNewLoanState.toBuilder().also { loanStateBuilder ->
+                                            loanStateBuilder.effectiveTime = randomTimestamp
+                                        }.build()
+                                    )
+                                )
+                            }.build()
                         )
                     }.let { exception ->
                         exception shouldHaveViolationCount 1U
@@ -157,14 +174,18 @@ class AppendLoanStatesContractUnitTest : WordSpec({
                         AppendLoanStatesContract(
                             existingServicingData = ServicingData.getDefaultInstance(),
                         ).appendLoanStates(
-                            listOf(
-                                randomFirstNewLoanState.toBuilder().also { loanStateBuilder ->
-                                    loanStateBuilder.checksum = randomChecksum
-                                }.build(),
-                                randomSecondNewLoanState.toBuilder().also { loanStateBuilder ->
-                                    loanStateBuilder.checksum = randomChecksum
-                                }.build(),
-                            )
+                            LoanStateSubmission.newBuilder().also { listBuilder ->
+                                listBuilder.addAllLoanState(
+                                    listOf(
+                                        randomFirstNewLoanState.toBuilder().also { loanStateBuilder ->
+                                            loanStateBuilder.checksum = randomChecksum
+                                        }.build(),
+                                        randomSecondNewLoanState.toBuilder().also { loanStateBuilder ->
+                                            loanStateBuilder.checksum = randomChecksum
+                                        }.build(),
+                                    )
+                                )
+                            }.build()
                         )
                     }.let { exception ->
                         exception shouldHaveViolationCount 1U
@@ -183,14 +204,18 @@ class AppendLoanStatesContractUnitTest : WordSpec({
                         AppendLoanStatesContract(
                             existingServicingData = ServicingData.getDefaultInstance(),
                         ).appendLoanStates(
-                            listOf(
-                                randomFirstNewLoanState.toBuilder().also { loanStateBuilder ->
-                                    loanStateBuilder.id = randomId
-                                }.build(),
-                                randomSecondNewLoanState.toBuilder().also { loanStateBuilder ->
-                                    loanStateBuilder.id = randomId
-                                }.build(),
-                            )
+                            LoanStateSubmission.newBuilder().also { listBuilder ->
+                                listBuilder.addAllLoanState(
+                                    listOf(
+                                        randomFirstNewLoanState.toBuilder().also { loanStateBuilder ->
+                                            loanStateBuilder.id = randomId
+                                        }.build(),
+                                        randomSecondNewLoanState.toBuilder().also { loanStateBuilder ->
+                                            loanStateBuilder.id = randomId
+                                        }.build(),
+                                    )
+                                )
+                            }.build()
                         )
                     }.let { exception ->
                         exception shouldHaveViolationCount 1U
@@ -209,14 +234,18 @@ class AppendLoanStatesContractUnitTest : WordSpec({
                         AppendLoanStatesContract(
                             existingServicingData = ServicingData.getDefaultInstance(),
                         ).appendLoanStates(
-                            listOf(
-                                randomFirstNewLoanState.toBuilder().also { loanStateBuilder ->
-                                    loanStateBuilder.effectiveTime = randomEffectiveTime
-                                }.build(),
-                                randomSecondNewLoanState.toBuilder().also { loanStateBuilder ->
-                                    loanStateBuilder.effectiveTime = randomEffectiveTime
-                                }.build(),
-                            )
+                            LoanStateSubmission.newBuilder().also { listBuilder ->
+                                listBuilder.addAllLoanState(
+                                    listOf(
+                                        randomFirstNewLoanState.toBuilder().also { loanStateBuilder ->
+                                            loanStateBuilder.effectiveTime = randomEffectiveTime
+                                        }.build(),
+                                        randomSecondNewLoanState.toBuilder().also { loanStateBuilder ->
+                                            loanStateBuilder.effectiveTime = randomEffectiveTime
+                                        }.build(),
+                                    )
+                                )
+                            }.build()
                         )
                     }.let { exception ->
                         exception shouldHaveViolationCount 1U
@@ -246,7 +275,9 @@ class AppendLoanStatesContractUnitTest : WordSpec({
                             servicingDataBuilder.addAllLoanState(randomExistingStates)
                         }.build()
                     ).appendLoanStates(
-                        randomNewStates
+                        LoanStateSubmission.newBuilder().also { listBuilder ->
+                            listBuilder.addAllLoanState(randomNewStates)
+                        }.build()
                     ).let { outputRecord ->
                         outputRecord.loanStateCount shouldBeExactly randomStateSet.size
                     }

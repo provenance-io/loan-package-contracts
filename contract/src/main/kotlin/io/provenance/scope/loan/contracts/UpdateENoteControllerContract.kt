@@ -15,13 +15,13 @@ import io.provenance.scope.loan.utility.ContractRequirementType
 import io.provenance.scope.loan.utility.eNoteControllerValidation
 import io.provenance.scope.loan.utility.validateRequirements
 
-@Participants([PartyType.OWNER, PartyType.CUSTODIAN]) // TODO: Change temporary placeholder of "CUSTODIAN" to "CONTROLLER" once latter is defined
+@Participants([PartyType.OWNER, PartyType.CONTROLLER])
 @ScopeSpecification(["tech.figure.loan"])
 open class UpdateENoteControllerContract(
     @Record(name = LoanScopeFacts.eNote, optional = false) val existingENote: ENote,
 ) : P8eContract() {
 
-    @Function(invokedBy = PartyType.CUSTODIAN) // TODO: Change temporary placeholder of "CUSTODIAN" to "CONTROLLER" once latter is defined
+    @Function(invokedBy = PartyType.CONTROLLER)
     @Record(LoanScopeFacts.eNote)
     open fun updateENoteController(@Input(LoanScopeInputs.eNoteControllerUpdate) newController: Controller): ENote {
         validateRequirements(ContractRequirementType.VALID_INPUT) {
