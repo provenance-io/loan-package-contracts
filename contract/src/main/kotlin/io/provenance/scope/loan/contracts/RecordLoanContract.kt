@@ -62,7 +62,7 @@ open class RecordLoanContract(
                 )
             }
             if (newAsset.containsKv(assetLoanKey) xor newAsset.containsKv(assetMismoKey)) {
-                newAsset.kvMap["loan"]?.let { newLoanValue ->
+                newAsset.kvMap[assetLoanKey]?.let { newLoanValue ->
                     newLoanValue.tryUnpackingAs<FigureTechLoan>("input asset's \"${assetLoanKey}\"") { newLoan ->
                         if (existingAsset.isSet()) {
                             existingAsset!!.kvMap[assetLoanKey]?.toFigureTechLoan()?.let { existingLoan ->

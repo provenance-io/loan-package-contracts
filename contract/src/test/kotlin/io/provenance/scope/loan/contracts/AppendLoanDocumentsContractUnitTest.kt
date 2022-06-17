@@ -103,8 +103,9 @@ class AppendLoanDocumentsContractUnitTest : WordSpec({
                     Arb.set(gen = anyNonEmptyString, size = 2).toPair { set -> set.toList() },
                     Arb.set(gen = anyNonEmptyString, size = 2).toPair { set -> set.toList() },
                     Arb.set(gen = anyNonEmptyString, size = 2).toPair { set -> set.toList() },
-                ) { randomDocuments, (oldId, newId), (oldUri, newUri), (oldContentType, newContentType), (oldDocumentType, newDocumentType) ->
-                    val (existingDocuments, newDocument) = randomDocuments.documentList.breakOffLast()
+                    Arb.set(gen = anyNonEmptyString, size = 2).toPair { set -> set.toList() },
+                ) { randomDocs, (oldId, newId), (oldAlgo, newAlgo), (oldUri, newUri), (oldContentType, newContentType), (oldDocType, newDocType) ->
+                    val (existingDocuments, newDocument) = randomDocs.documentList.breakOffLast()
                     shouldThrow<ContractViolationException> {
                         AppendLoanDocumentsContract(
                             existingDocs = existingDocuments.toRecord().toBuilder().also { recordBuilder ->
@@ -112,10 +113,13 @@ class AppendLoanDocumentsContractUnitTest : WordSpec({
                                     recordBuilder.setDocument(
                                         indexOfDocumentToModify,
                                         newDocument.toBuilder().also { documentBuilder ->
+                                            documentBuilder.checksum = newDocument.checksum.toBuilder().also { checksumBuilder ->
+                                                checksumBuilder.algorithm = oldAlgo
+                                            }.build()
                                             documentBuilder.id = oldId
                                             documentBuilder.uri = oldUri
                                             documentBuilder.contentType = oldContentType
-                                            documentBuilder.documentType = oldDocumentType
+                                            documentBuilder.documentType = oldDocType
                                         }.build()
                                     )
                                 }
@@ -125,17 +129,20 @@ class AppendLoanDocumentsContractUnitTest : WordSpec({
                                 inputBuilder.clearDocument()
                                 inputBuilder.addDocument(
                                     newDocument.toBuilder().also { documentBuilder ->
+                                        documentBuilder.checksum = newDocument.checksum.toBuilder().also { checksumBuilder ->
+                                            checksumBuilder.algorithm = newAlgo
+                                        }.build()
                                         documentBuilder.id = newId
                                         documentBuilder.uri = newUri
                                         documentBuilder.contentType = newContentType
-                                        documentBuilder.documentType = newDocumentType
+                                        documentBuilder.documentType = newDocType
                                     }.build()
                                 )
                             }.build()
                         )
                     }.let { exception ->
-                        exception shouldHaveViolationCount 4U
-                        listOf("ID", "URI", "content type", "document type").forEach { immutableField ->
+                        exception shouldHaveViolationCount 5U
+                        listOf("checksum algorithm", "ID", "URI", "content type", "document type").forEach { immutableField ->
                             exception.message shouldContain
                                 "Cannot change $immutableField of existing document with checksum ${newDocument.checksum.checksum}"
                         }

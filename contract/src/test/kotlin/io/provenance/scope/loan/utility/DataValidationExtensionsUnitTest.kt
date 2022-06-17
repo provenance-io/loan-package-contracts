@@ -109,10 +109,11 @@ class DataValidationExtensionsUnitTest : WordSpec({
                 }.build().isValid()
             }
         }
-        "return true for any non-empty checksum string" {
-            forAll(anyNonEmptyString) { randomString ->
+        "return true for any pair of non-empty strings" {
+            forAll(anyNonEmptyString, anyNonEmptyString) { randomChecksum, randomAlgorithm ->
                 FigureTechChecksum.newBuilder().apply {
-                    checksum = randomString
+                    checksum = randomChecksum
+                    algorithm = randomAlgorithm
                 }.build().isValid()
             }
         }

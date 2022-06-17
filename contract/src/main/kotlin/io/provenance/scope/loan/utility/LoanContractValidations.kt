@@ -15,7 +15,6 @@ internal fun ContractEnforcementContext.documentModificationValidation(
     newDocument: DocumentMetadata,
 ) {
     existingDocument.checksum.checksum.let { existingChecksum ->
-        // TODO: Should we raise a violation if the checksum's algorithm is changed?
         if (existingChecksum == newDocument.checksum.checksum) {
             val checksumSnippet = if (existingChecksum.isNotBlank()) {
                 " with checksum $existingChecksum"
@@ -23,6 +22,8 @@ internal fun ContractEnforcementContext.documentModificationValidation(
                 ""
             }
             requireThat(
+                (existingDocument.checksum.algorithm == newDocument.checksum.algorithm)
+                    orError "Cannot change checksum algorithm of existing document$checksumSnippet",
                 (existingDocument.id == newDocument.id)
                     orError "Cannot change ID of existing document$checksumSnippet",
                 (existingDocument.uri == newDocument.uri)
