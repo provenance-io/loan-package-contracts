@@ -18,13 +18,13 @@ import io.provenance.scope.loan.utility.validateRequirements
 import tech.figure.validation.v1beta1.LoanValidation
 import tech.figure.validation.v1beta1.ValidationResponse
 
-@Participants(roles = [PartyType.OWNER]) // TODO: Change to VALIDATOR once latter is defined
+@Participants(roles = [PartyType.VALIDATOR])
 @ScopeSpecification(["tech.figure.loan"])
 open class RecordLoanValidationResultsContract(
     @Record(LoanScopeFacts.loanValidations) val validationRecord: LoanValidation,
 ) : P8eContract() {
 
-    @Function(invokedBy = PartyType.OWNER) // TODO: Change to VALIDATOR once latter is defined
+    @Function(invokedBy = PartyType.VALIDATOR)
     @Record(LoanScopeFacts.loanValidations)
     open fun recordLoanValidationResults(
         @Input(LoanScopeInputs.validationResponse) submission: ValidationResponse

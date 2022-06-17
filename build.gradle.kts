@@ -80,6 +80,7 @@ val ktlintFormat by tasks.creating(JavaExec::class) {
 semver {
     tagPrefix("v")
     initialVersion("0.1.0")
+    overrideVersion("0.2.0") // TODO: Remove immediately after merges to main
     findProperty("semver.overrideVersion")?.toString()?.let { overrideVersion(it) }
     val semVerModifier = findProperty("semver.modifier")?.toString()?.let { buildVersionModifier(it) } ?: { nextPatch() }
     versionModifier(semVerModifier)

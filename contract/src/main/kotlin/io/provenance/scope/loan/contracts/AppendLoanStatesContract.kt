@@ -10,22 +10,22 @@ import io.provenance.scope.contract.spec.P8eContract
 import io.provenance.scope.loan.LoanScopeFacts
 import io.provenance.scope.loan.LoanScopeInputs
 import io.provenance.scope.loan.utility.updateServicingData
-import tech.figure.servicing.v1beta1.LoanStateOuterClass.LoanStateMetadata
+import tech.figure.servicing.v1beta1.LoanStateOuterClass.LoanStateSubmission
 import tech.figure.servicing.v1beta1.LoanStateOuterClass.ServicingData
 
-@Participants(roles = [PartyType.OWNER]) // TODO: Eventually update to servicer
+@Participants(roles = [PartyType.SERVICER])
 @ScopeSpecification(["tech.figure.loan"])
 open class AppendLoanStatesContract(
     @Record(name = LoanScopeFacts.servicingData, optional = true) val existingServicingData: ServicingData?,
 ) : P8eContract() {
 
-    @Function(invokedBy = PartyType.OWNER)
+    @Function(invokedBy = PartyType.SERVICER)
     @Record(LoanScopeFacts.servicingData)
-    open fun appendLoanStates(@Input(LoanScopeInputs.newLoanStates) newLoanStates: Collection<LoanStateMetadata>): ServicingData =
+    open fun appendLoanStates(@Input(LoanScopeInputs.newLoanStates) newLoanStates: LoanStateSubmission): ServicingData =
         updateServicingData(
             existingServicingData = existingServicingData ?: ServicingData.getDefaultInstance(),
             newServicingData = ServicingData.newBuilder().also { incomingBuilder ->
-                incomingBuilder.addAllLoanState(newLoanStates)
+                incomingBuilder.addAllLoanState(newLoanStates.loanStateList)
             }.build(),
         )
 }

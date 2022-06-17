@@ -5,7 +5,7 @@ smart contracts that can be executed against it.
 [![stability-beta][stability-badge]][stability-info]
 [![Code Coverage][code-coverage-badge]][code-coverage-report]
 [![Latest Release][release-badge]][release-latest]
-![LOC][loc-badge]
+[![LOC][loc-badge]][loc-url]
 ### Artifacts
 #### Contracts JAR
 [![Contracts Artifact][contracts-publication-badge]][contracts-publication-url]
@@ -25,6 +25,7 @@ smart contracts that can be executed against it.
 [license-badge]: https://img.shields.io/github/license/provenance-io/loan-package-contracts.svg
 [license-url]: https://github.com/provenance-io/loan-package-contracts/blob/main/LICENSE
 [loc-badge]: https://tokei.rs/b1/github/provenance-io/loan-package-contracts
+[loc-url]: https://github.com/provenance-io/loan-package-contracts
 ## Development
 ### Commands
 #### Cloning the Repository
