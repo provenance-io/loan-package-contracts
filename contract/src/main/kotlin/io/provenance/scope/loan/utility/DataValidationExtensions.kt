@@ -47,7 +47,7 @@ internal fun FigureTechDate?.isValidForSignedDate() = isSet() && this!!.value.is
     JavaLocalDate.parse(value) <= JavaLocalDate.now()
 }
 
-internal fun FigureTechChecksum?.isValid() = isSet() && this!!.checksum.isNotBlank() // Check for algorithm is omitted
+internal fun FigureTechChecksum?.isValid() = isSet() && this!!.checksum.isNotBlank() && algorithm.isNotBlank()
 
 internal fun FigureTechUUID?.isValid() = isSet() && this!!.value.isNotBlank() && tryOrFalse { JavaUUID.fromString(value) }
 
