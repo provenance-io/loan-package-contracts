@@ -65,7 +65,7 @@ open class RecordLoanContract(
                 newAsset.kvMap[assetLoanKey]?.let { newLoanValue ->
                     newLoanValue.tryUnpackingAs<FigureTechLoan>("input asset's \"${assetLoanKey}\"") { newLoan ->
                         if (existingAsset.isSet()) {
-                            existingAsset!!.kvMap[assetLoanKey]?.toFigureTechLoan()?.let { existingLoan ->
+                            existingAsset!!.kvMap[assetLoanKey]?.toFigureTechLoan()?.also { existingLoan ->
                                 requireThat(
                                     (existingLoan.id == newLoan.id)                         orError "Cannot change loan ID",
                                     (existingLoan.originatorName == newLoan.originatorName) orError "Cannot change loan originator name",
@@ -83,7 +83,7 @@ open class RecordLoanContract(
                     newLoanValue.tryUnpackingAs<MISMOLoanMetadata>("input asset's \"${assetMismoKey}\"") { newLoan ->
                         documentValidation(newLoan.document)
                         if (existingAsset.isSet()) {
-                            existingAsset!!.kvMap[assetMismoKey]?.toMISMOLoan()?.let { existingLoan ->
+                            existingAsset!!.kvMap[assetMismoKey]?.toMISMOLoan()?.also { existingLoan ->
                                 // TODO: Allow doc with different checksum to replace existing one or not?
                                 documentModificationValidation(existingLoan.document, newLoan.document)
                                 requireThat(
