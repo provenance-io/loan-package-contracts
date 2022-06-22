@@ -1,0 +1,51 @@
+name-template: 'v$RESOLVED_VERSION'
+tag-template: 'v$RESOLVED_VERSION'
+categories:
+  - title: '🚀 Features & Enhancements'
+    labels:
+      - 'feature'
+      - 'enhancement'
+  - title: '🐛 Bug Fixes'
+    labels:
+      - 'fix'
+      - 'bugfix'
+      - 'bug'
+  - title: '🧰 Maintenance'
+    label: 'chore'
+  - title: '📖 Documentation'
+    label: 'docs'
+  - title: '📦 Dependency Updates'
+    label: 'dependencies'
+version-resolver:
+  major:
+    labels:
+      - 'major'
+  minor:
+    labels:
+      - 'minor'
+  patch:
+    labels:
+      - 'patch'
+  default: patch
+autolabeler:
+  - label: 'enhancement'
+    title:
+      - '/(feat)|(refactor)/i'
+  - label: 'bug'
+    branch:
+      - '/fix\/.+/'
+    title:
+      - '/fix/i'
+  - label: 'docs'
+    title:
+      - '/docs/i'
+template: |
+  # Changelog
+  $CHANGES
+  # Notes
+  ## Contributors
+  $CONTRIBUTORS
+  ## Deployment Dependencies
+  List the relevant PRs and work that needs to be done for this release's publications to be used successfully here
+  ## Other
+  Other notes
