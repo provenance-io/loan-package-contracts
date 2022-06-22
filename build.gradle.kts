@@ -5,10 +5,6 @@ import io.provenance.p8e.plugin.P8ePartyExtension
 /** Build setup */
 
 buildscript {
-    classpathSpecs(
-        Dependencies.SemVer,
-        Dependencies.GitHubRelease,
-    )
     repositories {
         mavenCentral()
         maven { url = uri(RepositoryLocations.JitPack) }
@@ -22,7 +18,6 @@ plugins {
         Plugins.GitHubRelease,
         Plugins.NexusPublishing,
         Plugins.P8ePublishing,
-        Plugins.SemVer,
     )
     signing
 }
@@ -75,21 +70,8 @@ val ktlintFormat by tasks.creating(JavaExec::class) {
     args = listOf("-F", "*/src/**/*.kt") + ktlintExcludeSyntax(lintingExclusions)
 }
 
-/** Project Setup & Releasing */
-
-semver {
-    tagPrefix("v")
-    initialVersion("0.1.0")
-    overrideVersion("0.2.0") // TODO: Remove immediately after merges to main
-    findProperty("semver.overrideVersion")?.toString()?.let { overrideVersion(it) }
-    val semVerModifier = findProperty("semver.modifier")?.toString()?.let { buildVersionModifier(it) } ?: { nextPatch() }
-    versionModifier(semVerModifier)
-}
-
-val semVersion = semver.version
 allprojects {
     group = "io.provenance.loan-package"
-    version = semVersion
 
     repositories {
         mavenCentral()
@@ -185,24 +167,6 @@ nexusPublishing {
             stagingProfileId.set("3180ca260b82a7") // prevents querying for the staging profile id, performance optimization
         }
     }
-}
-
-val githubTokenValue = findProperty("githubToken")?.toString() ?: System.getenv("GITHUB_TOKEN")
-
-githubRelease {
-    token(githubTokenValue)
-    owner("provenance-io")
-    targetCommitish("main")
-    draft(false)
-    prerelease(false)
-    repo("loan-package-contracts")
-    tagName(semver.versionTagName)
-    body(changelog())
-
-    overwrite(false)
-    dryRun(false)
-    apiEndpoint("https://api.github.com")
-    client
 }
 
 fun p8eParty(publicKey: String): P8ePartyExtension = P8ePartyExtension().also { it.publicKey = publicKey }
