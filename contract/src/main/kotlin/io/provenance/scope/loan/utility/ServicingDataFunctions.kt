@@ -5,19 +5,31 @@ import tech.figure.servicing.v1beta1.LoanStateOuterClass.LoanStateMetadata
 import tech.figure.servicing.v1beta1.LoanStateOuterClass.ServicingData
 import tech.figure.util.v1beta1.DocumentMetadata
 
+/**
+ * Updates the [existingServicingData] record with [newServicingData] which only has a field set if it is allowed to update the field
+ * in the calling contract.
+ */
 internal fun updateServicingData(
     existingServicingData: ServicingData = ServicingData.getDefaultInstance(),
     newServicingData: ServicingData,
-): ServicingData = existingServicingData.toBuilder().also { servicingDataBuilder ->
+): ServicingData = existingServicingData.toBuilder().also { newServicingDataBuilder ->
     validateRequirements(ContractRequirementType.VALID_INPUT) {
-        // TODO: Validate any other top-level fields of newServicingData?
-        // TODO: Which top-level fields of the servicing data record other than the loan states should be updatable? Does it vary between contracts?
-        newServicingData.takeIf { it.isSet() }?.let {
-            servicingDataBuilder.docMetaList.forEach { document ->
-                documentValidation(document)
+        newServicingData.takeIf { data -> data.isSet() }?.also { setNewServicingData ->
+            appendLoanStates(newServicingDataBuilder, newServicingData.loanStateList)
+            appendServicingDocuments(newServicingDataBuilder, newServicingData.docMetaList)
+            // At the moment, we won't perform any basic data validation of the top-level fields that aren't the loan state or document lists
+            setNewServicingData.loanId.takeIf { it.isSet() }?.let { newLoanId ->
+                newServicingDataBuilder.loanId = newLoanId
             }
-            appendLoanStates(servicingDataBuilder, newServicingData.loanStateList)
-            appendServicingDocuments(servicingDataBuilder, newServicingData.docMetaList)
+            setNewServicingData.assetType.takeIf { it.isSet() }?.let { newAssetType ->
+                newServicingDataBuilder.assetType = newAssetType
+            }
+            setNewServicingData.currentBorrowerInfo.takeIf { it.isSet() }?.let { newCurrentBorrowerInfo ->
+                newServicingDataBuilder.currentBorrowerInfo = newCurrentBorrowerInfo
+            }
+            setNewServicingData.originalNoteAmount.takeIf { it.isSet() }?.let { newOriginalNoteAmount ->
+                newServicingDataBuilder.originalNoteAmount = newOriginalNoteAmount
+            }
         } ?: raiseError("Servicing data is not set")
     }
 }.build()

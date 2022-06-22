@@ -18,6 +18,7 @@ import io.kotest.property.arbitrary.UUIDVersion
 import io.kotest.property.arbitrary.alphanumeric
 import io.kotest.property.arbitrary.bind
 import io.kotest.property.arbitrary.boolean
+import io.kotest.property.arbitrary.double
 import io.kotest.property.arbitrary.filter
 import io.kotest.property.arbitrary.filterNot
 import io.kotest.property.arbitrary.int
@@ -45,6 +46,7 @@ import tech.figure.proto.util.toProtoAny
 import tech.figure.servicing.v1beta1.LoanStateOuterClass.LoanStateMetadata
 import tech.figure.servicing.v1beta1.LoanStateOuterClass.ServicingData
 import tech.figure.servicing.v1beta1.ServicingRightsOuterClass.ServicingRights
+import tech.figure.util.v1beta1.AssetType
 import tech.figure.util.v1beta1.DocumentMetadata
 import tech.figure.validation.v1beta1.LoanValidation
 import tech.figure.validation.v1beta1.ValidationItem
@@ -57,8 +59,12 @@ import java.time.Instant
 import java.time.ZoneOffset
 import java.time.LocalDate as JavaLocalDate
 import tech.figure.loan.v1beta1.Loan as FigureTechLoan
+import tech.figure.util.v1beta1.Borrowers as FigureTechBorrowers
 import tech.figure.util.v1beta1.Checksum as FigureTechChecksum
 import tech.figure.util.v1beta1.Date as FigureTechDate
+import tech.figure.util.v1beta1.Money as FigureTechMoney
+import tech.figure.util.v1beta1.Name as FigureTechName
+import tech.figure.util.v1beta1.Person as FigureTechPerson
 import tech.figure.util.v1beta1.UUID as FigureTechUUID
 
 /**
@@ -95,6 +101,15 @@ internal object PrimitiveArbs {
  */
 internal object MetadataAssetModelArbs {
     /* Protobufs */
+    val anyAssetType: Arb<AssetType> = Arb.bind(
+        PrimitiveArbs.anyNonEmptyString,
+        Arb.string(),
+    ) { superType, subType ->
+        AssetType.newBuilder().also { assetTypeBuilder ->
+            assetTypeBuilder.supertype = superType
+            assetTypeBuilder.subtype = subType
+        }.build()
+    }
     val anyValidChecksum: Arb<FigureTechChecksum> = Arb.bind(
         PrimitiveArbs.anyNonEmptyString,
         PrimitiveArbs.anyNonEmptyString,
@@ -117,6 +132,15 @@ internal object MetadataAssetModelArbs {
                 }.build()
             }
         }
+    val anyNonNegativeMoney: Arb<FigureTechMoney> = Arb.bind(
+        Arb.double(min = 0.0),
+        PrimitiveArbs.anyNonEmptyString,
+    ) { amount, currency ->
+        FigureTechMoney.newBuilder().also { moneyBuilder ->
+            moneyBuilder.amount = amount
+            moneyBuilder.currency = currency
+        }.build()
+    }
     val anyUuid: Arb<FigureTechUUID> = Arb.uuid(UUIDVersion.V4).map { arbUuidV4 ->
         FigureTechUUID.newBuilder().apply {
             value = arbUuidV4.toString()
@@ -133,6 +157,29 @@ internal object MetadataAssetModelArbs {
     val anyInvalidUuid: Arb<FigureTechUUID> = PrimitiveArbs.anyNonUuidString.map { arbInvalidUuid ->
         FigureTechUUID.newBuilder().apply {
             value = arbInvalidUuid
+        }.build()
+    }
+    val anyPerson: Arb<FigureTechPerson> = Arb.bind(
+        anyUuid,
+        PrimitiveArbs.anyNonEmptyString,
+        PrimitiveArbs.anyNonEmptyString,
+    ) { id, firstName, lastName ->
+        FigureTechPerson.newBuilder().also { personBuilder ->
+            personBuilder.id = id
+            personBuilder.name = FigureTechName.newBuilder().also { nameBuilder ->
+                nameBuilder.firstName = firstName
+                nameBuilder.lastName = lastName
+            }.build()
+        }.build()
+    }
+    fun anyBorrowerInfo(additionalBorrowerCount: IntRange = 0..0): Arb<FigureTechBorrowers> = Arb.bind(
+        anyPerson,
+        Arb.list(gen = anyPerson, range = additionalBorrowerCount),
+    ) { primaryBorrower, additionalBorrowers ->
+        FigureTechBorrowers.newBuilder().also { borrowersBuilder ->
+            borrowersBuilder.primary = primaryBorrower
+            borrowersBuilder.clearAdditional()
+            borrowersBuilder.addAllAdditional(additionalBorrowers)
         }.build()
     }
     val anyValidDocumentMetadata: Arb<DocumentMetadata> = Arb.bind(

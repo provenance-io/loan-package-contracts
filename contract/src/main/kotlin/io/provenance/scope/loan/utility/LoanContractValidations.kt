@@ -38,7 +38,7 @@ internal fun ContractEnforcementContext.documentModificationValidation(
 }
 
 internal val documentValidation: ContractEnforcementContext.(DocumentMetadata) -> Unit = { document ->
-    document.takeIf { it.isSet() }?.let { setDocument ->
+    document.takeIf { it.isSet() }?.also { setDocument ->
         val documentIdSnippet = if (setDocument.id.isSet()) {
             " with ID ${setDocument.id.value}"
         } else {
@@ -55,7 +55,7 @@ internal val documentValidation: ContractEnforcementContext.(DocumentMetadata) -
 }
 
 internal val eNoteControllerValidation: ContractEnforcementContext.(ENoteController) -> Unit = { controller ->
-    controller.takeIf { it.isSet() }?.let { setController ->
+    controller.takeIf { it.isSet() }?.also { setController ->
         requireThat(
             setController.controllerUuid.isValid()    orError "Controller must have valid UUID",
             setController.controllerName.isNotBlank() orError "Controller is missing name",
@@ -64,7 +64,7 @@ internal val eNoteControllerValidation: ContractEnforcementContext.(ENoteControl
 }
 
 internal val eNoteDocumentValidation: ContractEnforcementContext.(DocumentMetadata) -> Unit = { document ->
-    document.takeIf { it.isSet() }?.let { setENote ->
+    document.takeIf { it.isSet() }?.also { setENote ->
         requireThat(
             setENote.id.isValid()              orError "eNote must have valid ID",
             setENote.uri.isNotBlank()          orError "eNote is missing URI",
@@ -83,7 +83,7 @@ internal val eNoteInputValidation: (ENote) -> Unit = { eNote ->
 
 internal val eNoteValidation: ContractEnforcementContext.(ENote) -> Unit = { eNote ->
     // TODO: Decide which fields should only be required if DART is listed as mortgagee of record/active custodian
-    eNote.takeIf { it.isSet() }?.let { setENote ->
+    eNote.takeIf { it.isSet() }?.also { setENote ->
         eNoteControllerValidation(setENote.controller)
         eNoteDocumentValidation(setENote.eNote)
         requireThat(
@@ -174,7 +174,7 @@ internal val loanValidationRequestValidation: ContractEnforcementContext.(Valida
 
 internal val servicingRightsInputValidation: (ServicingRights) -> Unit = { servicingRights ->
     validateRequirements(ContractRequirementType.VALID_INPUT) {
-        servicingRights.takeIf { it.isSet() }?.let { setServicingRights ->
+        servicingRights.takeIf { it.isSet() }?.also { setServicingRights ->
             requireThat(
                 setServicingRights.servicerId.isValid()      orError "Servicing rights must have valid servicer UUID",
                 setServicingRights.servicerName.isNotBlank() orError "Servicing rights missing servicer name",

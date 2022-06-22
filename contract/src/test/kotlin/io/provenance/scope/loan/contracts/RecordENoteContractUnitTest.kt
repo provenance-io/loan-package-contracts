@@ -14,8 +14,12 @@ import io.kotest.property.arbitrary.localDate
 import io.kotest.property.arbitrary.map
 import io.kotest.property.checkAll
 import io.provenance.scope.loan.test.KotestConfig
+import io.provenance.scope.loan.test.MetadataAssetModelArbs.anyAssetType
+import io.provenance.scope.loan.test.MetadataAssetModelArbs.anyBorrowerInfo
 import io.provenance.scope.loan.test.MetadataAssetModelArbs.anyInvalidUuid
+import io.provenance.scope.loan.test.MetadataAssetModelArbs.anyNonNegativeMoney
 import io.provenance.scope.loan.test.MetadataAssetModelArbs.anyPastNonEpochDate
+import io.provenance.scope.loan.test.MetadataAssetModelArbs.anyUuid
 import io.provenance.scope.loan.test.MetadataAssetModelArbs.anyValidDocumentMetadata
 import io.provenance.scope.loan.test.MetadataAssetModelArbs.anyValidDocumentSet
 import io.provenance.scope.loan.test.MetadataAssetModelArbs.anyValidENoteController
@@ -201,21 +205,33 @@ class RecordENoteContractUnitTest : WordSpec({
             "given a valid input" should {
                 "not throw an exception" {
                     checkAll(
+                        anyUuid,
+                        anyAssetType,
+                        anyBorrowerInfo(additionalBorrowerCount = 0..1),
+                        anyNonNegativeMoney,
                         Arb.int(min = 1, max = if (KotestConfig.runTestsExtended) 100 else 10).flatMap { randomLoanDocumentCount ->
                             anyValidDocumentSet(size = randomLoanDocumentCount, slippage = 70)
                         },
                         Arb.int(min = 1, max = if (KotestConfig.runTestsExtended) 100 else 10).flatMap { randomLoanStateCount ->
                             loanStateSet(size = randomLoanStateCount, slippage = 70)
                         },
-                    ) { randomServicingDocuments, randomLoanStates ->
+                    ) { randomLoanId, randomAssetType, randomBorrowerInfo, randomOriginalNoteAmount, randomServicingDocuments, randomLoanStates ->
                         recordServicingData(
                             ServicingData.newBuilder().also { servicingDataBuilder ->
+                                servicingDataBuilder.loanId = randomLoanId
+                                servicingDataBuilder.assetType = randomAssetType
+                                servicingDataBuilder.currentBorrowerInfo = randomBorrowerInfo
+                                servicingDataBuilder.originalNoteAmount = randomOriginalNoteAmount
                                 servicingDataBuilder.clearDocMeta()
                                 servicingDataBuilder.addAllDocMeta(randomServicingDocuments)
                                 servicingDataBuilder.clearLoanState()
                                 servicingDataBuilder.addAllLoanState(randomLoanStates)
                             }.build()
                         ).let { newServicingData ->
+                            newServicingData.loanId shouldBe randomLoanId
+                            newServicingData.assetType shouldBe randomAssetType
+                            newServicingData.currentBorrowerInfo shouldBe randomBorrowerInfo
+                            newServicingData.originalNoteAmount shouldBe randomOriginalNoteAmount
                             newServicingData.docMetaCount shouldBeExactly randomServicingDocuments.size
                             newServicingData.loanStateCount shouldBeExactly randomLoanStates.size
                         }
