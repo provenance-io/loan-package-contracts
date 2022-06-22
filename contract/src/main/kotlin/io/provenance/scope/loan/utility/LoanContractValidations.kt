@@ -9,6 +9,7 @@ import tech.figure.validation.v1beta1.LoanValidation
 import tech.figure.validation.v1beta1.ValidationRequest
 import tech.figure.validation.v1beta1.ValidationResults
 import io.dartinc.registry.v1beta1.Controller as ENoteController
+import tech.figure.util.v1beta1.Checksum as FigureTechChecksum
 
 internal fun ContractEnforcementContext.documentModificationValidation(
     existingDocument: DocumentMetadata,
@@ -37,6 +38,15 @@ internal fun ContractEnforcementContext.documentModificationValidation(
     }
 }
 
+internal fun ContractEnforcementContext.checksumValidation(parentDescription: String = "Input", checksum: FigureTechChecksum) {
+    checksum.takeIf { it.isSet() }?.let { setChecksum ->
+        requireThat(
+            setChecksum.checksum.isNotBlank() orError "$parentDescription must have a valid checksum string",
+            setChecksum.algorithm.isNotBlank() orError "$parentDescription must specify a checksum algorithm",
+        )
+    } ?: raiseError("$parentDescription's checksum is not set")
+}
+
 internal val documentValidation: ContractEnforcementContext.(DocumentMetadata) -> Unit = { document ->
     document.takeIf { it.isSet() }?.also { setDocument ->
         val documentIdSnippet = if (setDocument.id.isSet()) {
@@ -49,8 +59,8 @@ internal val documentValidation: ContractEnforcementContext.(DocumentMetadata) -
             setDocument.uri.isNotBlank()          orError "Document$documentIdSnippet is missing URI",
             setDocument.contentType.isNotBlank()  orError "Document$documentIdSnippet is missing content type",
             setDocument.documentType.isNotBlank() orError "Document$documentIdSnippet is missing document type",
-            setDocument.checksum.isValid()        orError "Document$documentIdSnippet is missing checksum",
         )
+        checksumValidation("Document$documentIdSnippet", setDocument.checksum)
     } ?: raiseError("Document is not set")
 }
 
@@ -70,8 +80,8 @@ internal val eNoteDocumentValidation: ContractEnforcementContext.(DocumentMetada
             setENote.uri.isNotBlank()          orError "eNote is missing URI",
             setENote.contentType.isNotBlank()  orError "eNote is missing content type",
             setENote.documentType.isNotBlank() orError "eNote is missing document type",
-            setENote.checksum.isValid()        orError "eNote is missing checksum",
         )
+        checksumValidation("eNote", setENote.checksum)
     } ?: raiseError("eNote document is not set")
 }
 
@@ -101,7 +111,7 @@ internal val loanDocumentInputValidation: (LoanDocuments) -> Unit = { loanDocume
         val incomingDocChecksums = mutableMapOf<String, Boolean>()
         loanDocuments.documentList.forEach { document ->
             documentValidation(document)
-            document.checksum.takeIf { it.isValid() }?.checksum?.let { checksum ->
+            document.checksum.checksum.takeIf { it.isNotBlank() }?.let { checksum ->
                 if (incomingDocChecksums[checksum] == true) {
                     raiseError("Loan document with checksum $checksum is provided more than once in input")
                 }
@@ -121,8 +131,8 @@ internal val loanStateValidation: ContractEnforcementContext.(LoanStateMetadata)
         loanState.id.isValid()                        orError "Loan state must have valid ID",
         loanState.effectiveTime.isValidForLoanState() orError "Loan state$idSnippet must have valid effective time",
         loanState.uri.isNotBlank()                    orError "Loan state$idSnippet is missing URI",
-        loanState.checksum.isValid()                  orError "Loan state$idSnippet is missing checksum"
     )
+    checksumValidation("Loan state$idSnippet", loanState.checksum)
 }
 
 internal val loanValidationInputValidation: (LoanValidation) -> Unit = { validationRecord ->

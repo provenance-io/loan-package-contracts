@@ -56,7 +56,7 @@ class AppendLoanStatesContractUnitTest : WordSpec({
                         exception shouldHaveViolationCount 4U
                         exception.message shouldContainIgnoringCase "Loan state must have valid ID"
                         exception.message shouldContainIgnoringCase "Loan state is missing URI"
-                        exception.message shouldContainIgnoringCase "Loan state is missing checksum"
+                        exception.message shouldContainIgnoringCase "Loan state's checksum is not set"
                         exception.message shouldContainIgnoringCase "Loan state must have valid effective time"
                     }
                 }

@@ -44,7 +44,7 @@ internal fun ContractEnforcementContext.appendLoanStates(
     val existingStateTimes = mutableMapOf<Pair<Long, Int>, Boolean>()
     if (newLoanStates.isNotEmpty()) {
         servicingDataBuilder.loanStateList.forEach { loanState ->
-            loanState?.checksum.takeIf { it.isValid() }?.checksum?.let { checksum ->
+            loanState?.checksum?.checksum?.takeIf { it.isNotBlank() }?.let { checksum ->
                 existingStateChecksums[checksum] = true
             }
             loanState?.id.takeIf { it.isValid() }?.value?.let { id ->
