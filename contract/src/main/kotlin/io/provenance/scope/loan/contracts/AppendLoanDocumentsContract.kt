@@ -11,7 +11,6 @@ import io.provenance.scope.loan.LoanScopeFacts
 import io.provenance.scope.loan.utility.ContractRequirementType.VALID_INPUT
 import io.provenance.scope.loan.utility.documentModificationValidation
 import io.provenance.scope.loan.utility.documentValidation
-import io.provenance.scope.loan.utility.isValid
 import io.provenance.scope.loan.utility.raiseError
 import io.provenance.scope.loan.utility.validateRequirements
 import tech.figure.loan.v1beta1.LoanDocuments
@@ -32,7 +31,7 @@ open class AppendLoanDocumentsContract(
             val existingDocumentMetadata = mutableMapOf<String, DocumentMetadata>()
             if (newDocs.documentList.isNotEmpty()) {
                 existingDocs?.documentList?.forEach { documentMetadata ->
-                    documentMetadata.checksum.takeIf { it.isValid() }?.checksum?.let { checksum ->
+                    documentMetadata.checksum.checksum.takeIf { it.isNotBlank() }?.let { checksum ->
                         existingDocumentMetadata[checksum] = documentMetadata
                     }
                 }

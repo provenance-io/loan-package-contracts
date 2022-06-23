@@ -6,7 +6,6 @@ import com.google.protobuf.Message as ProtobufMessage
 import com.google.protobuf.Timestamp as ProtobufTimestamp
 import java.time.LocalDate as JavaLocalDate
 import java.util.UUID as JavaUUID
-import tech.figure.util.v1beta1.Checksum as FigureTechChecksum
 import tech.figure.util.v1beta1.Date as FigureTechDate
 import tech.figure.util.v1beta1.Money as FigureTechMoney
 import tech.figure.util.v1beta1.UUID as FigureTechUUID
@@ -46,8 +45,6 @@ internal fun FigureTechDate?.isValid() = isSet() && this!!.value.isNotBlank() &&
 internal fun FigureTechDate?.isValidForSignedDate() = isSet() && this!!.value.isNotBlank() && falseIfError {
     JavaLocalDate.parse(value) <= JavaLocalDate.now()
 }
-
-internal fun FigureTechChecksum?.isValid() = isSet() && this!!.checksum.isNotBlank() && algorithm.isNotBlank()
 
 internal fun FigureTechUUID?.isValid() = isSet() && this!!.value.isNotBlank() && tryOrFalse { JavaUUID.fromString(value) }
 

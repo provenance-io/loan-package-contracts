@@ -176,7 +176,7 @@ class UpdateENoteContractUnitTest : WordSpec({
                         )
                     }.let { exception ->
                         exception shouldHaveViolationCount 1U
-                        exception.message shouldContain "eNote is missing checksum"
+                        exception.message shouldContain "eNote must have a valid checksum string"
                     }
                 }
             }
