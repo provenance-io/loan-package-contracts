@@ -16,16 +16,16 @@ import io.provenance.scope.loan.utility.eNoteDocumentValidation
 import io.provenance.scope.loan.utility.validateRequirements
 import tech.figure.util.v1beta1.DocumentMetadata
 
-@Participants(roles = [PartyType.OWNER]) // TODO: Change to controller or ensure Authz grant to controller is made
+@Participants(roles = [PartyType.OWNER, PartyType.CONTROLLER])
 @ScopeSpecification(["tech.figure.loan"])
 open class UpdateENoteContract(
     @Record(name = LoanScopeFacts.eNote, optional = false) val existingENote: ENote,
 ) : P8eContract() {
 
     /**
-     * TODO: We may need to replace this with AddENoteModification and AddENoteAssumption contracts, pending more insight on that process
+     * TODO: We may need to replace/augment this with new AddENoteModification and AddENoteAssumption contracts, pending more insight on that process
      */
-    @Function(invokedBy = PartyType.OWNER) // TODO: Change to controller or ensure Authz grant to controller is made
+    @Function(invokedBy = PartyType.OWNER)
     @Record(LoanScopeFacts.eNote)
     open fun updateENote(@Input(LoanScopeInputs.eNoteUpdate) newENote: DocumentMetadata): ENote {
         validateRequirements(ContractRequirementType.VALID_INPUT) {
