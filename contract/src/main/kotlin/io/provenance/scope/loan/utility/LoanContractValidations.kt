@@ -41,7 +41,7 @@ internal fun ContractEnforcementContext.documentModificationValidation(
 internal fun ContractEnforcementContext.checksumValidation(parentDescription: String = "Input", checksum: FigureTechChecksum) {
     checksum.takeIf { it.isSet() }?.let { setChecksum ->
         requireThat(
-            setChecksum.checksum.isNotBlank() orError "$parentDescription must have a valid checksum string",
+            setChecksum.checksum.isNotBlank()  orError "$parentDescription must have a valid checksum string",
             setChecksum.algorithm.isNotBlank() orError "$parentDescription must specify a checksum algorithm",
         )
     } ?: raiseError("$parentDescription's checksum is not set")

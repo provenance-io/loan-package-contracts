@@ -81,7 +81,7 @@ class RecordLoanValidationResultsUnitTest : WordSpec({
                             }.build()
                         )
                     }.let { exception ->
-                        exception shouldHaveViolationCount 1U
+                        exception shouldHaveViolationCount 1
                         exception.message shouldContain "Results must have valid result set UUID"
                     }
                 }

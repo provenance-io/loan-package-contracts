@@ -24,7 +24,7 @@ class RecordLoanValidationRequestUnitTest : WordSpec({
                         recordLoanValidationRequest(ValidationRequest.getDefaultInstance())
                     }
                 }.let { exception ->
-                    exception shouldHaveViolationCount 1U
+                    exception shouldHaveViolationCount 1
                     exception.message shouldContain "Request is not set"
                 }
             }
@@ -39,7 +39,7 @@ class RecordLoanValidationRequestUnitTest : WordSpec({
                             }.build()
                         )
                     }.let { exception ->
-                        exception shouldHaveViolationCount 1U
+                        exception shouldHaveViolationCount 1
                         exception.message shouldContain "Request must have valid ID"
                     }
                 }
@@ -55,7 +55,7 @@ class RecordLoanValidationRequestUnitTest : WordSpec({
                             }.build()
                         )
                     }.let { exception ->
-                        exception shouldHaveViolationCount 1U
+                        exception shouldHaveViolationCount 1
                         exception.message shouldContain "Request must have valid effective time"
                     }
                 }
@@ -71,7 +71,7 @@ class RecordLoanValidationRequestUnitTest : WordSpec({
                             }.build()
                         )
                     }.let { exception ->
-                        exception shouldHaveViolationCount 1U
+                        exception shouldHaveViolationCount 1
                         exception.message shouldContain "Request must have valid block height"
                     }
                 }
@@ -87,7 +87,7 @@ class RecordLoanValidationRequestUnitTest : WordSpec({
                             }.build()
                         )
                     }.let { exception ->
-                        exception shouldHaveViolationCount 1U
+                        exception shouldHaveViolationCount 1
                         exception.message shouldContain "Request is missing validator name"
                     }
                 }
@@ -103,7 +103,7 @@ class RecordLoanValidationRequestUnitTest : WordSpec({
                             }.build()
                         )
                     }.let { exception ->
-                        exception shouldHaveViolationCount 1U
+                        exception shouldHaveViolationCount 1
                         exception.message shouldContain "Request is missing requester name"
                     }
                 }

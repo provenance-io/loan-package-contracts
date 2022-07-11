@@ -59,12 +59,12 @@ jobs:
           java-version: '11'
 
       - name: Build with Gradle
-        run: ./gradlew -i clean build --refresh-dependencies -x koverVerify -x koverReport --stacktrace
+        run: ./gradlew -i clean build --refresh-dependencies -x koverMergedReport
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Check Contract Syntax
-        run: ./gradlew p8eClean p8eCheck --info
+        run: ./gradlew p8eClean p8eCheck --info --stacktrace
 
       - name: Bootstrap Test
         run: ./gradlew p8eBootstrap --info

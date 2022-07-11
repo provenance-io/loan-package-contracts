@@ -46,7 +46,7 @@ class RecordENoteContractUnitTest : WordSpec({
                     shouldThrow<ContractViolationException> {
                         recordENote(ENote.getDefaultInstance())
                     }.let { exception ->
-                        exception shouldHaveViolationCount 1U
+                        exception shouldHaveViolationCount 1
                         exception.message shouldContain "eNote is not set"
                     }
                 }
@@ -64,7 +64,7 @@ class RecordENoteContractUnitTest : WordSpec({
                                 }.build()
                             )
                         }.let { exception ->
-                            exception shouldHaveViolationCount 1U
+                            exception shouldHaveViolationCount 1
                             exception.message shouldContain "Controller is not set"
                         }
                     }
@@ -83,7 +83,7 @@ class RecordENoteContractUnitTest : WordSpec({
                                 }.build()
                             )
                         }.let { exception ->
-                            exception shouldHaveViolationCount 1U
+                            exception shouldHaveViolationCount 1
                             exception.message shouldContain "eNote document is not set"
                         }
                     }
@@ -102,7 +102,7 @@ class RecordENoteContractUnitTest : WordSpec({
                                 }.build()
                             )
                         }.let { exception ->
-                            exception shouldHaveViolationCount 1U
+                            exception shouldHaveViolationCount 1
                             exception.message shouldContain "eNote must have valid signed date"
                         }
                     }
@@ -132,7 +132,7 @@ class RecordENoteContractUnitTest : WordSpec({
                                 }.build()
                             )
                         }.let { exception ->
-                            exception shouldHaveViolationCount 1U
+                            exception shouldHaveViolationCount 1
                             exception.message shouldContain "eNote must have valid signed date"
                         }
                     }
@@ -169,7 +169,7 @@ class RecordENoteContractUnitTest : WordSpec({
                     shouldThrow<ContractViolationException> {
                         recordServicingData(ServicingData.getDefaultInstance())
                     }.let { exception ->
-                        exception shouldHaveViolationCount 1U
+                        exception shouldHaveViolationCount 1
                         exception.message shouldContain "Servicing data is not set"
                     }
                 }
@@ -196,7 +196,7 @@ class RecordENoteContractUnitTest : WordSpec({
                                 }.build()
                             )
                         }.let { exception ->
-                            exception shouldHaveViolationCount 1U
+                            exception shouldHaveViolationCount 1
                             exception.message shouldContain "Document must have valid ID"
                         }
                     }

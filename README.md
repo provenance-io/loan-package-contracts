@@ -5,6 +5,7 @@ smart contracts that can be executed against it.
 [![stability-beta][stability-badge]][stability-info]
 [![Code Coverage][code-coverage-badge]][code-coverage-report]
 [![Latest Release][release-badge]][release-latest]
+
 [![LOC][loc-badge]][loc-url]
 ### Artifacts
 #### Contracts JAR
@@ -12,15 +13,15 @@ smart contracts that can be executed against it.
 #### Protobuf JAR
 [![Proto Artifact][proto-publication-badge]][proto-publication-url]
 
-[stability-badge]: https://img.shields.io/badge/stability-beta-33bbff.svg
+[stability-badge]: https://img.shields.io/badge/stability-beta-33bbff.svg?style=for-the-badge
 [stability-info]: https://github.com/mkenney/software-guides/blob/master/STABILITY-BADGES.md#beta
-[code-coverage-badge]: https://codecov.io/gh/provenance-io/loan-package-contracts/branch/main/graph/badge.svg
+[code-coverage-badge]: https://img.shields.io/codecov/c/gh/provenance-io/loan-package-contracts/main?label=Codecov&style=for-the-badge
 [code-coverage-report]: https://app.codecov.io/gh/provenance-io/loan-package-contracts
-[release-badge]: https://img.shields.io/github/v/tag/provenance-io/loan-package-contracts.svg?sort=semver
+[release-badge]: https://img.shields.io/github/v/tag/provenance-io/loan-package-contracts.svg?sort=semver&style=for-the-badge
 [release-latest]: https://github.com/provenance-io/loan-package-contracts/releases/latest
-[contracts-publication-badge]: https://maven-badges.herokuapp.com/maven-central/io.provenance.loan-package/contract/badge.svg
+[contracts-publication-badge]: https://maven-badges.herokuapp.com/maven-central/io.provenance.loan-package/contract/badge.svg?style=for-the-badge
 [contracts-publication-url]: https://maven-badges.herokuapp.com/maven-central/io.provenance.loan-package/contract
-[proto-publication-badge]: https://maven-badges.herokuapp.com/maven-central/io.provenance.loan-package/proto/badge.svg
+[proto-publication-badge]: https://maven-badges.herokuapp.com/maven-central/io.provenance.loan-package/proto/badge.svg?style=for-the-badge
 [proto-publication-url]: https://maven-badges.herokuapp.com/maven-central/io.provenance.loan-package/proto
 [license-badge]: https://img.shields.io/github/license/provenance-io/loan-package-contracts.svg
 [license-url]: https://github.com/provenance-io/loan-package-contracts/blob/main/LICENSE
@@ -50,6 +51,7 @@ OS_GRPC_URL             # The URL to your object store that will store the contr
 PROVENANCE_GRPC_URL     # The URL to the Provenance instance the contracts will run against
 ENCRYPTION_PRIVATE_KEY
 SIGNING_PRIVATE_KEY
+CHAIN_ID                # The ID of the chain - use chain-local locally and pio-testnet-1 for the test environment
 ```
 For local development, you can quickly get necessary Docker containers running and said environment values populated by
 using [p8e-scope-sdk/dev-tools](https://github.com/provenance-io/p8e-scope-sdk/blob/main/dev-tools/compose/README.md):

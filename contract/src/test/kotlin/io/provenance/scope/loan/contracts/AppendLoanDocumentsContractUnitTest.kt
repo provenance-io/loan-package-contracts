@@ -41,7 +41,7 @@ class AppendLoanDocumentsContractUnitTest : WordSpec({
                             newDocs = LoanDocuments.getDefaultInstance()
                         )
                     }.let { exception ->
-                        exception shouldHaveViolationCount 1U
+                        exception shouldHaveViolationCount 1
                         exception.message shouldContain "Must supply at least one document"
                     }
                 }
@@ -59,7 +59,7 @@ class AppendLoanDocumentsContractUnitTest : WordSpec({
                         }.build()
                     )
                 }.let { exception ->
-                    exception shouldHaveViolationCount 1U
+                    exception shouldHaveViolationCount 1
                     exception.message shouldContain "Document is not set"
                 }
             }
@@ -87,7 +87,7 @@ class AppendLoanDocumentsContractUnitTest : WordSpec({
                             }.build()
                         )
                     }.let { exception ->
-                        exception shouldHaveViolationCount 1U
+                        exception shouldHaveViolationCount 1
                         exception.message shouldContain "Document must have valid ID"
                     }
                 }
@@ -141,7 +141,7 @@ class AppendLoanDocumentsContractUnitTest : WordSpec({
                             }.build()
                         )
                     }.let { exception ->
-                        exception shouldHaveViolationCount 5U
+                        exception shouldHaveViolationCount 5
                         listOf("checksum algorithm", "ID", "URI", "content type", "document type").forEach { immutableField ->
                             exception.message shouldContain
                                 "Cannot change $immutableField of existing document with checksum ${newDocument.checksum.checksum}"
