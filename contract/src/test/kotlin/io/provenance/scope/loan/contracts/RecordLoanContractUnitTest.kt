@@ -131,6 +131,88 @@ class RecordLoanContractUnitTest : WordSpec({
                 }
             }
         }
+        "given a Figure Tech loan input to an empty scope with an invalid originator ID" should {
+            "throw an appropriate exception" {
+                checkAll(
+                    anyUuid,
+                    anyNonEmptyString,
+                    anyValidFigureTechLoan,
+                    anyInvalidUuid,
+                ) { randomAssetId, randomType, randomLoan, randomInvalidOriginatorId ->
+                    Asset.newBuilder().also { assetBuilder ->
+                        assetBuilder.id = randomAssetId
+                        assetBuilder.type = randomType
+                        assetBuilder.putKv(
+                            assetLoanKey,
+                            randomLoan.toBuilder().also { loanBuilder ->
+                                loanBuilder.originatorUuid = randomInvalidOriginatorId
+                            }.build().toProtoAny()
+                        )
+                    }.build().let { assetWithInvalidId ->
+                        shouldThrow<ContractViolationException> {
+                            recordContractWithEmptyScope.recordAsset(assetWithInvalidId)
+                        }.let { exception ->
+                            exception shouldHaveViolationCount 1U
+                            exception.message shouldContainIgnoringCase "Loan must have valid originator ID"
+                        }
+                    }
+                }
+            }
+        }
+        "given a Figure Tech loan input to an empty scope without an originator name" should {
+            "throw an appropriate exception" {
+                checkAll(
+                    anyUuid,
+                    anyNonEmptyString,
+                    anyValidFigureTechLoan,
+                ) { randomAssetId, randomType, randomLoan ->
+                    Asset.newBuilder().also { assetBuilder ->
+                        assetBuilder.id = randomAssetId
+                        assetBuilder.type = randomType
+                        assetBuilder.putKv(
+                            assetLoanKey,
+                            randomLoan.toBuilder().also { loanBuilder ->
+                                loanBuilder.clearOriginatorName()
+                            }.build().toProtoAny()
+                        )
+                    }.build().let { assetWithInvalidId ->
+                        shouldThrow<ContractViolationException> {
+                            recordContractWithEmptyScope.recordAsset(assetWithInvalidId)
+                        }.let { exception ->
+                            exception shouldHaveViolationCount 1U
+                            exception.message shouldContainIgnoringCase "Loan is missing originator name"
+                        }
+                    }
+                }
+            }
+        }
+        "given a Figure Tech loan input to an empty scope with a ULI of an invalid length" should {
+            "throw an appropriate exception" {
+                checkAll(
+                    anyUuid,
+                    anyNonEmptyString,
+                    anyValidFigureTechLoan,
+                    anyNonUliString,
+                ) { randomAssetId, randomType, randomLoan, randomInvalidUli ->
+                    Asset.newBuilder().also { assetBuilder ->
+                        assetBuilder.id = randomAssetId
+                        assetBuilder.type = randomType
+                        assetBuilder.putKv(
+                            assetLoanKey,
+                            randomLoan.toBuilder().also { loanBuilder ->
+                                loanBuilder.uli = randomInvalidUli
+                            }.build().toProtoAny()
+                        )
+                    }.build().let { assetWithInvalidId ->
+                        shouldThrow<ContractViolationException> {
+                            recordContractWithEmptyScope.recordAsset(assetWithInvalidId)
+                        }.let { exception ->
+                            exception.message shouldContainIgnoringCase "Loan ULI must be between 23 and 45 (inclusive) characters long"
+                        }
+                    }
+                }
+            }
+        }
         "given a MISMO loan input to an empty scope with a ULI of an invalid length" should {
             "throw an appropriate exception" {
                 checkAll(
