@@ -222,11 +222,15 @@ internal object MetadataAssetModelArbs {
     }
     val anyValidFigureTechLoan: Arb<FigureTechLoan> = Arb.bind(
         anyUuid,
+        anyUuid,
         PrimitiveArbs.anyNonEmptyString,
-    ) { loanId, originatorName ->
+        PrimitiveArbs.anyValidUli,
+    ) { loanId, originatorUuid, originatorName, uli ->
         FigureTechLoan.newBuilder().also { loanBuilder ->
             loanBuilder.id = loanId
+            loanBuilder.originatorUuid = originatorUuid
             loanBuilder.originatorName = originatorName
+            loanBuilder.uli = uli
         }.build()
     }
     val anyValidMismoLoan: Arb<MISMOLoanMetadata> = Arb.bind(

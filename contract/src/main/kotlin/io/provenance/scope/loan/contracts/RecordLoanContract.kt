@@ -74,8 +74,10 @@ open class RecordLoanContract(
                         } else {
                             requireThat(
                                 newLoan.id.isValid()                orError "Loan must have valid ID",
+                                newLoan.originatorUuid.isValid()    orError "Loan must have valid originator ID",
                                 newLoan.originatorName.isNotBlank() orError "Loan is missing originator name",
                             )
+                            uliValidation(newLoan.uli)
                         }
                     }
                 }
