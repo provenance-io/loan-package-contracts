@@ -149,6 +149,33 @@ class UpdateENoteContractUnitTest : WordSpec({
                 }
             }
         }
+        "given an input without a file name" should {
+            "throw an appropriate exception" {
+                checkAll(
+                    anyValidENote(),
+                    anyValidDocumentMetadata,
+                    anyChecksumSet(size = 2).toPair(),
+                ) { randomExistingENote, randomNewENote, (randomExistingChecksum, randomNewChecksum) ->
+                    shouldThrow<ContractViolationException> {
+                        UpdateENoteContract(
+                            existingENote = randomExistingENote.toBuilder().also { eNoteBuilder ->
+                                eNoteBuilder.eNote = eNoteBuilder.eNote.toBuilder().also { documentBuilder ->
+                                    documentBuilder.checksum = randomExistingChecksum
+                                }.build()
+                            }.build(),
+                        ).updateENote(
+                            randomNewENote.toBuilder().also { eNoteBuilder ->
+                                eNoteBuilder.checksum = randomNewChecksum
+                                eNoteBuilder.clearFileName()
+                            }.build()
+                        )
+                    }.let { exception ->
+                        exception shouldHaveViolationCount 1
+                        exception.message shouldContain "eNote is missing file name"
+                    }
+                }
+            }
+        }
         "given an input without a valid checksum" should {
             "throw an appropriate exception" {
                 checkAll(
@@ -158,7 +185,8 @@ class UpdateENoteContractUnitTest : WordSpec({
                     anyNonEmptyString,
                     anyNonEmptyString,
                     anyNonEmptyString,
-                ) { randomExistingENote, randomId, randomUri, randomContentType, randomDocumentType, randomChecksumAlgorithm ->
+                    anyNonEmptyString,
+                ) { randomExistingENote, randomId, randomUri, randomContentType, randomDocumentType, randomFileName, randomChecksumAlgorithm ->
                     shouldThrow<ContractViolationException> {
                         UpdateENoteContract(
                             existingENote = randomExistingENote,
@@ -168,6 +196,7 @@ class UpdateENoteContractUnitTest : WordSpec({
                                 eNoteBuilder.uri = randomUri
                                 eNoteBuilder.contentType = randomContentType
                                 eNoteBuilder.documentType = randomDocumentType
+                                eNoteBuilder.fileName = randomFileName
                                 eNoteBuilder.checksum = FigureTechChecksum.newBuilder().also { checksumBuilder ->
                                     checksumBuilder.clearChecksum()
                                     checksumBuilder.algorithm = randomChecksumAlgorithm

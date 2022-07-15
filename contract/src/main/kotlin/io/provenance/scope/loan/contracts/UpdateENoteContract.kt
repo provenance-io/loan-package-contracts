@@ -22,9 +22,6 @@ open class UpdateENoteContract(
     @Record(name = LoanScopeFacts.eNote, optional = false) val existingENote: ENote,
 ) : P8eContract() {
 
-    /**
-     * TODO: We may need to replace/augment this with new AddENoteModification and AddENoteAssumption contracts, pending more insight on that process
-     */
     @Function(invokedBy = PartyType.OWNER)
     @Record(LoanScopeFacts.eNote)
     open fun updateENote(@Input(LoanScopeInputs.eNoteUpdate) newENote: DocumentMetadata): ENote {

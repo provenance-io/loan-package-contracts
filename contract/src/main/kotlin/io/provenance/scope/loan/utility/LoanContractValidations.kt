@@ -11,10 +11,14 @@ import tech.figure.validation.v1beta1.ValidationResults
 import io.dartinc.registry.v1beta1.Controller as ENoteController
 import tech.figure.util.v1beta1.Checksum as FigureTechChecksum
 
+/**
+ * Performs validation to prevent a new document from changing specific fields of an existing document with the same checksum.
+ * @return true if there were any violations, false if there were none
+ */
 internal fun ContractEnforcementContext.documentModificationValidation(
     existingDocument: DocumentMetadata,
     newDocument: DocumentMetadata,
-) {
+): Boolean =
     existingDocument.checksum.checksum.let { existingChecksum ->
         if (existingChecksum == newDocument.checksum.checksum) {
             val checksumSnippet = if (existingChecksum.isNotBlank()) {
@@ -33,10 +37,13 @@ internal fun ContractEnforcementContext.documentModificationValidation(
                     orError "Cannot change content type of existing document$checksumSnippet",
                 (existingDocument.documentType == newDocument.documentType)
                     orError "Cannot change document type of existing document$checksumSnippet",
-            )
+            ).let { enforcements ->
+                enforcements.count { (rule, _) -> !rule } == 0
+            }
+        } else {
+            false
         }
     }
-}
 
 internal fun ContractEnforcementContext.checksumValidation(parentDescription: String = "Input", checksum: FigureTechChecksum) {
     checksum.takeIf { it.isSet() }?.let { setChecksum ->
@@ -59,6 +66,7 @@ internal val documentValidation: ContractEnforcementContext.(DocumentMetadata) -
             setDocument.uri.isNotBlank()          orError "Document$documentIdSnippet is missing URI",
             setDocument.contentType.isNotBlank()  orError "Document$documentIdSnippet is missing content type",
             setDocument.documentType.isNotBlank() orError "Document$documentIdSnippet is missing document type",
+            setDocument.fileName.isNotBlank()     orError "Document$documentIdSnippet is missing file name",
         )
         checksumValidation("Document$documentIdSnippet", setDocument.checksum)
     } ?: raiseError("Document is not set")
@@ -80,6 +88,7 @@ internal val eNoteDocumentValidation: ContractEnforcementContext.(DocumentMetada
             setENote.uri.isNotBlank()          orError "eNote is missing URI",
             setENote.contentType.isNotBlank()  orError "eNote is missing content type",
             setENote.documentType.isNotBlank() orError "eNote is missing document type",
+            setENote.fileName.isNotBlank()     orError "eNote is missing file name",
         )
         checksumValidation("eNote", setENote.checksum)
     } ?: raiseError("eNote document is not set")
