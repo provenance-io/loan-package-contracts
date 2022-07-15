@@ -104,12 +104,7 @@ internal fun ContractEnforcementContext.appendServicingDocuments(
     servicingDataBuilder: ServicingData.Builder,
     newDocuments: Collection<DocumentMetadata>,
 ) {
-    val existingDocumentMetadata = mutableMapOf<String, DocumentMetadata>()
-    servicingDataBuilder.docMetaList.forEach { documentMetadata ->
-        documentMetadata.checksum.takeIf { it.isSet() }?.checksum?.let { checksum ->
-            existingDocumentMetadata[checksum] = documentMetadata
-        }
-    }
+    val existingDocumentMetadata = servicingDataBuilder.docMetaList.toChecksumMap()
     val incomingDocumentChecksums = mutableMapOf<String, Boolean>()
     for (newDocument in newDocuments) {
         documentValidation(newDocument)

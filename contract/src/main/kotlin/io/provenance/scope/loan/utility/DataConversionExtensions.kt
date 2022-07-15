@@ -3,8 +3,17 @@ package io.provenance.scope.loan.utility
 import com.google.protobuf.InvalidProtocolBufferException
 import com.google.protobuf.Message
 import tech.figure.loan.v1beta1.MISMOLoanMetadata
+import tech.figure.util.v1beta1.DocumentMetadata
 import com.google.protobuf.Any as ProtobufAny
 import tech.figure.loan.v1beta1.Loan as FigureTechLoan
+
+internal fun Iterable<DocumentMetadata>.toChecksumMap(): Map<String, DocumentMetadata> = mutableMapOf<String, DocumentMetadata>().also { map ->
+    forEach { document ->
+        document.checksum.checksum.takeIf { it.isNotBlank() }?.let { checksum ->
+            map[checksum] = document
+        }
+    }
+}
 
 context(ContractEnforcementContext)
 internal inline fun <reified T : Message> ProtobufAny.tryUnpackingAs(inputDescription: String = "input", body: (T) -> Any) {

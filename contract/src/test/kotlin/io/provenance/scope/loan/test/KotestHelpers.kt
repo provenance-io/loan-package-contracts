@@ -402,17 +402,16 @@ internal object MetadataAssetModelArbs {
             }
         }
     fun anyValidENote(
-        minAssumptionCount: Int = 0,
-        maxAssumptionCount: Int = 10,
-        minModificationCount: Int = 0,
-        maxModificationCount: Int = 10,
+        assumptionCount: Int = 0,
+        modificationCount: Int = 0,
+        slippage: Int = 10,
     ): Arb<ENote> = Arb.bind(
         anyValidENoteController,
         anyValidDocumentMetadata,
         anyPastNonEpochDate,
         PrimitiveArbs.anyNonEmptyString,
-        Arb.list(anyValidDocumentMetadata, range = minModificationCount..maxModificationCount),
-        Arb.list(anyValidDocumentMetadata, range = minAssumptionCount..maxAssumptionCount),
+        anyValidDocumentSet(size = assumptionCount, slippage = slippage),
+        anyValidDocumentSet(size = modificationCount, slippage = slippage),
     ) { controller, document, signedDate, vaultName, modifications, assumptions ->
         ENote.newBuilder().also { eNoteBuilder ->
             eNoteBuilder.controller = controller
@@ -479,14 +478,14 @@ internal object MetadataAssetModelArbs {
         }
     }
     inline fun <reified T : Message> anyValidLoan(
-        maxAssumptionCount: Int = 0,
-        maxModificationCount: Int = 0,
+        assumptionCount: Int = 0,
+        modificationCount: Int = 0,
         loanStateCount: Int = 3,
         iterationCount: Int = 3,
         loanDocumentCount: Int = 3,
     ): Arb<LoanPackage> = Arb.bind(
         anyValidAsset<T>(),
-        anyValidENote(maxAssumptionCount = maxAssumptionCount, maxModificationCount = maxModificationCount),
+        anyValidENote(assumptionCount = assumptionCount, modificationCount = modificationCount),
         anyValidServicingRights,
         anyValidServicingData(loanStateCount = loanStateCount),
         anyValidValidationRecord(iterationCount = iterationCount),
@@ -594,7 +593,7 @@ internal fun <T> List<T>.breakOffLast(): Pair<List<T>, T> {
     require(isNotEmpty()) {
         "Must supply a list with at least one element"
     }
-    return dropLast(1) to takeLast(1)[0]
+    return dropLast(1) to last()
 }
 
 internal fun <T> Arb<List<T>>.toPair(): Arb<Pair<T, T>> = map { list -> list[0] to list[1] }
