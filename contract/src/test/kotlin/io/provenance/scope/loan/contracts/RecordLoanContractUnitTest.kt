@@ -43,7 +43,7 @@ class RecordLoanContractUnitTest : WordSpec({
                 shouldThrow<ContractViolationException> {
                     recordContractWithEmptyScope.recordAsset(Asset.getDefaultInstance())
                 }.let { exception ->
-                    exception shouldHaveViolationCount 3U
+                    exception shouldHaveViolationCount 3
                     exception.message shouldContainIgnoringCase "Asset must have valid ID"
                     exception.message shouldContainIgnoringCase "Asset is missing type"
                     exception.message shouldContainIgnoringCase
@@ -62,7 +62,7 @@ class RecordLoanContractUnitTest : WordSpec({
                         shouldThrow<ContractViolationException> {
                             recordContractWithEmptyScope.recordAsset(assetWithBadLoanType)
                         }.let { exception ->
-                            exception shouldHaveViolationCount 1U
+                            exception shouldHaveViolationCount 1
                             exception.message shouldContain "Could not unpack the input asset's \"$assetLoanKey\" as $FigureTechLoanIdentifier"
                         }
                     }
@@ -80,7 +80,7 @@ class RecordLoanContractUnitTest : WordSpec({
                         shouldThrow<ContractViolationException> {
                             recordContractWithEmptyScope.recordAsset(assetWithBadLoanType)
                         }.let { exception ->
-                            exception shouldHaveViolationCount 1U
+                            exception shouldHaveViolationCount 1
                             exception.message shouldContain "Could not unpack the input asset's \"$assetMismoKey\" as $MISMOLoanIdentifier"
                         }
                     }
@@ -124,7 +124,7 @@ class RecordLoanContractUnitTest : WordSpec({
                         shouldThrow<ContractViolationException> {
                             recordContractWithEmptyScope.recordAsset(assetWithInvalidId)
                         }.let { exception ->
-                            exception shouldHaveViolationCount 1U
+                            exception shouldHaveViolationCount 1
                             exception.message shouldContainIgnoringCase "Loan must have valid ID"
                         }
                     }
@@ -268,7 +268,7 @@ class RecordLoanContractUnitTest : WordSpec({
                                 newAsset = newAsset
                             )
                         }.let { exception ->
-                            exception shouldHaveViolationCount 1U
+                            exception shouldHaveViolationCount 1
                             exception.message shouldContainIgnoringCase "Cannot change asset ID"
                         }
                     }
@@ -303,7 +303,7 @@ class RecordLoanContractUnitTest : WordSpec({
                                 newAsset = newAsset
                             )
                         }.let { exception ->
-                            exception shouldHaveViolationCount 1U
+                            exception shouldHaveViolationCount 1
                             exception.message shouldContainIgnoringCase "Cannot change asset type"
                         }
                     }
@@ -396,7 +396,7 @@ class RecordLoanContractUnitTest : WordSpec({
                             newAsset = newAsset
                         )
                     }.let { exception ->
-                        exception shouldHaveViolationCount 1U
+                        exception shouldHaveViolationCount 1
                         exception.message shouldContain
                             "Expected input asset's \"$assetLoanKey\" to be a $FigureTechLoanIdentifier but was actually a $MISMOLoanIdentifier"
                     }
@@ -435,7 +435,7 @@ class RecordLoanContractUnitTest : WordSpec({
                             newAsset = newAsset
                         )
                     }.let { exception ->
-                        exception shouldHaveViolationCount 1U
+                        exception shouldHaveViolationCount 1
                         exception.message shouldContain
                             "Expected input asset's \"$assetMismoKey\" to be a $MISMOLoanIdentifier but was actually a $FigureTechLoanIdentifier"
                     }
@@ -475,7 +475,7 @@ class RecordLoanContractUnitTest : WordSpec({
                                 newAsset = newAsset
                             )
                         }.let { exception ->
-                            exception shouldHaveViolationCount 1U
+                            exception shouldHaveViolationCount 1
                             exception.message shouldContainIgnoringCase "Cannot change loan ID"
                         }
                     }
@@ -523,7 +523,7 @@ class RecordLoanContractUnitTest : WordSpec({
                                 newAsset = newAsset
                             )
                         }.let { exception ->
-                            exception shouldHaveViolationCount 1U
+                            exception shouldHaveViolationCount 1
                             exception.message shouldContain "Cannot change loan ULI"
                         }
                     }

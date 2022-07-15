@@ -23,11 +23,10 @@ object Versions {
         const val Grpc = "1.45.0"
         const val ProtocGenValidate = "0.6.7"
         const val Protobuf = "3.20.1"
-        const val SemVer = "1.1.2"
         const val JacksonKotlin = "2.13.3"
         const val JacksonProtobuf = "0.9.12"
         object Provenance {
-            const val Scope = "0.6.1"
+            const val Scope = "0.6.2"
             const val MetadataAssetModel = "0.1.11"
         }
     }
@@ -40,7 +39,6 @@ object Plugins {
     val NexusPublishing = PluginSpec("io.github.gradle-nexus.publish-plugin", Versions.Plugins.NexusPublishing)
     val GitHubRelease = PluginSpec("com.github.breadmoirai.github-release", Versions.GitHubRelease)
     val P8ePublishing = PluginSpec("io.provenance.p8e.p8e-publish", Versions.Plugins.P8ePublishing)
-    val SemVer = PluginSpec("io.github.nefilim.gradle.semver-plugin", Versions.Plugins.SemVer)
     val Protobuf = PluginSpec("com.google.protobuf", Versions.Plugins.Protobuf)
     val GradleProtobuf = PluginSpec("com.google.protobuf:protobuf-gradle-plugin", Versions.Plugins.Protobuf)
     val KrotoPlus = PluginSpec("com.github.marcoferrer.kroto-plus", Versions.KrotoPlus)
@@ -51,10 +49,6 @@ object Dependencies {
     val GitHubRelease = DependencySpec(
         name = "com.github.breadmoirai:github-release",
         version = Versions.GitHubRelease,
-    )
-    val SemVer = DependencySpec(
-        name = "net.swiftzer.semver:semver",
-        version = Versions.Dependencies.SemVer,
     )
     // Testing
     object Kotest {
@@ -181,7 +175,7 @@ data class PluginSpec(
         ).joinToString(":")
 }
 
-/*sealed*/ interface Spec { // TODO: Determine why language version is not applying to allow sealed interfaces
+abstract interface Spec {
     fun toDependencyNotation(): String
 }
 

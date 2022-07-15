@@ -28,7 +28,7 @@ class UpdateENoteControllerUnitTest : WordSpec({
                             Controller.getDefaultInstance()
                         )
                     }.let { exception ->
-                        exception shouldHaveViolationCount 1U
+                        exception shouldHaveViolationCount 1
                         exception.message shouldContain "Controller is not set"
                     }
                 }
@@ -47,7 +47,7 @@ class UpdateENoteControllerUnitTest : WordSpec({
                             }.build()
                         )
                     }.let { exception ->
-                        exception shouldHaveViolationCount 1U
+                        exception shouldHaveViolationCount 1
                         exception.message shouldContain "Controller must have valid UUID"
                     }
                 }
@@ -66,7 +66,7 @@ class UpdateENoteControllerUnitTest : WordSpec({
                             }.build()
                         )
                     }.let { exception ->
-                        exception shouldHaveViolationCount 1U
+                        exception shouldHaveViolationCount 1
                         exception.message shouldContain "Controller is missing name"
                     }
                 }

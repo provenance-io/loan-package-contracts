@@ -563,11 +563,18 @@ internal fun throwViolationCount(violationCount: UInt) = Matcher<ContractViolati
 /**
  * Wraps the custom matcher [throwViolationCount] following the style outlined in the
  * [Kotest documentation](https://kotest.io/docs/assertions/custom-matchers.html#extension-variants).
- * This should be called by the result of any [`shouldThrow<ContractViolationException>`][io.kotest.assertions.throwables.shouldThrow].
+ * This should be called by the result of [`shouldThrow<ContractViolationException>`][io.kotest.assertions.throwables.shouldThrow].
  */
 internal infix fun ContractViolationException.shouldHaveViolationCount(violationCount: UInt) = apply {
     this should throwViolationCount(violationCount)
 }
+
+/**
+ * Wraps the custom matcher [throwViolationCount] following the style outlined in the
+ * [Kotest documentation](https://kotest.io/docs/assertions/custom-matchers.html#extension-variants).
+ * This should be called by the result of [`shouldThrow<ContractViolationException>`][io.kotest.assertions.throwables.shouldThrow].
+ */
+internal infix fun ContractViolationException.shouldHaveViolationCount(violationCount: Int) = shouldHaveViolationCount(violationCount.toUInt())
 
 internal fun IllegalContractStateException.shouldBeParseFailureFor(classifier: String, inputDescription: String = "input") = apply {
     message shouldContain "Could not unpack the $inputDescription as class $classifier"

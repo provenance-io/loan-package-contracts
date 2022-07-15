@@ -27,7 +27,7 @@ object LoanScopeFacts {
  * Denotes string literals used to access specific properties within a loan scope's records, such as a key for a [protobuf Any]
  * [com.google.protobuf.Any] value.
  */
-internal object LoanScopeProperties {
+object LoanScopeProperties {
     /**
      * Denotes the key that an [Asset][tech.figure.asset.v1beta1.Asset]'s `kvMap` should use to store a [Loan][tech.figure.loan.v1beta1.Loan].
      */

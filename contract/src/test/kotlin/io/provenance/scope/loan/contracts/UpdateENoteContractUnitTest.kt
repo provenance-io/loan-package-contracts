@@ -34,7 +34,7 @@ class UpdateENoteContractUnitTest : WordSpec({
                             DocumentMetadata.getDefaultInstance()
                         )
                     }.let { exception ->
-                        exception shouldHaveViolationCount 1U
+                        exception shouldHaveViolationCount 1
                         exception.message shouldContain "eNote document is not set"
                     }
                 }
@@ -62,7 +62,7 @@ class UpdateENoteContractUnitTest : WordSpec({
                             }.build()
                         )
                     }.let { exception ->
-                        exception shouldHaveViolationCount 1U
+                        exception shouldHaveViolationCount 1
                         exception.message shouldContain "eNote must have valid ID"
                     }
                 }
@@ -89,7 +89,7 @@ class UpdateENoteContractUnitTest : WordSpec({
                             }.build()
                         )
                     }.let { exception ->
-                        exception shouldHaveViolationCount 1U
+                        exception shouldHaveViolationCount 1
                         exception.message shouldContain "eNote is missing URI"
                     }
                 }
@@ -116,7 +116,7 @@ class UpdateENoteContractUnitTest : WordSpec({
                             }.build()
                         )
                     }.let { exception ->
-                        exception shouldHaveViolationCount 1U
+                        exception shouldHaveViolationCount 1
                         exception.message shouldContain "eNote is missing content type"
                     }
                 }
@@ -143,7 +143,7 @@ class UpdateENoteContractUnitTest : WordSpec({
                             }.build()
                         )
                     }.let { exception ->
-                        exception shouldHaveViolationCount 1U
+                        exception shouldHaveViolationCount 1
                         exception.message shouldContain "eNote is missing document type"
                     }
                 }
@@ -175,7 +175,7 @@ class UpdateENoteContractUnitTest : WordSpec({
                             }.build()
                         )
                     }.let { exception ->
-                        exception shouldHaveViolationCount 1U
+                        exception shouldHaveViolationCount 1
                         exception.message shouldContain "eNote must have a valid checksum string"
                     }
                 }
@@ -203,7 +203,7 @@ class UpdateENoteContractUnitTest : WordSpec({
                             }.build()
                         )
                     }.let { exception ->
-                        exception shouldHaveViolationCount 1U
+                        exception shouldHaveViolationCount 1
                         exception.message shouldContain "Cannot change URI of existing document with checksum ${randomENote.checksum.checksum}"
                     }
                 }

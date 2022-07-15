@@ -22,7 +22,7 @@ class OverwriteServicingRightsUnitTest : WordSpec({
                 shouldThrow<ContractViolationException> {
                     recordContractWithEmptyScope.recordServicingRights(ServicingRights.getDefaultInstance())
                 }.let { exception ->
-                    exception shouldHaveViolationCount 1U
+                    exception shouldHaveViolationCount 1
                     exception.message shouldContain "Servicing rights are not set"
                 }
             }
@@ -38,7 +38,7 @@ class OverwriteServicingRightsUnitTest : WordSpec({
                             }.build()
                         )
                     }.let { exception ->
-                        exception shouldHaveViolationCount 1U
+                        exception shouldHaveViolationCount 1
                         exception.message shouldContain "Servicing rights must have valid servicer UUID"
                     }
                 }
@@ -55,7 +55,7 @@ class OverwriteServicingRightsUnitTest : WordSpec({
                             }.build()
                         )
                     }.let { exception ->
-                        exception shouldHaveViolationCount 1U
+                        exception shouldHaveViolationCount 1
                         exception.message shouldContain "Servicing rights missing servicer name"
                     }
                 }
@@ -84,7 +84,7 @@ class OverwriteServicingRightsUnitTest : WordSpec({
                     shouldThrow<ContractViolationException> {
                         updateServicingRights(ServicingRights.getDefaultInstance())
                     }.let { exception ->
-                        exception shouldHaveViolationCount 1U
+                        exception shouldHaveViolationCount 1
                         exception.message shouldContain "Servicing rights are not set"
                     }
                 }
@@ -100,7 +100,7 @@ class OverwriteServicingRightsUnitTest : WordSpec({
                                 }.build()
                             )
                         }.let { exception ->
-                            exception shouldHaveViolationCount 1U
+                            exception shouldHaveViolationCount 1
                             exception.message shouldContain "Servicing rights must have valid servicer UUID"
                         }
                     }
@@ -117,7 +117,7 @@ class OverwriteServicingRightsUnitTest : WordSpec({
                                 }.build()
                             )
                         }.let { exception ->
-                            exception shouldHaveViolationCount 1U
+                            exception shouldHaveViolationCount 1
                             exception.message shouldContain "Servicing rights missing servicer name"
                         }
                     }

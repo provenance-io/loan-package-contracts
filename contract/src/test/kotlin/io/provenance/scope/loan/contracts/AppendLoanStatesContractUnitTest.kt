@@ -53,7 +53,7 @@ class AppendLoanStatesContractUnitTest : WordSpec({
                             }.build()
                         )
                     }.let { exception ->
-                        exception shouldHaveViolationCount 4U
+                        exception shouldHaveViolationCount 4
                         exception.message shouldContainIgnoringCase "Loan state must have valid ID"
                         exception.message shouldContainIgnoringCase "Loan state is missing URI"
                         exception.message shouldContainIgnoringCase "Loan state's checksum is not set"
@@ -90,7 +90,7 @@ class AppendLoanStatesContractUnitTest : WordSpec({
                             }.build()
                         )
                     }.let { exception ->
-                        exception shouldHaveViolationCount 1U
+                        exception shouldHaveViolationCount 1
                         exception.message shouldContain "Loan state with checksum ${randomChecksum.checksum} already exists"
                     }
                 }
@@ -124,7 +124,7 @@ class AppendLoanStatesContractUnitTest : WordSpec({
                             }.build()
                         )
                     }.let { exception ->
-                        exception shouldHaveViolationCount 1U
+                        exception shouldHaveViolationCount 1
                         exception.message shouldContain "Loan state with ID ${randomUuid.value} already exists"
                     }
                 }
@@ -158,7 +158,7 @@ class AppendLoanStatesContractUnitTest : WordSpec({
                             }.build()
                         )
                     }.let { exception ->
-                        exception shouldHaveViolationCount 1U
+                        exception shouldHaveViolationCount 1
                         exception.message shouldContain "Loan state with effective time ${randomTimestamp.toOffsetDateTime()} already exists"
                     }
                 }
@@ -188,7 +188,7 @@ class AppendLoanStatesContractUnitTest : WordSpec({
                             }.build()
                         )
                     }.let { exception ->
-                        exception shouldHaveViolationCount 1U
+                        exception shouldHaveViolationCount 1
                         exception.message shouldContain "Loan state with checksum ${randomChecksum.checksum} is provided more than once in input"
                     }
                 }
@@ -218,7 +218,7 @@ class AppendLoanStatesContractUnitTest : WordSpec({
                             }.build()
                         )
                     }.let { exception ->
-                        exception shouldHaveViolationCount 1U
+                        exception shouldHaveViolationCount 1
                         exception.message shouldContainIgnoringCase "Loan state with ID ${randomId.value} is provided more than once in input"
                     }
                 }
@@ -248,7 +248,7 @@ class AppendLoanStatesContractUnitTest : WordSpec({
                             }.build()
                         )
                     }.let { exception ->
-                        exception shouldHaveViolationCount 1U
+                        exception shouldHaveViolationCount 1
                         exception.message shouldContain
                             "Loan state with effective time ${randomEffectiveTime.toOffsetDateTime()} is provided more than once in input"
                     }
