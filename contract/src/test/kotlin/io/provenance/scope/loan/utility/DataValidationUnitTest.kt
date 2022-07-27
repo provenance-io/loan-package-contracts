@@ -7,18 +7,24 @@ import io.kotest.core.test.TestCaseOrder
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.string.shouldContain
 import io.kotest.property.Arb
+import io.kotest.property.arbitrary.Codepoint
 import io.kotest.property.arbitrary.UUIDVersion
-import io.kotest.property.arbitrary.double
+import io.kotest.property.arbitrary.az
+import io.kotest.property.arbitrary.filterNot
 import io.kotest.property.arbitrary.localDate
 import io.kotest.property.arbitrary.localDateTime
+import io.kotest.property.arbitrary.of
+import io.kotest.property.arbitrary.string
 import io.kotest.property.arbitrary.uuid
 import io.kotest.property.checkAll
 import io.kotest.property.forAll
 import io.kotest.property.forNone
 import io.provenance.scope.loan.test.MetadataAssetModelArbs.anyUuid
+import io.provenance.scope.loan.test.PrimitiveArbs.anyDoubleString
 import io.provenance.scope.loan.test.PrimitiveArbs.anyNonEmptyString
 import io.provenance.scope.loan.test.PrimitiveArbs.anyNonUuidString
 import io.provenance.scope.loan.test.PrimitiveArbs.anyZoneOffset
+import io.provenance.scope.loan.test.shouldHaveViolationCount
 import io.provenance.scope.util.toProtoTimestamp
 import tech.figure.validation.v1beta1.ValidationIteration
 import tech.figure.validation.v1beta1.ValidationRequest
@@ -114,12 +120,66 @@ class DataValidationUnitTest : WordSpec({
             }
         }
     }
-    "Money.isValid" should {
-        "return true for any double" {
-            forAll(Arb.double()) { randomDouble ->
-                FigureTechMoney.newBuilder().apply {
-                    amount = randomDouble
-                }.build().isValid()
+    "moneyValidation" should {
+        "throw an appropriate exception for a default instance" {
+            shouldThrow<ContractViolationException> {
+                validateRequirements(ContractRequirementType.VALID_INPUT) {
+                    moneyValidation(money = FigureTechMoney.getDefaultInstance())
+                }
+            }.let { exception ->
+                exception.message shouldContain "Input's money is not set"
+            }
+        }
+        "throw an appropriate exception for any currency not 3 characters long" {
+            checkAll(
+                anyDoubleString,
+                Arb.string(codepoints = Codepoint.az()).filterNot { it.length == 3 },
+            ) { randomDouble, randomInvalidCurrency ->
+                shouldThrow<ContractViolationException> {
+                    validateRequirements(ContractRequirementType.VALID_INPUT) {
+                        moneyValidation(
+                            money = FigureTechMoney.newBuilder().apply {
+                                value = randomDouble
+                                currency = randomInvalidCurrency
+                            }.build()
+                        )
+                    }
+                }.let { exception ->
+                    exception shouldHaveViolationCount 1
+                    exception.message shouldContain "Input's money must have a 3-letter ISO 4217 currency"
+                }
+            }
+        }
+        "throw an appropriate exception for any currency not consisting solely of letters" {
+            checkAll(
+                anyDoubleString,
+                Arb.string(size = 3, codepoints = Arb.of(('0'.code..'9'.code).map(::Codepoint))),
+            ) { randomDouble, randomInvalidCurrency ->
+                shouldThrow<ContractViolationException> {
+                    validateRequirements(ContractRequirementType.VALID_INPUT) {
+                        moneyValidation(
+                            money = FigureTechMoney.newBuilder().apply {
+                                value = randomDouble
+                                currency = randomInvalidCurrency
+                            }.build()
+                        )
+                    }
+                }.let { exception ->
+                    exception shouldHaveViolationCount 1
+                    exception.message shouldContain "Input's money must have a 3-letter ISO 4217 currency"
+                }
+            }
+        }
+        "return true for any double and 3-letter currency" {
+            checkAll(anyDoubleString, Arb.string(size = 3, codepoints = Codepoint.az())) { randomDouble, randomCurrency ->
+                validateRequirements(ContractRequirementType.VALID_INPUT) {
+                    moneyValidation(
+                        money = FigureTechMoney.newBuilder().apply {
+                            value = randomDouble
+                            currency = randomCurrency
+                        }.build()
+                    )
+                }
             }
         }
     }
