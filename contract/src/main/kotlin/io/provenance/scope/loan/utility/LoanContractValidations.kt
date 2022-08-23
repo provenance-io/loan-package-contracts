@@ -9,7 +9,6 @@ import tech.figure.validation.v1beta1.LoanValidation
 import tech.figure.validation.v1beta1.ValidationRequest
 import tech.figure.validation.v1beta1.ValidationResults
 import io.dartinc.registry.v1beta1.Controller as ENoteController
-import tech.figure.util.v1beta1.Checksum as FigureTechChecksum
 
 internal fun ContractEnforcementContext.documentModificationValidation(
     existingDocument: DocumentMetadata,
@@ -36,15 +35,6 @@ internal fun ContractEnforcementContext.documentModificationValidation(
             )
         }
     }
-}
-
-internal fun ContractEnforcementContext.checksumValidation(parentDescription: String = "Input", checksum: FigureTechChecksum) {
-    checksum.takeIf { it.isSet() }?.let { setChecksum ->
-        requireThat(
-            setChecksum.checksum.isNotBlank()  orError "$parentDescription must have a valid checksum string",
-            setChecksum.algorithm.isNotBlank() orError "$parentDescription must specify a checksum algorithm",
-        )
-    } ?: raiseError("$parentDescription's checksum is not set")
 }
 
 internal val documentValidation: ContractEnforcementContext.(DocumentMetadata) -> Unit = { document ->

@@ -16,6 +16,7 @@ import io.kotest.property.Arb
 import io.kotest.property.arbitrary.Codepoint
 import io.kotest.property.arbitrary.UUIDVersion
 import io.kotest.property.arbitrary.alphanumeric
+import io.kotest.property.arbitrary.az
 import io.kotest.property.arbitrary.bind
 import io.kotest.property.arbitrary.boolean
 import io.kotest.property.arbitrary.double
@@ -55,8 +56,11 @@ import tech.figure.validation.v1beta1.ValidationOutcome
 import tech.figure.validation.v1beta1.ValidationRequest
 import tech.figure.validation.v1beta1.ValidationResponse
 import tech.figure.validation.v1beta1.ValidationResults
+import java.text.DecimalFormat
+import java.text.DecimalFormatSymbols
 import java.time.Instant
 import java.time.ZoneOffset
+import java.util.Locale
 import java.time.LocalDate as JavaLocalDate
 import tech.figure.loan.v1beta1.Loan as FigureTechLoan
 import tech.figure.util.v1beta1.Borrowers as FigureTechBorrowers
@@ -77,6 +81,10 @@ internal object PrimitiveArbs {
     val anyNonUuidString: Arb<String> = Arb.string().filterNot { it.length == 36 }
     val anyValidUli: Arb<String> = Arb.string(minSize = 23, maxSize = 45, codepoints = Codepoint.alphanumeric())
     val anyNonUliString: Arb<String> = Arb.string().filterNot { it.length in 23..45 }
+    val anyDoubleString: Arb<String> = Arb.double().filterNot { double ->
+        /** Simple hack to avoid inapplicable edge cases without delving into `arbitrary {}` construction */
+        double in listOf(Double.NEGATIVE_INFINITY, Double.NaN, Double.POSITIVE_INFINITY)
+    }.toSimpleString()
     /* Java classes */
     val anyZoneOffset: Arb<ZoneOffset> = Arb.int(min = ZoneOffset.MIN.totalSeconds, max = ZoneOffset.MAX.totalSeconds).map { offsetInSeconds ->
         ZoneOffset.ofTotalSeconds(offsetInSeconds)
@@ -133,11 +141,11 @@ internal object MetadataAssetModelArbs {
             }
         }
     val anyNonNegativeMoney: Arb<FigureTechMoney> = Arb.bind(
-        Arb.double(min = 0.0),
-        PrimitiveArbs.anyNonEmptyString,
+        Arb.double(min = 0.0).filterNot { double -> double in listOf(Double.NaN, Double.POSITIVE_INFINITY) }.toSimpleString(),
+        Arb.string(size = 3, codepoints = Codepoint.az()),
     ) { amount, currency ->
         FigureTechMoney.newBuilder().also { moneyBuilder ->
-            moneyBuilder.amount = amount
+            moneyBuilder.value = amount
             moneyBuilder.currency = currency
         }.build()
     }
@@ -501,6 +509,13 @@ internal object MetadataAssetModelArbs {
             documents = randomLoanDocuments,
         )
     }
+}
+
+/** Based on [this StackOverflow answer](https://stackoverflow.com/a/25307973). */
+internal fun Arb<Double>.toSimpleString(): Arb<String> = map { double ->
+    DecimalFormat("0", DecimalFormatSymbols.getInstance(Locale.ENGLISH)).apply {
+        maximumFractionDigits = 340
+    }.format(double)
 }
 
 private val anyTimestampComponents: Arb<Pair<Long, Int>> = Arb.pair(

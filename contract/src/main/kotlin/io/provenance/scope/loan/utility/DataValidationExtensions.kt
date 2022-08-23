@@ -6,6 +6,7 @@ import com.google.protobuf.Message as ProtobufMessage
 import com.google.protobuf.Timestamp as ProtobufTimestamp
 import java.time.LocalDate as JavaLocalDate
 import java.util.UUID as JavaUUID
+import tech.figure.util.v1beta1.Checksum as FigureTechChecksum
 import tech.figure.util.v1beta1.Date as FigureTechDate
 import tech.figure.util.v1beta1.Money as FigureTechMoney
 import tech.figure.util.v1beta1.UUID as FigureTechUUID
@@ -48,4 +49,21 @@ internal fun FigureTechDate?.isValidForSignedDate() = isSet() && this!!.value.is
 
 internal fun FigureTechUUID?.isValid() = isSet() && this!!.value.isNotBlank() && tryOrFalse { JavaUUID.fromString(value) }
 
-internal fun FigureTechMoney?.isValid() = this !== null
+internal fun ContractEnforcementContext.checksumValidation(parentDescription: String = "Input", checksum: FigureTechChecksum?) {
+    checksum.takeIf { it.isSet() }?.let { setChecksum ->
+        requireThat(
+            setChecksum.checksum.isNotBlank()  orError "$parentDescription must have a valid checksum string",
+            setChecksum.algorithm.isNotBlank() orError "$parentDescription must specify a checksum algorithm",
+        )
+    } ?: raiseError("$parentDescription's checksum is not set")
+}
+
+internal fun ContractEnforcementContext.moneyValidation(parentDescription: String = "Input's money", money: FigureTechMoney?) {
+    money.takeIf { it.isSet() }?.let { setMoney ->
+        requireThat(
+            setMoney.value.matches(Regex("^[-]?([0-9]+(?:[\\\\.][0-9]+)?|\\\\.[0-9]+)\$")) orError "$parentDescription must have a valid value",
+            (setMoney.currency.length == 3 && setMoney.currency.all { character -> character.isLetter() })
+                orError "$parentDescription must have a 3-letter ISO 4217 currency",
+        )
+    } ?: raiseError("$parentDescription is not set")
+}
