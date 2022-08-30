@@ -77,7 +77,7 @@ class DataValidationUnitTest : WordSpec({
     "Timestamp.isValidAndNotInFuture" should {
         "return true for any date in the past" {
             forAll(
-                Arb.localDateTime(maxLocalDateTime = LocalDateTime.now()),
+                Arb.localDateTime(maxLocalDateTime = LocalDateTime.now().minusDays(1L)),
                 anyZoneOffset,
             ) { randomLocalDateTime, randomZoneOffset ->
                 randomLocalDateTime.atOffset(randomZoneOffset).toProtoTimestamp().isValidAndNotInFuture()

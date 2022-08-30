@@ -449,10 +449,10 @@ internal object MetadataAssetModelArbs {
                 documentsBuilder.addAllDocument(documentList)
             }.build()
         }
-    fun anyValidServicingData(loanStateCount: Int, slippage: Int = 10): Arb<ServicingData> =
+    fun anyValidServicingData(loanStateAndDocumentCount: Int, slippage: Int = 10): Arb<ServicingData> =
         Arb.bind(
-            anyValidDocumentSet(size = loanStateCount, slippage = slippage),
-            loanStateSet(size = loanStateCount, slippage = slippage),
+            anyValidDocumentSet(size = loanStateAndDocumentCount, slippage = slippage),
+            loanStateSet(size = loanStateAndDocumentCount, slippage = slippage),
         ) { documents, loanStates ->
             ServicingData.newBuilder().also { servicingDataBuilder ->
                 servicingDataBuilder.clearDocMeta()
@@ -496,7 +496,7 @@ internal object MetadataAssetModelArbs {
         anyValidAsset<T>(),
         anyValidENote(maxAssumptionCount = maxAssumptionCount, maxModificationCount = maxModificationCount),
         anyValidServicingRights,
-        anyValidServicingData(loanStateCount = loanStateCount),
+        anyValidServicingData(loanStateAndDocumentCount = loanStateCount),
         anyValidValidationRecord(iterationCount = iterationCount),
         anyValidLoanDocumentSet(size = loanDocumentCount),
     ) { randomAsset, randomENote, randomServicingRights, randomServicingData, randomValidationRecord, randomLoanDocuments ->

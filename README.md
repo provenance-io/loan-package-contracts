@@ -79,7 +79,7 @@ To generate linting reports, use
 ```shell
 ./gradlew ktlintCheck
 ```
-To have the linter update your code to fit the linting rules, use
+To have the linter try to update your code to fit the linting rules, use
 ```shell
 ./gradlew ktlintFormat
 ```

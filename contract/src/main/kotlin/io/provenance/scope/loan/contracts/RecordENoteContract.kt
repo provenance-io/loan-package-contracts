@@ -10,8 +10,10 @@ import io.provenance.scope.contract.annotations.SkipIfRecordExists
 import io.provenance.scope.contract.proto.Specifications.PartyType
 import io.provenance.scope.contract.spec.P8eContract
 import io.provenance.scope.loan.LoanScopeFacts
+import io.provenance.scope.loan.utility.ContractRequirementType.VALID_INPUT
 import io.provenance.scope.loan.utility.eNoteInputValidation
 import io.provenance.scope.loan.utility.updateServicingData
+import io.provenance.scope.loan.utility.validateRequirements
 import tech.figure.servicing.v1beta1.LoanStateOuterClass.ServicingData
 
 @Participants(roles = [PartyType.OWNER])
@@ -30,5 +32,7 @@ open class RecordENoteContract(
     @Record(LoanScopeFacts.servicingData)
     @SkipIfRecordExists(LoanScopeFacts.servicingData)
     open fun recordServicingData(@Input(LoanScopeFacts.servicingData) newServicingData: ServicingData): ServicingData =
-        updateServicingData(newServicingData = newServicingData)
+        validateRequirements(VALID_INPUT) {
+            updateServicingData(newServicingData = newServicingData)
+        }
 }

@@ -116,10 +116,12 @@ open class RecordLoanContract(
     @Function(invokedBy = PartyType.OWNER)
     @Record(LoanScopeFacts.servicingData)
     open fun recordServicingData(@Input(LoanScopeFacts.servicingData) servicingData: ServicingData) =
-        updateServicingData(
-            existingServicingData = existingServicingData ?: ServicingData.getDefaultInstance(),
-            newServicingData = servicingData,
-        )
+        validateRequirements(VALID_INPUT) {
+            updateServicingData(
+                existingServicingData = existingServicingData ?: ServicingData.getDefaultInstance(),
+                newServicingData = servicingData,
+            )
+        }
 
     @Function(invokedBy = PartyType.OWNER)
     @Record(LoanScopeFacts.loanValidations)

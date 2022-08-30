@@ -43,6 +43,15 @@ internal inline fun <reified T : Message> ProtobufAny.tryUnpackingAs(inputDescri
     }
 }
 
+internal inline fun <reified T : Message> ProtobufAny.unpackOrNull(): T? =
+    T::class.java.let { clazz ->
+        try {
+            unpack(clazz)
+        } catch (suppressed: InvalidProtocolBufferException) {
+            null
+        }
+    }
+
 internal inline fun <reified T : Message> ProtobufAny.unpackAs(): T =
     T::class.java.let { clazz ->
         try {

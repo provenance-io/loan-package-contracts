@@ -1,8 +1,10 @@
 package io.provenance.scope.loan.contracts
 
+import io.dartinc.registry.v1beta1.DocumentRecordingGuidance
 import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.core.spec.style.WordSpec
 import io.kotest.core.test.TestCaseOrder
+import io.kotest.matchers.shouldBe
 import io.kotest.matchers.string.shouldContain
 import io.kotest.property.Arb
 import io.kotest.property.arbitrary.flatMap
@@ -10,10 +12,13 @@ import io.kotest.property.arbitrary.int
 import io.kotest.property.arbitrary.pair
 import io.kotest.property.arbitrary.set
 import io.kotest.property.checkAll
+import io.provenance.scope.loan.LoanScopeProperties.servicingDocumentsKey
 import io.provenance.scope.loan.test.KotestConfig
+import io.provenance.scope.loan.test.MetadataAssetModelArbs
 import io.provenance.scope.loan.test.MetadataAssetModelArbs.anyInvalidUuid
 import io.provenance.scope.loan.test.MetadataAssetModelArbs.anyUuidSet
 import io.provenance.scope.loan.test.MetadataAssetModelArbs.anyValidLoanDocumentSet
+import io.provenance.scope.loan.test.MetadataAssetModelArbs.anyValidServicingData
 import io.provenance.scope.loan.test.PrimitiveArbs.anyNonEmptyString
 import io.provenance.scope.loan.test.breakOffLast
 import io.provenance.scope.loan.test.shouldHaveViolationCount
@@ -21,6 +26,8 @@ import io.provenance.scope.loan.test.toPair
 import io.provenance.scope.loan.test.toRecord
 import io.provenance.scope.loan.utility.ContractViolationException
 import tech.figure.loan.v1beta1.LoanDocuments
+import tech.figure.proto.util.toProtoAny
+import tech.figure.servicing.v1beta1.LoanStateOuterClass.ServicingData
 import tech.figure.util.v1beta1.DocumentMetadata
 import kotlin.math.max
 
@@ -37,6 +44,7 @@ class AppendLoanDocumentsContractUnitTest : WordSpec({
                     shouldThrow<ContractViolationException> {
                         AppendLoanDocumentsContract(
                             existingDocs = randomExistingDocuments,
+                            existingServicingData = ServicingData.getDefaultInstance(), // Unused
                         ).appendDocuments(
                             newDocs = LoanDocuments.getDefaultInstance()
                         )
@@ -52,6 +60,7 @@ class AppendLoanDocumentsContractUnitTest : WordSpec({
                 shouldThrow<ContractViolationException> {
                     AppendLoanDocumentsContract(
                         existingDocs = LoanDocuments.getDefaultInstance(),
+                        existingServicingData = ServicingData.getDefaultInstance(), // Unused
                     ).appendDocuments(
                         newDocs = LoanDocuments.newBuilder().also { inputBuilder ->
                             inputBuilder.clearDocument()
@@ -76,6 +85,7 @@ class AppendLoanDocumentsContractUnitTest : WordSpec({
                     shouldThrow<ContractViolationException> {
                         AppendLoanDocumentsContract(
                             existingDocs = existingDocuments.toRecord(),
+                            existingServicingData = ServicingData.getDefaultInstance(), // Unused
                         ).appendDocuments(
                             newDocs = LoanDocuments.newBuilder().also { inputBuilder ->
                                 inputBuilder.clearDocument()
@@ -124,6 +134,7 @@ class AppendLoanDocumentsContractUnitTest : WordSpec({
                                     )
                                 }
                             }.build(),
+                            existingServicingData = ServicingData.getDefaultInstance(), // Unused
                         ).appendDocuments(
                             newDocs = LoanDocuments.newBuilder().also { inputBuilder ->
                                 inputBuilder.clearDocument()
@@ -166,9 +177,75 @@ class AppendLoanDocumentsContractUnitTest : WordSpec({
                     }
                     AppendLoanDocumentsContract(
                         existingDocs = randomExistingDocuments.toRecord(),
+                        existingServicingData = ServicingData.getDefaultInstance(), // Unused
                     ).appendDocuments(
                         newDocs = randomNewDocuments.toRecord()
                     )
+                }
+            }
+        }
+    }
+    "appendServicingDocuments" When {
+        "given an empty input" should {
+            "do nothing to the existing servicing data" {
+                checkAll(
+                    anyValidServicingData(loanStateAndDocumentCount = 6),
+                ) { randomExistingServicingData ->
+                    AppendLoanDocumentsContract(
+                        existingServicingData = randomExistingServicingData,
+                        existingDocs = LoanDocuments.getDefaultInstance(), // Unused
+                    ).appendServicingDocuments(
+                        newDocs = LoanDocuments.getDefaultInstance()
+                    ).let { result ->
+                        result shouldBe randomExistingServicingData
+                    }
+                }
+            }
+        }
+        "given an input which attempts to silently change the URI of an existing document" should {
+            "throw an appropriate exception" {
+                val documentCountRange = 3..(if (KotestConfig.runTestsExtended) 8 else 3)
+                val loanStateCountRange = 2..(if (KotestConfig.runTestsExtended) 8 else 3)
+                checkAll(
+                    Arb.int(documentCountRange).flatMap { randomDocumentCount ->
+                        MetadataAssetModelArbs.anyValidDocumentSet(size = randomDocumentCount, slippage = 10)
+                    },
+                    Arb.int(loanStateCountRange).flatMap { randomLoanStateCount ->
+                        MetadataAssetModelArbs.loanStateSet(size = randomLoanStateCount, slippage = 10)
+                    },
+                ) { randomDocuments, randomLoanStates ->
+                    val (randomExistingDocuments, unusedDocument) = randomDocuments.breakOffLast()
+                    val duplicateDocument = randomExistingDocuments.last()
+                    shouldThrow<ContractViolationException> {
+                        AppendLoanDocumentsContract(
+                            existingServicingData = ServicingData.newBuilder().also { servicingDataBuilder ->
+                                servicingDataBuilder.addAllLoanState(randomLoanStates)
+                                servicingDataBuilder.addAllDocMeta(randomExistingDocuments)
+                            }.build(),
+                            existingDocs = LoanDocuments.newBuilder().also { documentsBuilder ->
+                                documentsBuilder.addAllDocument(randomExistingDocuments)
+                            }.build(),
+                        ).appendServicingDocuments(
+                            newDocs = LoanDocuments.newBuilder().also { documentsBuilder ->
+                                documentsBuilder.addDocument(
+                                    duplicateDocument.toBuilder().also { duplicateDocumentBuilder ->
+                                        duplicateDocumentBuilder.uri = unusedDocument.uri // Generate an extra document to get a non-duplicate URI
+                                    }.build()
+                                )
+                                documentsBuilder.putMetadataKv(
+                                    servicingDocumentsKey,
+                                    DocumentRecordingGuidance.newBuilder().also { guidanceBuilder ->
+                                        guidanceBuilder.putDesignatedDocuments(
+                                            duplicateDocument.id.value,
+                                            true
+                                        )
+                                    }.build().toProtoAny()
+                                )
+                            }.build(),
+                        )
+                    }.let { exception ->
+                        exception.message shouldContain "Cannot change URI of existing document with checksum ${duplicateDocument.checksum.checksum}"
+                    }
                 }
             }
         }

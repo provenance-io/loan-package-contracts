@@ -9,34 +9,34 @@ import tech.figure.util.v1beta1.DocumentMetadata
  * Updates the [existingServicingData] record with [newServicingData] which only has a field set if it is allowed to update the field
  * in the calling contract.
  */
-internal fun updateServicingData(
+internal fun ContractEnforcementContext.updateServicingData(
     existingServicingData: ServicingData = ServicingData.getDefaultInstance(),
     newServicingData: ServicingData,
+    expectLoanStates: Boolean = false,
 ): ServicingData = existingServicingData.toBuilder().also { newServicingDataBuilder ->
-    validateRequirements(ContractRequirementType.VALID_INPUT) {
-        newServicingData.takeIf { data -> data.isSet() }?.also { setNewServicingData ->
-            appendLoanStates(newServicingDataBuilder, newServicingData.loanStateList)
-            appendServicingDocuments(newServicingDataBuilder, newServicingData.docMetaList)
-            // At the moment, we won't perform any basic data validation of the top-level fields that aren't the loan state or document lists
-            setNewServicingData.loanId.takeIf { it.isSet() }?.let { newLoanId ->
-                newServicingDataBuilder.loanId = newLoanId
-            }
-            setNewServicingData.assetType.takeIf { it.isSet() }?.let { newAssetType ->
-                newServicingDataBuilder.assetType = newAssetType
-            }
-            setNewServicingData.currentBorrowerInfo.takeIf { it.isSet() }?.let { newCurrentBorrowerInfo ->
-                newServicingDataBuilder.currentBorrowerInfo = newCurrentBorrowerInfo
-            }
-            setNewServicingData.originalNoteAmount.takeIf { it.isSet() }?.let { newOriginalNoteAmount ->
-                newServicingDataBuilder.originalNoteAmount = newOriginalNoteAmount
-            }
-        } ?: raiseError("Servicing data is not set")
-    }
+    newServicingData.takeIf { data -> data.isSet() }?.also { setNewServicingData ->
+        appendLoanStates(newServicingDataBuilder, setNewServicingData.loanStateList, expectLoanStates)
+        appendServicingDocuments(newServicingDataBuilder, setNewServicingData.docMetaList)
+        // At the moment, we won't perform any basic data validation of the top-level fields that aren't the loan state or document lists
+        setNewServicingData.loanId.takeIf { it.isSet() }?.let { newLoanId ->
+            newServicingDataBuilder.loanId = newLoanId
+        }
+        setNewServicingData.assetType.takeIf { it.isSet() }?.let { newAssetType ->
+            newServicingDataBuilder.assetType = newAssetType
+        }
+        setNewServicingData.currentBorrowerInfo.takeIf { it.isSet() }?.let { newCurrentBorrowerInfo ->
+            newServicingDataBuilder.currentBorrowerInfo = newCurrentBorrowerInfo
+        }
+        setNewServicingData.originalNoteAmount.takeIf { it.isSet() }?.let { newOriginalNoteAmount ->
+            newServicingDataBuilder.originalNoteAmount = newOriginalNoteAmount
+        }
+    } ?: raiseError("Servicing data is not set")
 }.build()
 
 internal fun ContractEnforcementContext.appendLoanStates(
     servicingDataBuilder: ServicingData.Builder,
     newLoanStates: Collection<LoanStateMetadata>,
+    expectLoanStates: Boolean,
 ) {
     /* Primitive types used for protobuf keys to avoid comparison interference from unknown fields */
     val existingStateChecksums = mutableMapOf<String, Boolean>()
@@ -54,7 +54,7 @@ internal fun ContractEnforcementContext.appendLoanStates(
                 existingStateTimes[effectiveTime.seconds to effectiveTime.nanos] = true
             }
         }
-    } else {
+    } else if (expectLoanStates) {
         raiseError("Must supply at least one loan state")
     }
     val incomingStateChecksums = mutableMapOf<String, Boolean>()

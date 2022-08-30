@@ -37,6 +37,11 @@ object LoanScopeProperties {
      * [tech.figure.loan.v1beta1.MISMOLoanMetadata].
      */
     const val assetMismoKey = "mismoLoan"
+    /**
+     * Denotes the key that a [LoanDocuments][tech.figure.loan.v1beta1.LoanDocuments] instance's `metadataKvMap` should use to store a
+     * [DocumentRecordingGuidance][io.dartinc.registry.v1beta1.DocumentRecordingGuidance] pertaining to servicing documents.
+     */
+    const val servicingDocumentsKey = "servicingDocuments"
 }
 
 /**
