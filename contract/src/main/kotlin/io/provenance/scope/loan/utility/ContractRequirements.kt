@@ -85,6 +85,8 @@ internal fun validateRequirements(
  *
  * @param requirementType The type of validation being performed.
  * @param checksBody A body of code which contains calls to [ContractEnforcementContext.requireThat].
+ * @throws Exception if at least one violation was collected in [checksBody].
+ * @return The result of [checksBody], if no violations were collected.
  */
 internal fun <T> validateRequirements(
     requirementType: ContractRequirementType,

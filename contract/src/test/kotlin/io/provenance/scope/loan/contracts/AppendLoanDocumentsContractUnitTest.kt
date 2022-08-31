@@ -4,21 +4,25 @@ import io.dartinc.registry.v1beta1.DocumentRecordingGuidance
 import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.core.spec.style.WordSpec
 import io.kotest.core.test.TestCaseOrder
+import io.kotest.matchers.collections.shouldContainExactlyInAnyOrder
+import io.kotest.matchers.ints.shouldBeExactly
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.string.shouldContain
 import io.kotest.property.Arb
 import io.kotest.property.arbitrary.flatMap
 import io.kotest.property.arbitrary.int
+import io.kotest.property.arbitrary.map
 import io.kotest.property.arbitrary.pair
 import io.kotest.property.arbitrary.set
 import io.kotest.property.checkAll
 import io.provenance.scope.loan.LoanScopeProperties.servicingDocumentsKey
 import io.provenance.scope.loan.test.KotestConfig
-import io.provenance.scope.loan.test.MetadataAssetModelArbs
 import io.provenance.scope.loan.test.MetadataAssetModelArbs.anyInvalidUuid
 import io.provenance.scope.loan.test.MetadataAssetModelArbs.anyUuidSet
+import io.provenance.scope.loan.test.MetadataAssetModelArbs.anyValidDocumentSet
 import io.provenance.scope.loan.test.MetadataAssetModelArbs.anyValidLoanDocumentSet
 import io.provenance.scope.loan.test.MetadataAssetModelArbs.anyValidServicingData
+import io.provenance.scope.loan.test.MetadataAssetModelArbs.loanStateSet
 import io.provenance.scope.loan.test.PrimitiveArbs.anyNonEmptyString
 import io.provenance.scope.loan.test.breakOffLast
 import io.provenance.scope.loan.test.shouldHaveViolationCount
@@ -168,13 +172,11 @@ class AppendLoanDocumentsContractUnitTest : WordSpec({
                     Arb.int(documentCountRange).flatMap { randomDocumentCount ->
                         Arb.pair(
                             anyValidLoanDocumentSet(size = randomDocumentCount),
-                            Arb.int(0..max(randomDocumentCount - 1, 1)),
+                            Arb.int(1..max(randomDocumentCount - 1, 1)),
                         )
                     }
                 ) { (randomDocuments, randomSplit) ->
-                    val (randomExistingDocuments, randomNewDocuments) = randomDocuments.documentList.let { randomDocumentSet ->
-                        randomDocumentSet.take(randomSplit) to randomDocumentSet.drop(randomSplit)
-                    }
+                    val (randomExistingDocuments, randomNewDocuments) = randomDocuments.documentList.breakOffLast(randomSplit)
                     AppendLoanDocumentsContract(
                         existingDocs = randomExistingDocuments.toRecord(),
                         existingServicingData = ServicingData.getDefaultInstance(), // Unused
@@ -204,14 +206,14 @@ class AppendLoanDocumentsContractUnitTest : WordSpec({
         }
         "given an input which attempts to silently change the URI of an existing document" should {
             "throw an appropriate exception" {
-                val documentCountRange = 3..(if (KotestConfig.runTestsExtended) 8 else 3)
+                val documentCountRange = 2..(if (KotestConfig.runTestsExtended) 8 else 3)
                 val loanStateCountRange = 2..(if (KotestConfig.runTestsExtended) 8 else 3)
                 checkAll(
                     Arb.int(documentCountRange).flatMap { randomDocumentCount ->
-                        MetadataAssetModelArbs.anyValidDocumentSet(size = randomDocumentCount, slippage = 10)
+                        anyValidDocumentSet(size = randomDocumentCount, slippage = 10)
                     },
                     Arb.int(loanStateCountRange).flatMap { randomLoanStateCount ->
-                        MetadataAssetModelArbs.loanStateSet(size = randomLoanStateCount, slippage = 10)
+                        loanStateSet(size = randomLoanStateCount, slippage = 10)
                     },
                 ) { randomDocuments, randomLoanStates ->
                     val (randomExistingDocuments, unusedDocument) = randomDocuments.breakOffLast()
@@ -245,6 +247,71 @@ class AppendLoanDocumentsContractUnitTest : WordSpec({
                         )
                     }.let { exception ->
                         exception.message shouldContain "Cannot change URI of existing document with checksum ${duplicateDocument.checksum.checksum}"
+                    }
+                }
+            }
+        }
+        "given a valid input with at least one new servicing document" should {
+            "not throw an exception" {
+                val documentCountRange = 1..(if (KotestConfig.runTestsExtended) 8 else 4)
+                val loanStateCountRange = 1..(if (KotestConfig.runTestsExtended) 8 else 4)
+                checkAll(
+                    Arb.int(documentCountRange).flatMap { randomDocumentCount ->
+                        Arb.pair(
+                            anyValidLoanDocumentSet(size = randomDocumentCount),
+                            Arb.int(0 until randomDocumentCount).flatMap { randomExistingDocumentCount ->
+                                Arb.pair(
+                                    Arb.int(0..randomExistingDocumentCount).map { randomExistingServicingDocumentCount ->
+                                        Pair(randomExistingDocumentCount, randomExistingServicingDocumentCount)
+                                    },
+                                    Arb.int(1..(randomDocumentCount - randomExistingDocumentCount)),
+                                )
+                            },
+                        )
+                    },
+                    Arb.int(loanStateCountRange).flatMap { randomLoanStateCount ->
+                        loanStateSet(size = randomLoanStateCount, slippage = 10)
+                    },
+                ) { (randomDocuments, randomPartitionData), randomLoanStates ->
+                    val (existingDocumentSplits, newServicingDocumentCount) = randomPartitionData
+                    val (existingLoanDocumentSplit, existingServicingDocumentSplit) = existingDocumentSplits
+                    val (
+                        randomExistingServicingDocuments,
+                        randomExistingLoanDocuments,
+                        randomNewServicingDocuments,
+                        randomNewLoanDocuments,
+                    ) = randomDocuments.documentList.run {
+                        listOf(
+                            subList(0, existingServicingDocumentSplit),
+                            subList(0, existingLoanDocumentSplit),
+                            subList(existingLoanDocumentSplit, existingLoanDocumentSplit + newServicingDocumentCount),
+                            subList(existingLoanDocumentSplit, size),
+                        )
+                    }
+                    AppendLoanDocumentsContract(
+                        existingDocs = LoanDocuments.newBuilder().also { documentsBuilder ->
+                            documentsBuilder.addAllDocument(randomExistingLoanDocuments)
+                        }.build(),
+                        existingServicingData = ServicingData.newBuilder().also { servicingDataBuilder ->
+                            servicingDataBuilder.addAllLoanState(randomLoanStates)
+                            servicingDataBuilder.addAllDocMeta(randomExistingServicingDocuments)
+                        }.build(),
+                    ).appendServicingDocuments(
+                        newDocs = LoanDocuments.newBuilder().also { documentsBuilder ->
+                            documentsBuilder.addAllDocument(randomNewLoanDocuments)
+                            documentsBuilder.putMetadataKv(
+                                servicingDocumentsKey,
+                                DocumentRecordingGuidance.newBuilder().also { guidanceBuilder ->
+                                    guidanceBuilder.putAllDesignatedDocuments(
+                                        randomNewServicingDocuments.associate { document -> document.id.value to true }
+                                    )
+                                }.build().toProtoAny()
+                            )
+                        }.build(),
+                    ).let { result ->
+                        result.loanStateList shouldContainExactlyInAnyOrder randomLoanStates
+                        result.docMetaCount shouldBeExactly randomExistingServicingDocuments.size + randomNewServicingDocuments.size
+                        result.docMetaList shouldContainExactlyInAnyOrder randomExistingServicingDocuments + randomNewServicingDocuments
                     }
                 }
             }

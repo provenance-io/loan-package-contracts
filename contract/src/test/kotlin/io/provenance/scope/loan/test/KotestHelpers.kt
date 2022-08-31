@@ -612,6 +612,13 @@ internal fun <T> List<T>.breakOffLast(): Pair<List<T>, T> {
     return dropLast(1) to takeLast(1)[0]
 }
 
+internal fun <T> List<T>.breakOffLast(split: Int): Pair<List<T>, List<T>> {
+    require(split in 0..size) {
+        "Must supply a valid split"
+    }
+    return dropLast(split) to takeLast(split)
+}
+
 internal fun <T> Arb<List<T>>.toPair(): Arb<Pair<T, T>> = map { list -> list[0] to list[1] }
 
 internal fun <S, T> Arb<S>.toPair(fn: (S) -> List<T>): Arb<Pair<T, T>> = map(fn).toPair()

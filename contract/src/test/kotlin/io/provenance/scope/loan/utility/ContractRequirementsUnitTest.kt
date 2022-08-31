@@ -4,7 +4,7 @@ import io.kotest.assertions.throwables.shouldNotThrow
 import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.core.spec.style.WordSpec
 import io.kotest.core.test.TestCaseOrder
-import io.kotest.matchers.collections.shouldContain
+import io.kotest.matchers.collections.shouldContainExactlyInAnyOrder
 import io.kotest.matchers.ints.shouldBeExactly
 import io.kotest.matchers.ints.shouldBeGreaterThanOrEqual
 import io.kotest.matchers.ints.shouldBeInRange
@@ -163,7 +163,7 @@ class ContractRequirementsUnitTest : WordSpec({
                         }.build()
                     }.let { modifiedServicingData ->
                         modifiedServicingData.docMetaCount shouldBeExactly randomServicingData.docMetaCount + 1
-                        modifiedServicingData.docMetaList shouldContain randomDocumentMetadata
+                        modifiedServicingData.docMetaList shouldContainExactlyInAnyOrder randomServicingData.docMetaList + randomDocumentMetadata
                     }
                 }
             }
