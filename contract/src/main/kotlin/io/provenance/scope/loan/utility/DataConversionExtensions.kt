@@ -7,9 +7,9 @@ import com.google.protobuf.Any as ProtobufAny
 import tech.figure.loan.v1beta1.Loan as FigureTechLoan
 
 context(ContractEnforcementContext)
-internal inline fun <reified T : Message> ProtobufAny.tryUnpackingAs(inputDescription: String = "input", body: (T) -> Any) {
-    val expectedType = T::class.java
-    var unpackedResult: T? = null
+internal inline fun <reified M : Message, S> ProtobufAny.tryUnpackingAs(inputDescription: String = "input", body: (M) -> S): S? {
+    val expectedType = M::class.java
+    var unpackedResult: M? = null
     try {
         unpackedResult = unpack(expectedType)
     } catch (suppressed: InvalidProtocolBufferException) {
@@ -38,8 +38,10 @@ internal inline fun <reified T : Message> ProtobufAny.tryUnpackingAs(inputDescri
             raiseError(violationMessage)
         }
     }
-    if (unpackedResult !== null) {
+    return if (unpackedResult !== null) {
         body(unpackedResult)
+    } else {
+        null
     }
 }
 

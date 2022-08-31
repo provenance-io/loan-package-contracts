@@ -43,9 +43,18 @@ class DataConversionExtensionsUnitTest : WordSpec({
             "not throw an exception" {
                 checkAll(anyUuid) { randomId ->
                     validateRequirements(ContractRequirementType.LEGAL_SCOPE_STATE) {
-                        randomId.toProtoAny().tryUnpackingAs<FigureTechUUID> { unpacked ->
+                        randomId.toProtoAny().tryUnpackingAs<FigureTechUUID, Unit> { unpacked ->
                             unpacked shouldBe randomId
                         }
+                    }
+                }
+            }
+            "return the result of its body" {
+                checkAll(anyUuid) { randomId ->
+                    validateRequirements(ContractRequirementType.LEGAL_SCOPE_STATE) {
+                        randomId.toProtoAny().tryUnpackingAs<FigureTechUUID, Boolean> { unpacked ->
+                            unpacked.isValid()
+                        } shouldBe true
                     }
                 }
             }
@@ -55,7 +64,7 @@ class DataConversionExtensionsUnitTest : WordSpec({
                 checkAll(anyValidChecksum) { randomChecksum ->
                     shouldThrow<IllegalContractStateException> {
                         validateRequirements(ContractRequirementType.LEGAL_SCOPE_STATE) {
-                            randomChecksum.toProtoAny().tryUnpackingAs<FigureTechUUID> {}
+                            randomChecksum.toProtoAny().tryUnpackingAs<FigureTechUUID, Unit> {}
                         }
                     }.let { exception ->
                         exception.shouldBeParseFailureFor(classifier = "tech.figure.util.v1beta1.UUID")
@@ -68,7 +77,7 @@ class DataConversionExtensionsUnitTest : WordSpec({
                 checkAll(anyValidFigureTechLoan) { randomLoan ->
                     shouldThrow<IllegalContractStateException> {
                         validateRequirements(ContractRequirementType.LEGAL_SCOPE_STATE) {
-                            randomLoan.toProtoAny().tryUnpackingAs<MISMOLoanMetadata> {}
+                            randomLoan.toProtoAny().tryUnpackingAs<MISMOLoanMetadata, Unit> {}
                         }
                     }.let { exception ->
                         exception.message shouldContain
@@ -82,7 +91,7 @@ class DataConversionExtensionsUnitTest : WordSpec({
                 checkAll(anyValidMismoLoan) { randomLoan ->
                     shouldThrow<IllegalContractStateException> {
                         validateRequirements(ContractRequirementType.LEGAL_SCOPE_STATE) {
-                            randomLoan.toProtoAny().tryUnpackingAs<FigureTechLoan> {}
+                            randomLoan.toProtoAny().tryUnpackingAs<FigureTechLoan, Unit> {}
                         }
                     }.let { exception ->
                         exception.message shouldContain

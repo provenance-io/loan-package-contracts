@@ -15,7 +15,7 @@ import io.provenance.scope.loan.utility.documentModificationValidation
 import io.provenance.scope.loan.utility.documentValidation
 import io.provenance.scope.loan.utility.isSet
 import io.provenance.scope.loan.utility.raiseError
-import io.provenance.scope.loan.utility.unpackOrNull
+import io.provenance.scope.loan.utility.tryUnpackingAs
 import io.provenance.scope.loan.utility.updateServicingData
 import io.provenance.scope.loan.utility.validateRequirements
 import tech.figure.loan.v1beta1.LoanDocuments
@@ -70,22 +70,24 @@ open class AppendLoanDocumentsContract(
     @Function(invokedBy = PartyType.OWNER)
     @Record(LoanScopeFacts.servicingData)
     open fun appendServicingDocuments(@Input(LoanScopeFacts.documents) newDocs: LoanDocuments): ServicingData {
-        return newDocs.metadataKvMap[servicingDocumentsKey]?.unpackOrNull<DocumentRecordingGuidance>()?.let { servicingDocumentGuidance ->
-            ServicingData.newBuilder().also { servicingDataBuilder ->
-                servicingDataBuilder.addAllDocMeta(
-                    newDocs.documentList.filter { document ->
-                        document.id.isSet() && servicingDocumentGuidance.containsDesignatedDocuments(document.id.value)
-                    }
-                )
-            }.build()
-        }?.let { wrappedServicingDocuments ->
-            validateRequirements(VALID_INPUT) {
+        return validateRequirements(VALID_INPUT) {
+            newDocs.metadataKvMap[servicingDocumentsKey]?.tryUnpackingAs<DocumentRecordingGuidance, ServicingData>(
+                "input's \"${servicingDocumentsKey}\" metadata"
+            ) { servicingDocumentGuidance ->
+                ServicingData.newBuilder().also { servicingDataBuilder ->
+                    servicingDataBuilder.addAllDocMeta(
+                        newDocs.documentList.filter { document ->
+                            document.id.isSet() && servicingDocumentGuidance.containsDesignatedDocuments(document.id.value)
+                        }
+                    )
+                }.build()
+            }?.takeIf { derivedData -> derivedData.isSet() }?.let { wrappedServicingDocuments ->
                 updateServicingData(
                     existingServicingData = existingServicingData ?: ServicingData.getDefaultInstance(),
                     newServicingData = wrappedServicingDocuments,
                     expectLoanStates = false,
                 )
-            }
-        } ?: existingServicingData ?: ServicingData.getDefaultInstance()
+            } ?: existingServicingData ?: ServicingData.getDefaultInstance()
+        }
     }
 }

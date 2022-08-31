@@ -444,10 +444,7 @@ internal object MetadataAssetModelArbs {
     }
     fun anyValidLoanDocumentSet(size: Int, slippage: Int = 10): Arb<LoanDocuments> =
         anyValidDocumentSet(size = size, slippage = slippage).map { documentList ->
-            LoanDocuments.newBuilder().also { documentsBuilder ->
-                documentsBuilder.clearDocument()
-                documentsBuilder.addAllDocument(documentList)
-            }.build()
+            documentList.toRecord()
         }
     fun anyValidServicingData(loanStateAndDocumentCount: Int, slippage: Int = 10): Arb<ServicingData> =
         Arb.bind(

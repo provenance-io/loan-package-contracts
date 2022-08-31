@@ -20,6 +20,7 @@ import io.provenance.scope.loan.test.KotestConfig
 import io.provenance.scope.loan.test.MetadataAssetModelArbs.anyInvalidUuid
 import io.provenance.scope.loan.test.MetadataAssetModelArbs.anyUuidSet
 import io.provenance.scope.loan.test.MetadataAssetModelArbs.anyValidDocumentSet
+import io.provenance.scope.loan.test.MetadataAssetModelArbs.anyValidENoteController
 import io.provenance.scope.loan.test.MetadataAssetModelArbs.anyValidLoanDocumentSet
 import io.provenance.scope.loan.test.MetadataAssetModelArbs.anyValidServicingData
 import io.provenance.scope.loan.test.MetadataAssetModelArbs.loanStateSet
@@ -200,6 +201,41 @@ class AppendLoanDocumentsContractUnitTest : WordSpec({
                         newDocs = LoanDocuments.getDefaultInstance()
                     ).let { result ->
                         result shouldBe randomExistingServicingData
+                    }
+                }
+            }
+        }
+        "given an input with a servicing documents value not of the expected type" should {
+            "throw an appropriate exception" {
+                val documentCountRange = 2..(if (KotestConfig.runTestsExtended) 8 else 4)
+                checkAll(
+                    Arb.int(documentCountRange).flatMap { randomDocumentCount ->
+                        Arb.pair(
+                            anyValidLoanDocumentSet(size = randomDocumentCount),
+                            Arb.int(1..randomDocumentCount),
+                        )
+                    },
+                    anyValidServicingData(loanStateAndDocumentCount = 6),
+                    anyValidENoteController,
+                ) { (randomDocuments, newDocumentCount), randomServicingData, randomInvalidType ->
+                    val (randomExistingDocuments, randomNewDocuments) = randomDocuments.documentList.breakOffLast(newDocumentCount)
+                    shouldThrow<ContractViolationException> {
+                        AppendLoanDocumentsContract(
+                            existingServicingData = randomServicingData,
+                            existingDocs = randomExistingDocuments.toRecord(),
+                        ).appendServicingDocuments(
+                            LoanDocuments.newBuilder().also { documentsBuilder ->
+                                documentsBuilder.addAllDocument(randomNewDocuments)
+                                documentsBuilder.putMetadataKv(
+                                    servicingDocumentsKey,
+                                    randomInvalidType.toProtoAny()
+                                )
+                            }.build(),
+                        )
+                    }.let { exception ->
+                        exception shouldHaveViolationCount 1
+                        exception.message shouldContain
+                            "Could not unpack the input's \"${servicingDocumentsKey}\" metadata as ${DocumentRecordingGuidance::class.java}"
                     }
                 }
             }
