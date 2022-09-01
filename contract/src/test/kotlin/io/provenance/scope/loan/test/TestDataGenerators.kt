@@ -1,12 +1,14 @@
-package io.provenance.scope.loan.contracts
+package io.provenance.scope.loan.test
 
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.hubspot.jackson.datatype.protobuf.ProtobufModule
+import io.dartinc.registry.v1beta1.DocumentRecordingGuidance
 import io.kotest.core.annotation.Ignored
 import io.kotest.core.spec.style.WordSpec
 import io.kotest.property.RandomSource
 import io.kotest.property.arbitrary.next
 import io.provenance.scope.loan.LoanScopeFacts
+import io.provenance.scope.loan.LoanScopeProperties.servicingDocumentsKey
 import io.provenance.scope.loan.test.MetadataAssetModelArbs.anyValidAsset
 import io.provenance.scope.loan.test.MetadataAssetModelArbs.anyValidENote
 import io.provenance.scope.loan.test.MetadataAssetModelArbs.anyValidLoan
@@ -15,10 +17,11 @@ import io.provenance.scope.loan.test.MetadataAssetModelArbs.anyValidServicingDat
 import io.provenance.scope.loan.test.MetadataAssetModelArbs.anyValidServicingRights
 import io.provenance.scope.loan.test.MetadataAssetModelArbs.anyValidValidationRecord
 import tech.figure.loan.v1beta1.MISMOLoanMetadata
+import tech.figure.proto.util.toProtoAny
 import tech.figure.loan.v1beta1.Loan as FigureTechLoan
 
 @Ignored
-internal class RandomLoanGenerationExperiment : WordSpec({
+internal class TestDataGenerators : WordSpec({
     /* Helpers */
     val mapper = ObjectMapper().also { objectMapper ->
         objectMapper.registerModule(ProtobufModule())
@@ -59,14 +62,12 @@ internal class RandomLoanGenerationExperiment : WordSpec({
                 )
             }
         }
-        "!be able to generate a random asset for a Figure Tech loan" {
-            // TODO: Convert to JsonNode and alter loan value JsonNode to unpacked version
+        "be able to generate a random asset for a Figure Tech loan" {
             println(
                 mapper.writeValueAsString(anyValidAsset<FigureTechLoan>().next(randomSource))
             )
         }
-        "!be able to generate a random asset for a MISMO loan" {
-            // TODO: Convert to JsonNode and alter loan value JsonNode to unpacked version
+        "be able to generate a random asset for a MISMO loan" {
             println(
                 mapper.writeValueAsString(anyValidAsset<MISMOLoanMetadata>().next(randomSource))
             )
@@ -83,7 +84,7 @@ internal class RandomLoanGenerationExperiment : WordSpec({
         }
         "be able to generate random servicing data" {
             println(
-                mapper.writeValueAsString(anyValidServicingData(loanStateCount = 4).next(randomSource))
+                mapper.writeValueAsString(anyValidServicingData(loanStateAndDocumentCount = 4).next(randomSource))
             )
         }
         "be able to generate a random validation record" {
@@ -94,6 +95,23 @@ internal class RandomLoanGenerationExperiment : WordSpec({
         "be able to generate random loan documents" {
             println(
                 mapper.writeValueAsString(anyValidLoanDocumentSet(size = 4).next(randomSource))
+            )
+        }
+        "be able to generate random servicing documents" {
+            println(
+                mapper.writeValueAsString(
+                    anyValidLoanDocumentSet(size = 1).next(randomSource).toBuilder().also { documentsBuilder ->
+                        documentsBuilder.putMetadataKv(
+                            servicingDocumentsKey,
+                            DocumentRecordingGuidance.newBuilder().also { guidanceBuilder ->
+                                guidanceBuilder.putDesignatedDocuments(
+                                    documentsBuilder.getDocument(0).id.value,
+                                    true
+                                )
+                            }.build().toProtoAny()
+                        )
+                    }.build()
+                )
             )
         }
     }

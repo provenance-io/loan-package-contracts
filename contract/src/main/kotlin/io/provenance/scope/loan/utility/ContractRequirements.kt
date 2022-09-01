@@ -84,14 +84,20 @@ internal fun validateRequirements(
  * Should be used to wrap code bodies that also performs actions other than validation.
  *
  * @param requirementType The type of validation being performed.
- * @param checksBody a body of code which contains calls to [ContractEnforcementContext.requireThat].
+ * @param checksBody A body of code which contains calls to [ContractEnforcementContext.requireThat].
+ * @throws Exception if at least one violation was collected in [checksBody].
+ * @return The result of [checksBody], if no violations were collected.
  */
-internal fun validateRequirements(
+internal fun <T> validateRequirements(
     requirementType: ContractRequirementType,
-    checksBody: ContractEnforcementContext.() -> Unit,
-) = ContractEnforcementContext(requirementType)
-    .apply(checksBody)
-    .handleViolations()
+    checksBody: ContractEnforcementContext.() -> T,
+): T {
+    with(ContractEnforcementContext(requirementType)) {
+        val result = checksBody()
+        handleViolations()
+        return result
+    }
+}
 
 /**
  * Aggregates multiple [ContractEnforcement]s into a single exception listing all of the [ContractViolation]s that

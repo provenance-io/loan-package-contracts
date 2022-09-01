@@ -444,15 +444,12 @@ internal object MetadataAssetModelArbs {
     }
     fun anyValidLoanDocumentSet(size: Int, slippage: Int = 10): Arb<LoanDocuments> =
         anyValidDocumentSet(size = size, slippage = slippage).map { documentList ->
-            LoanDocuments.newBuilder().also { documentsBuilder ->
-                documentsBuilder.clearDocument()
-                documentsBuilder.addAllDocument(documentList)
-            }.build()
+            documentList.toRecord()
         }
-    fun anyValidServicingData(loanStateCount: Int, slippage: Int = 10): Arb<ServicingData> =
+    fun anyValidServicingData(loanStateAndDocumentCount: Int, slippage: Int = 10): Arb<ServicingData> =
         Arb.bind(
-            anyValidDocumentSet(size = loanStateCount, slippage = slippage),
-            loanStateSet(size = loanStateCount, slippage = slippage),
+            anyValidDocumentSet(size = loanStateAndDocumentCount, slippage = slippage),
+            loanStateSet(size = loanStateAndDocumentCount, slippage = slippage),
         ) { documents, loanStates ->
             ServicingData.newBuilder().also { servicingDataBuilder ->
                 servicingDataBuilder.clearDocMeta()
@@ -496,7 +493,7 @@ internal object MetadataAssetModelArbs {
         anyValidAsset<T>(),
         anyValidENote(maxAssumptionCount = maxAssumptionCount, maxModificationCount = maxModificationCount),
         anyValidServicingRights,
-        anyValidServicingData(loanStateCount = loanStateCount),
+        anyValidServicingData(loanStateAndDocumentCount = loanStateCount),
         anyValidValidationRecord(iterationCount = iterationCount),
         anyValidLoanDocumentSet(size = loanDocumentCount),
     ) { randomAsset, randomENote, randomServicingRights, randomServicingData, randomValidationRecord, randomLoanDocuments ->
@@ -610,6 +607,13 @@ internal fun <T> List<T>.breakOffLast(): Pair<List<T>, T> {
         "Must supply a list with at least one element"
     }
     return dropLast(1) to takeLast(1)[0]
+}
+
+internal fun <T> List<T>.breakOffLast(split: Int): Pair<List<T>, List<T>> {
+    require(split in 0..size) {
+        "Must supply a valid split"
+    }
+    return dropLast(split) to takeLast(split)
 }
 
 internal fun <T> Arb<List<T>>.toPair(): Arb<Pair<T, T>> = map { list -> list[0] to list[1] }

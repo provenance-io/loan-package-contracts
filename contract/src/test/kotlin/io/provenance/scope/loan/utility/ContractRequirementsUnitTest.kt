@@ -4,6 +4,8 @@ import io.kotest.assertions.throwables.shouldNotThrow
 import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.core.spec.style.WordSpec
 import io.kotest.core.test.TestCaseOrder
+import io.kotest.matchers.collections.shouldContainExactlyInAnyOrder
+import io.kotest.matchers.ints.shouldBeExactly
 import io.kotest.matchers.ints.shouldBeGreaterThanOrEqual
 import io.kotest.matchers.ints.shouldBeInRange
 import io.kotest.matchers.ints.shouldBeLessThan
@@ -11,8 +13,12 @@ import io.kotest.matchers.shouldBe
 import io.kotest.matchers.string.shouldContainIgnoringCase
 import io.kotest.matchers.types.shouldBeTypeOf
 import io.kotest.property.Arb
+import io.kotest.property.arbitrary.flatMap
+import io.kotest.property.arbitrary.int
 import io.kotest.property.arbitrary.list
 import io.kotest.property.checkAll
+import io.provenance.scope.loan.test.MetadataAssetModelArbs.anyValidDocumentMetadata
+import io.provenance.scope.loan.test.MetadataAssetModelArbs.anyValidServicingData
 import io.provenance.scope.loan.test.PrimitiveArbs
 import io.provenance.scope.loan.test.shouldHaveViolationCount
 
@@ -141,6 +147,23 @@ class ContractRequirementsUnitTest : WordSpec({
                                 3 shouldBeLessThan 4
                             }
                         }
+                    }
+                }
+            }
+            "return the result of its body when no violations are raised" {
+                checkAll(
+                    Arb.int(min = 0, max = 6).flatMap { documentCount ->
+                        anyValidServicingData(loanStateAndDocumentCount = documentCount)
+                    },
+                    anyValidDocumentMetadata,
+                ) { randomServicingData, randomDocumentMetadata ->
+                    validateRequirements(ContractRequirementType.VALID_INPUT) {
+                        randomServicingData.toBuilder().also { servicingDataBuilder ->
+                            servicingDataBuilder.addDocMeta(randomDocumentMetadata)
+                        }.build()
+                    }.let { modifiedServicingData ->
+                        modifiedServicingData.docMetaCount shouldBeExactly randomServicingData.docMetaCount + 1
+                        modifiedServicingData.docMetaList shouldContainExactlyInAnyOrder randomServicingData.docMetaList + randomDocumentMetadata
                     }
                 }
             }

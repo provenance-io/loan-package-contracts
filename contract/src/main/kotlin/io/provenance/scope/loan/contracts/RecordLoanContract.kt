@@ -63,7 +63,7 @@ open class RecordLoanContract(
             }
             if (newAsset.containsKv(assetLoanKey) xor newAsset.containsKv(assetMismoKey)) {
                 newAsset.kvMap[assetLoanKey]?.let { newLoanValue ->
-                    newLoanValue.tryUnpackingAs<FigureTechLoan>("input asset's \"${assetLoanKey}\"") { newLoan ->
+                    newLoanValue.tryUnpackingAs<FigureTechLoan, Unit>("input asset's \"${assetLoanKey}\"") { newLoan ->
                         if (existingAsset.isSet()) {
                             existingAsset!!.kvMap[assetLoanKey]?.toFigureTechLoan()?.also { existingLoan ->
                                 requireThat(
@@ -82,7 +82,7 @@ open class RecordLoanContract(
                     }
                 }
                 newAsset.kvMap[assetMismoKey]?.let { newLoanValue ->
-                    newLoanValue.tryUnpackingAs<MISMOLoanMetadata>("input asset's \"${assetMismoKey}\"") { newLoan ->
+                    newLoanValue.tryUnpackingAs<MISMOLoanMetadata, Unit>("input asset's \"${assetMismoKey}\"") { newLoan ->
                         documentValidation(newLoan.document)
                         if (existingAsset.isSet()) {
                             existingAsset!!.kvMap[assetMismoKey]?.toMISMOLoan()?.also { existingLoan ->
@@ -116,10 +116,12 @@ open class RecordLoanContract(
     @Function(invokedBy = PartyType.OWNER)
     @Record(LoanScopeFacts.servicingData)
     open fun recordServicingData(@Input(LoanScopeFacts.servicingData) servicingData: ServicingData) =
-        updateServicingData(
-            existingServicingData = existingServicingData ?: ServicingData.getDefaultInstance(),
-            newServicingData = servicingData,
-        )
+        validateRequirements(VALID_INPUT) {
+            updateServicingData(
+                existingServicingData = existingServicingData ?: ServicingData.getDefaultInstance(),
+                newServicingData = servicingData,
+            )
+        }
 
     @Function(invokedBy = PartyType.OWNER)
     @Record(LoanScopeFacts.loanValidations)

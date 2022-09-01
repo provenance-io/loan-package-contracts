@@ -9,7 +9,9 @@ import io.provenance.scope.contract.proto.Specifications.PartyType
 import io.provenance.scope.contract.spec.P8eContract
 import io.provenance.scope.loan.LoanScopeFacts
 import io.provenance.scope.loan.LoanScopeInputs
+import io.provenance.scope.loan.utility.ContractRequirementType.VALID_INPUT
 import io.provenance.scope.loan.utility.updateServicingData
+import io.provenance.scope.loan.utility.validateRequirements
 import tech.figure.servicing.v1beta1.LoanStateOuterClass.LoanStateSubmission
 import tech.figure.servicing.v1beta1.LoanStateOuterClass.ServicingData
 
@@ -22,10 +24,13 @@ open class AppendLoanStatesContract(
     @Function(invokedBy = PartyType.SERVICER)
     @Record(LoanScopeFacts.servicingData)
     open fun appendLoanStates(@Input(LoanScopeInputs.newLoanStates) newLoanStates: LoanStateSubmission): ServicingData =
-        updateServicingData(
-            existingServicingData = existingServicingData ?: ServicingData.getDefaultInstance(),
-            newServicingData = ServicingData.newBuilder().also { incomingBuilder ->
-                incomingBuilder.addAllLoanState(newLoanStates.loanStateList)
-            }.build(),
-        )
+        validateRequirements(VALID_INPUT) {
+            updateServicingData(
+                existingServicingData = existingServicingData ?: ServicingData.getDefaultInstance(),
+                newServicingData = ServicingData.newBuilder().also { incomingBuilder ->
+                    incomingBuilder.addAllLoanState(newLoanStates.loanStateList)
+                }.build(),
+                expectLoanStates = true,
+            )
+        }
 }
