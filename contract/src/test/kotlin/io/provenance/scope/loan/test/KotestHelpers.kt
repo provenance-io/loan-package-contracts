@@ -414,6 +414,8 @@ internal object MetadataAssetModelArbs {
         maxAssumptionCount: Int = 10,
         minModificationCount: Int = 0,
         maxModificationCount: Int = 10,
+        minSignatureCount: Int = 0,
+        maxSignatureCount: Int = 10,
     ): Arb<ENote> = Arb.bind(
         anyValidENoteController,
         anyValidDocumentMetadata,
@@ -421,7 +423,8 @@ internal object MetadataAssetModelArbs {
         PrimitiveArbs.anyNonEmptyString,
         Arb.list(anyValidDocumentMetadata, range = minModificationCount..maxModificationCount),
         Arb.list(anyValidDocumentMetadata, range = minAssumptionCount..maxAssumptionCount),
-    ) { controller, document, signedDate, vaultName, modifications, assumptions ->
+        Arb.list(anyValidDocumentMetadata, range = minSignatureCount..maxSignatureCount),
+    ) { controller, document, signedDate, vaultName, modifications, assumptions, signatures ->
         ENote.newBuilder().also { eNoteBuilder ->
             eNoteBuilder.controller = controller
             eNoteBuilder.eNote = document
@@ -431,6 +434,8 @@ internal object MetadataAssetModelArbs {
             eNoteBuilder.addAllModification(modifications)
             eNoteBuilder.clearAssumption()
             eNoteBuilder.addAllAssumption(assumptions)
+            eNoteBuilder.clearBorrowerSignatureImage()
+            eNoteBuilder.addAllBorrowerSignatureImage(signatures)
         }.build()
     }
     val anyValidServicingRights: Arb<ServicingRights> = Arb.bind(

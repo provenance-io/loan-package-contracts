@@ -27,7 +27,7 @@ object Versions {
         const val JacksonProtobuf = "0.9.12"
         object Provenance {
             const val Scope = "0.6.2"
-            const val MetadataAssetModel = "0.1.13"
+            const val MetadataAssetModel = "0.1.14"
         }
     }
 }

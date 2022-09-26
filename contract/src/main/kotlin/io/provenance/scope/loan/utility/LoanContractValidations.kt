@@ -49,6 +49,7 @@ internal val documentValidation: ContractEnforcementContext.(DocumentMetadata) -
             setDocument.uri.isNotBlank()          orError "Document$documentIdSnippet is missing URI",
             setDocument.contentType.isNotBlank()  orError "Document$documentIdSnippet is missing content type",
             setDocument.documentType.isNotBlank() orError "Document$documentIdSnippet is missing document type",
+            setDocument.fileName.isNotBlank()     orError "Document$documentIdSnippet is missing file name",
         )
         checksumValidation("Document$documentIdSnippet", setDocument.checksum)
     } ?: raiseError("Document is not set")
@@ -70,6 +71,7 @@ internal val eNoteDocumentValidation: ContractEnforcementContext.(DocumentMetada
             setENote.uri.isNotBlank()          orError "eNote is missing URI",
             setENote.contentType.isNotBlank()  orError "eNote is missing content type",
             setENote.documentType.isNotBlank() orError "eNote is missing document type",
+            setENote.fileName.isNotBlank()     orError "eNote is missing file name",
         )
         checksumValidation("eNote", setENote.checksum)
     } ?: raiseError("eNote document is not set")
@@ -90,6 +92,16 @@ internal val eNoteValidation: ContractEnforcementContext.(ENote) -> Unit = { eNo
             setENote.signedDate.isValidForSignedDate() orError "eNote must have valid signed date",
             setENote.vaultName.isNotBlank()            orError "eNote is missing vault name",
         )
+        val borrowerSignatureChecksums = mutableMapOf<String, Boolean>()
+        eNote.borrowerSignatureImageList.forEach { signature ->
+            documentValidation(signature)
+            signature.checksum.checksum?.let { newSignatureChecksum ->
+                if (borrowerSignatureChecksums[newSignatureChecksum] == true) {
+                    raiseError("Borrower signature with checksum $newSignatureChecksum is provided more than once in input")
+                }
+                borrowerSignatureChecksums[newSignatureChecksum] = true
+            }
+        }
     } ?: raiseError("eNote is not set")
 }
 
