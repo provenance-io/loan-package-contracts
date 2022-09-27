@@ -95,7 +95,7 @@ internal val eNoteValidation: ContractEnforcementContext.(ENote) -> Unit = { eNo
         val borrowerSignatureChecksums = mutableMapOf<String, Boolean>()
         eNote.borrowerSignatureImageList.forEach { signature ->
             documentValidation(signature)
-            signature.checksum.checksum?.let { newSignatureChecksum ->
+            signature.checksum.checksum.takeIf { it.isNotBlank() }?.let { newSignatureChecksum ->
                 if (borrowerSignatureChecksums[newSignatureChecksum] == true) {
                     raiseError("Borrower signature with checksum $newSignatureChecksum is provided more than once in input")
                 }
