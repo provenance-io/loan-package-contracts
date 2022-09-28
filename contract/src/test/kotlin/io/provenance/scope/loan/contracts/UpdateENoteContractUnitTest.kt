@@ -158,7 +158,8 @@ class UpdateENoteContractUnitTest : WordSpec({
                     anyNonEmptyString,
                     anyNonEmptyString,
                     anyNonEmptyString,
-                ) { randomExistingENote, randomId, randomUri, randomContentType, randomDocumentType, randomChecksumAlgorithm ->
+                    anyNonEmptyString,
+                ) { randomExistingENote, randomId, randomUri, randomContentType, randomDocumentType, randomFileName, randomChecksumAlgorithm ->
                     shouldThrow<ContractViolationException> {
                         UpdateENoteContract(
                             existingENote = randomExistingENote,
@@ -168,6 +169,7 @@ class UpdateENoteContractUnitTest : WordSpec({
                                 eNoteBuilder.uri = randomUri
                                 eNoteBuilder.contentType = randomContentType
                                 eNoteBuilder.documentType = randomDocumentType
+                                eNoteBuilder.fileName = randomFileName
                                 eNoteBuilder.checksum = FigureTechChecksum.newBuilder().also { checksumBuilder ->
                                     checksumBuilder.clearChecksum()
                                     checksumBuilder.algorithm = randomChecksumAlgorithm

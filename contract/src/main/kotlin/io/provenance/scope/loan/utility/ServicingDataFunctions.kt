@@ -64,25 +64,21 @@ internal fun ContractEnforcementContext.appendLoanStates(
         /* Validate the input data */
         loanStateValidation(state)
         /* Validate each property constrained as unique against the existing data and incoming data */
-        state.checksum?.checksum?.let { checksum ->
+        state.checksum.checksum.takeIf { it.isNotBlank() }?.let { checksum ->
             requireThat(!existingStateChecksums.getOrDefault(checksum, false) orError "Loan state with checksum $checksum already exists")
             requireThat(
                 !incomingStateChecksums.getOrDefault(checksum, false) orError "Loan state with checksum $checksum is provided more than once in input"
             )
-            if (checksum.isNotBlank()) {
-                incomingStateChecksums[checksum] = true
-            }
+            incomingStateChecksums[checksum] = true
         }
-        state.id?.value?.let { id ->
+        state.id.value.takeIf { it.isNotBlank() }?.let { id ->
             requireThat(!existingStateIds.getOrDefault(id, false) orError "Loan state with ID $id already exists")
             requireThat(
                 !incomingStateIds.getOrDefault(id, false) orError "Loan state with ID $id is provided more than once in input"
             )
-            if (id.isNotBlank()) {
-                incomingStateIds[id] = true
-            }
+            incomingStateIds[id] = true
         }
-        state.effectiveTime?.let { effectiveTime ->
+        state.effectiveTime.takeIf { it.isValid() }?.let { effectiveTime ->
             requireThat(
                 !existingStateTimes.getOrDefault(effectiveTime.seconds to effectiveTime.nanos, false)
                     orError "Loan state with effective time ${effectiveTime.toOffsetDateTime()} already exists"
@@ -91,9 +87,7 @@ internal fun ContractEnforcementContext.appendLoanStates(
                 !incomingStateTimes.getOrDefault(effectiveTime.seconds to effectiveTime.nanos, false)
                     orError "Loan state with effective time ${effectiveTime.toOffsetDateTime()} is provided more than once in input"
             )
-            if (effectiveTime.isValid()) {
-                incomingStateTimes[effectiveTime.seconds to effectiveTime.nanos] = true
-            }
+            incomingStateTimes[effectiveTime.seconds to effectiveTime.nanos] = true
         }
         /* Append new data - if a violation was found, the eventual thrown exception prevents the changes from persisting */
         servicingDataBuilder.addLoanState(state)
@@ -104,16 +98,11 @@ internal fun ContractEnforcementContext.appendServicingDocuments(
     servicingDataBuilder: ServicingData.Builder,
     newDocuments: Collection<DocumentMetadata>,
 ) {
-    val existingDocumentMetadata = mutableMapOf<String, DocumentMetadata>()
-    servicingDataBuilder.docMetaList.forEach { documentMetadata ->
-        documentMetadata.checksum.takeIf { it.isSet() }?.checksum?.let { checksum ->
-            existingDocumentMetadata[checksum] = documentMetadata
-        }
-    }
+    val existingDocumentMetadata = servicingDataBuilder.docMetaList.toChecksumMap()
     val incomingDocumentChecksums = mutableMapOf<String, Boolean>()
     for (newDocument in newDocuments) {
         documentValidation(newDocument)
-        newDocument.checksum.checksum?.let { newDocChecksum ->
+        newDocument.checksum.checksum.takeIf { it.isNotBlank() }?.let { newDocChecksum ->
             if (incomingDocumentChecksums[newDocChecksum] == true) {
                 raiseError("Loan document with checksum $newDocChecksum is provided more than once in input")
             }
@@ -123,6 +112,7 @@ internal fun ContractEnforcementContext.appendServicingDocuments(
                     newDocument,
                 )
             }
+            incomingDocumentChecksums[newDocChecksum] = true
             /* Append new data - if a violation was found, the eventual thrown exception prevents the changes from persisting */
             servicingDataBuilder.addDocMeta(newDocument)
         }

@@ -20,6 +20,7 @@ import io.provenance.scope.loan.test.MetadataAssetModelArbs.anyInvalidUuid
 import io.provenance.scope.loan.test.MetadataAssetModelArbs.anyNonNegativeMoney
 import io.provenance.scope.loan.test.MetadataAssetModelArbs.anyPastNonEpochDate
 import io.provenance.scope.loan.test.MetadataAssetModelArbs.anyUuid
+import io.provenance.scope.loan.test.MetadataAssetModelArbs.anyValidChecksum
 import io.provenance.scope.loan.test.MetadataAssetModelArbs.anyValidDocumentMetadata
 import io.provenance.scope.loan.test.MetadataAssetModelArbs.anyValidDocumentSet
 import io.provenance.scope.loan.test.MetadataAssetModelArbs.anyValidENoteController
@@ -134,6 +135,41 @@ class RecordENoteContractUnitTest : WordSpec({
                         }.let { exception ->
                             exception shouldHaveViolationCount 1
                             exception.message shouldContain "eNote must have valid signed date"
+                        }
+                    }
+                }
+            }
+            "given an input with duplicate signature checksums" should {
+                "throw an appropriate exception" {
+                    checkAll(
+                        anyValidENoteController,
+                        anyValidDocumentMetadata,
+                        anyNonEmptyString,
+                        anyPastNonEpochDate,
+                        anyValidDocumentSet(size = 2),
+                        anyValidChecksum,
+                    ) { randomController, randomENote, randomVaultName, randomSignedDate, randomSignatures, randomDuplicateChecksum ->
+                        shouldThrow<ContractViolationException> {
+                            recordENote(
+                                ENote.newBuilder().also { eNoteBuilder ->
+                                    eNoteBuilder.controller = randomController
+                                    eNoteBuilder.eNote = randomENote
+                                    eNoteBuilder.vaultName = randomVaultName
+                                    eNoteBuilder.signedDate = randomSignedDate
+                                    eNoteBuilder.clearBorrowerSignatureImage()
+                                    eNoteBuilder.addAllBorrowerSignatureImage(
+                                        randomSignatures.map { signature ->
+                                            signature.toBuilder().also { signatureBuilder ->
+                                                signatureBuilder.checksum = randomDuplicateChecksum
+                                            }.build()
+                                        }
+                                    )
+                                }.build()
+                            )
+                        }.let { exception ->
+                            exception shouldHaveViolationCount 1
+                            exception.message shouldContain
+                                "Borrower signature with checksum ${randomDuplicateChecksum.checksum} is provided more than once in input"
                         }
                     }
                 }

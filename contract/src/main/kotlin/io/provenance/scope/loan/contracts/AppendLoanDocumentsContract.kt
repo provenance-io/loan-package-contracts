@@ -15,12 +15,12 @@ import io.provenance.scope.loan.utility.documentModificationValidation
 import io.provenance.scope.loan.utility.documentValidation
 import io.provenance.scope.loan.utility.isSet
 import io.provenance.scope.loan.utility.raiseError
+import io.provenance.scope.loan.utility.toChecksumMap
 import io.provenance.scope.loan.utility.tryUnpackingAs
 import io.provenance.scope.loan.utility.updateServicingData
 import io.provenance.scope.loan.utility.validateRequirements
 import tech.figure.loan.v1beta1.LoanDocuments
 import tech.figure.servicing.v1beta1.LoanStateOuterClass.ServicingData
-import tech.figure.util.v1beta1.DocumentMetadata
 
 @Participants(roles = [PartyType.OWNER])
 @ScopeSpecification(["tech.figure.loan"])
@@ -35,20 +35,16 @@ open class AppendLoanDocumentsContract(
         val newDocList = existingDocs?.toBuilder() ?: LoanDocuments.newBuilder()
         validateRequirements(VALID_INPUT) {
             /* Primitive type used for protobuf keys to avoid comparison interference from unknown fields */
-            val existingDocumentMetadata = mutableMapOf<String, DocumentMetadata>()
-            if (newDocs.documentList.isNotEmpty()) {
-                existingDocs?.documentList?.forEach { documentMetadata ->
-                    documentMetadata.checksum.checksum.takeIf { it.isNotBlank() }?.let { checksum ->
-                        existingDocumentMetadata[checksum] = documentMetadata
-                    }
-                }
+            val existingDocumentMetadata = if (newDocs.documentList.isNotEmpty()) {
+                existingDocs?.documentList?.toChecksumMap() ?: emptyMap()
             } else {
                 raiseError("Must supply at least one document")
+                emptyMap()
             }
             val incomingDocChecksums = mutableMapOf<String, Boolean>()
             newDocs.documentList.forEach { newDocument ->
                 documentValidation(newDocument)
-                newDocument.checksum.checksum?.let { newDocChecksum ->
+                newDocument.checksum.checksum.takeIf { it.isNotBlank() }?.let { newDocChecksum ->
                     if (incomingDocChecksums[newDocChecksum] == true) {
                         raiseError("Loan document with checksum $newDocChecksum is provided more than once in input")
                     }
