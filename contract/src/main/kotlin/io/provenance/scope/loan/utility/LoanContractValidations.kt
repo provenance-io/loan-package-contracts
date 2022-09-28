@@ -10,10 +10,13 @@ import tech.figure.validation.v1beta1.ValidationRequest
 import tech.figure.validation.v1beta1.ValidationResults
 import io.dartinc.registry.v1beta1.Controller as ENoteController
 
+/**
+ * Performs validation to prevent a new document from changing specific fields of an existing document with the same checksum.
+ */
 internal fun ContractEnforcementContext.documentModificationValidation(
     existingDocument: DocumentMetadata,
     newDocument: DocumentMetadata,
-) {
+): List<ContractEnforcement> =
     existingDocument.checksum.checksum.let { existingChecksum ->
         if (existingChecksum == newDocument.checksum.checksum) {
             val checksumSnippet = if (existingChecksum.isNotBlank()) {
@@ -33,9 +36,10 @@ internal fun ContractEnforcementContext.documentModificationValidation(
                 (existingDocument.documentType == newDocument.documentType)
                     orError "Cannot change document type of existing document$checksumSnippet",
             )
+        } else {
+            emptyList()
         }
     }
-}
 
 internal val documentValidation: ContractEnforcementContext.(DocumentMetadata) -> Unit = { document ->
     document.takeIf { it.isSet() }?.also { setDocument ->

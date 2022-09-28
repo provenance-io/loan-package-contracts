@@ -27,6 +27,7 @@ import io.provenance.scope.loan.test.MetadataAssetModelArbs.anyValidENoteControl
 import io.provenance.scope.loan.test.MetadataAssetModelArbs.loanStateSet
 import io.provenance.scope.loan.test.PrimitiveArbs.anyNonEmptyString
 import io.provenance.scope.loan.test.shouldHaveViolationCount
+import io.provenance.scope.loan.test.toPair
 import io.provenance.scope.loan.utility.ContractViolationException
 import io.provenance.scope.loan.utility.isSet
 import tech.figure.servicing.v1beta1.LoanStateOuterClass.ServicingData
@@ -214,10 +215,9 @@ class RecordENoteContractUnitTest : WordSpec({
                 "throw an appropriate exception" {
                     checkAll(
                         loanStateSet(size = 1),
-                        anyValidDocumentMetadata,
-                        anyValidDocumentMetadata,
+                        anyValidDocumentSet(size = 2).toPair(),
                         anyInvalidUuid,
-                    ) { randomLoanState, randomFirstValidDocument, randomSecondDocument, randomInvalidId ->
+                    ) { randomLoanState, (randomFirstValidDocument, randomSecondDocument), randomInvalidId ->
                         shouldThrow<ContractViolationException> {
                             recordServicingData(
                                 ServicingData.newBuilder().also { servicingDataBuilder ->
