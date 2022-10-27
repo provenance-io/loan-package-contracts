@@ -10,10 +10,13 @@ import tech.figure.validation.v1beta1.ValidationRequest
 import tech.figure.validation.v1beta1.ValidationResults
 import io.dartinc.registry.v1beta1.Controller as ENoteController
 
+/**
+ * Performs validation to prevent a new document from changing specific fields of an existing document with the same checksum.
+ */
 internal fun ContractEnforcementContext.documentModificationValidation(
     existingDocument: DocumentMetadata,
     newDocument: DocumentMetadata,
-) {
+): List<ContractEnforcement> =
     existingDocument.checksum.checksum.let { existingChecksum ->
         if (existingChecksum == newDocument.checksum.checksum) {
             val checksumSnippet = if (existingChecksum.isNotBlank()) {
@@ -22,20 +25,24 @@ internal fun ContractEnforcementContext.documentModificationValidation(
                 ""
             }
             requireThat(
-                (existingDocument.checksum.algorithm == newDocument.checksum.algorithm)
-                    orError "Cannot change checksum algorithm of existing document$checksumSnippet",
-                (existingDocument.id == newDocument.id)
+                existingDocument.checksum.algorithm.let { existingAlgorithm ->
+                    (
+                        existingAlgorithm == newDocument.checksum.algorithm || existingAlgorithm.isNullOrBlank()
+                        ) orError "Cannot change checksum algorithm of existing document$checksumSnippet"
+                },
+                (existingDocument.id == newDocument.id || existingDocument.id.value.isNullOrBlank())
                     orError "Cannot change ID of existing document$checksumSnippet",
-                (existingDocument.uri == newDocument.uri)
+                (existingDocument.uri == newDocument.uri || existingDocument.uri.isNullOrBlank())
                     orError "Cannot change URI of existing document$checksumSnippet",
-                (existingDocument.contentType == newDocument.contentType)
+                (existingDocument.contentType == newDocument.contentType || existingDocument.contentType.isNullOrBlank())
                     orError "Cannot change content type of existing document$checksumSnippet",
-                (existingDocument.documentType == newDocument.documentType)
+                (existingDocument.documentType == newDocument.documentType || existingDocument.documentType.isNullOrBlank())
                     orError "Cannot change document type of existing document$checksumSnippet",
             )
+        } else {
+            emptyList()
         }
     }
-}
 
 internal val documentValidation: ContractEnforcementContext.(DocumentMetadata) -> Unit = { document ->
     document.takeIf { it.isSet() }?.also { setDocument ->

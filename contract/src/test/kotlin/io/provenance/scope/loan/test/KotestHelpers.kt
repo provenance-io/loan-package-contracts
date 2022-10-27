@@ -611,7 +611,7 @@ internal fun <T> List<T>.breakOffLast(): Pair<List<T>, T> {
     require(isNotEmpty()) {
         "Must supply a list with at least one element"
     }
-    return dropLast(1) to takeLast(1)[0]
+    return dropLast(1) to last()
 }
 
 internal fun <T> List<T>.breakOffLast(split: Int): Pair<List<T>, List<T>> {

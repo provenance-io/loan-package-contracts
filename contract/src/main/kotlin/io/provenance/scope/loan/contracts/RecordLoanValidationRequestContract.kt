@@ -28,11 +28,13 @@ open class RecordLoanValidationRequestContract(
     open fun recordLoanValidationRequest(@Input(LoanScopeInputs.validationRequest) submission: ValidationRequest): LoanValidation {
         validateRequirements(VALID_INPUT) {
             loanValidationRequestValidation(submission)
-            requireThat(
-                validationRecord?.iterationList?.none { iteration ->
-                    iteration.request.requestId == submission.requestId
-                } orError "A validation iteration with the same request ID already exists",
-            )
+            validationRecord?.let { existingValidationRecord ->
+                requireThat(
+                    existingValidationRecord.iterationList.none { iteration ->
+                        iteration.request.requestId == submission.requestId
+                    } orError "A validation iteration with the same request ID already exists",
+                )
+            }
         }
         return (validationRecord?.toBuilder() ?: LoanValidation.newBuilder()).also { recordBuilder ->
             recordBuilder.addIteration(
