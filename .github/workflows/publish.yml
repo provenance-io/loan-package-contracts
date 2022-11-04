@@ -7,6 +7,11 @@ on:
         description: 'The version to publish'
         required: true
         type: string
+      skipMavenPublishing:
+        description: 'Skip publishing to Maven'
+        type: boolean
+        required: true
+        default: false
       publishing_environment:
         description: 'Environment to bootstrap the contracts to'
         required: true
@@ -53,7 +58,6 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v3
         with:
-          fetch-depth: 0
           ref: ${{ github.event.inputs.version }}
 
       - name: Set up JDK 11
@@ -81,6 +85,7 @@ jobs:
           echo -n "${{ secrets.OSSRH_GPG_SECRET_KEY }}" | base64 --decode > $GITHUB_WORKSPACE/release.gpg
 
       - name: Publish to Maven Central
+        if: github.event.inputs.skipMavenPublishing == false
         run: |
           VERSION=$( echo ${{ github.event.inputs.version }} | sed -e 's/^v//' )
           ./gradlew publishToSonatype -Pversion="$VERSION" \
