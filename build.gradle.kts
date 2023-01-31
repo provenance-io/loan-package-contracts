@@ -11,29 +11,26 @@ buildscript {
     }
 }
 
+@Suppress("DSL_SCOPE_VIOLATION") // https://github.com/gradle/gradle/issues/22797
 plugins {
-    pluginSpecs(
-        Plugins.KotlinJvm,
-        Plugins.Kover,
-        Plugins.GitHubRelease,
-        Plugins.NexusPublishing,
-        Plugins.P8ePublishing,
-    )
+    kotlin("jvm") version "1.6.21" apply false
+    id("java")
+    alias(libs.plugins.kover)
+    alias(libs.plugins.nexusPublishing)
+    alias(libs.plugins.p8e.publishing)
     signing
 }
 
 /** Ktlint */
 
-val ktlint by configurations.creating
+val ktlint: Configuration by configurations.creating
 
 dependencies {
-    ktlint(Dependencies.Ktlint.toDependencyNotation()) {
+    ktlint(libs.ktlint) {
         attributes {
             attribute(Bundling.BUNDLING_ATTRIBUTE, objects.named(Bundling.EXTERNAL))
         }
     }
-    Dependencies.Provenance.BouncyCastleProvider
-    Dependencies.Provenance.BouncyCastle
     // ktlint(project(":custom-ktlint-ruleset")) // in case of custom ruleset
 }
 
@@ -100,6 +97,8 @@ subprojects {
     val subProjectName = name
 
     apply {
+        plugin("idea")
+        plugin("java")
         plugin("signing")
     }
 
@@ -134,6 +133,11 @@ subprojects {
                             name.set("Cody Worsnop")
                             email.set("cworsnop@figure.com")
                         }
+                        developer {
+                            id.set("rpatel-figure")
+                            name.set("Ravi Patel")
+                            email.set("rpatel@figure.com")
+                        }
                     }
 
                     scm {
@@ -155,6 +159,11 @@ subprojects {
             }
         }
     }
+}
+
+tasks.withType<JavaCompile> {
+    sourceCompatibility = JavaVersion.VERSION_11.toString()
+    targetCompatibility = JavaVersion.VERSION_11.toString()
 }
 
 nexusPublishing {
