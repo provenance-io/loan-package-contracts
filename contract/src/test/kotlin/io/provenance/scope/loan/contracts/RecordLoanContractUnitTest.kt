@@ -7,8 +7,6 @@ import io.kotest.core.test.TestCaseOrder
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.string.shouldContain
 import io.kotest.matchers.string.shouldContainIgnoringCase
-import io.kotest.property.Arb
-import io.kotest.property.arbitrary.choice
 import io.kotest.property.checkAll
 import io.provenance.scope.loan.LoanScopeProperties.assetLoanKey
 import io.provenance.scope.loan.LoanScopeProperties.assetMismoKey
@@ -46,8 +44,7 @@ class RecordLoanContractUnitTest : WordSpec({
                     exception shouldHaveViolationCount 3
                     exception.message shouldContainIgnoringCase "Asset must have valid ID"
                     exception.message shouldContainIgnoringCase "Asset is missing type"
-                    exception.message shouldContainIgnoringCase
-                        "Exactly one of \"$assetLoanKey\" or \"$assetMismoKey\" must be a key in the input asset"
+                    exception.message shouldContainIgnoringCase "\"$assetLoanKey\" must be a key in the input asset"
                 }
             }
         }
@@ -69,7 +66,7 @@ class RecordLoanContractUnitTest : WordSpec({
                 }
             }
         }
-        "given an input to an empty scope with a loan value not of the expected MISMO loan type" should {
+        "given an input to an empty scope with an invalid MISMO loan value and no Figure Tech loan type" should {
             "throw an appropriate exception" {
                 checkAll(anyUuid, anyNonEmptyString) { randomAssetId, randomAssetType ->
                     Asset.newBuilder().also { assetBuilder ->
@@ -80,7 +77,8 @@ class RecordLoanContractUnitTest : WordSpec({
                         shouldThrow<ContractViolationException> {
                             recordContractWithEmptyScope.recordAsset(assetWithBadLoanType)
                         }.let { exception ->
-                            exception shouldHaveViolationCount 1
+                            exception shouldHaveViolationCount 2
+                            exception.message shouldContain "\"loan\" must be a key in the input asset"
                             exception.message shouldContain "Could not unpack the input asset's \"$assetMismoKey\" as $MISMOLoanIdentifier"
                         }
                     }
@@ -310,60 +308,6 @@ class RecordLoanContractUnitTest : WordSpec({
                 }
             }
         }
-        "given an input to an empty scope with more than one type of loan" should {
-            "throw an appropriate exception" {
-                checkAll(
-                    anyUuid,
-                    anyNonEmptyString,
-                    anyValidFigureTechLoan,
-                    anyValidMismoLoan
-                ) { randomAssetId, randomAssetType, randomFigureTechLoan, randomMismoLoan ->
-                    shouldThrow<ContractViolationException> {
-                        recordContractWithEmptyScope.recordAsset(
-                            Asset.newBuilder().also { assetBuilder ->
-                                assetBuilder.id = randomAssetId
-                                assetBuilder.type = randomAssetType
-                                assetBuilder.putKv(assetLoanKey, randomFigureTechLoan.toProtoAny())
-                                assetBuilder.putKv(assetMismoKey, randomMismoLoan.toProtoAny())
-                            }.build()
-                        )
-                    }.let { exception ->
-                        exception.message shouldContain "Exactly one of \"$assetLoanKey\" or \"$assetMismoKey\" must be a key in the input asset"
-                    }
-                }
-            }
-        }
-        "given an input with more than one type of loan to update an existing asset record" should {
-            "throw an appropriate exception" {
-                checkAll(
-                    Arb.choice(anyValidAsset<FigureTechLoan>(), anyValidAsset<MISMOLoanMetadata>()),
-                    anyUuid,
-                    anyNonEmptyString,
-                    anyValidFigureTechLoan,
-                    anyValidMismoLoan
-                ) { randomExistingAsset, randomAssetId, randomAssetType, randomFigureTechLoan, randomMismoLoan ->
-                    shouldThrow<ContractViolationException> {
-                        RecordLoanContract(
-                            existingAsset = randomExistingAsset,
-                            // The rest of the parameters are not relevant to this test case
-                            existingENote = ENote.getDefaultInstance(),
-                            existingServicingData = ServicingData.getDefaultInstance(),
-                            existingServicingRights = ServicingRights.getDefaultInstance(),
-                        )
-                        recordContractWithEmptyScope.recordAsset(
-                            Asset.newBuilder().also { assetBuilder ->
-                                assetBuilder.id = randomAssetId
-                                assetBuilder.type = randomAssetType
-                                assetBuilder.putKv(assetLoanKey, randomFigureTechLoan.toProtoAny())
-                                assetBuilder.putKv(assetMismoKey, randomMismoLoan.toProtoAny())
-                            }.build()
-                        )
-                    }.let { exception ->
-                        exception.message shouldContain "Exactly one of \"$assetLoanKey\" or \"$assetMismoKey\" must be a key in the input asset"
-                    }
-                }
-            }
-        }
         "given an input with a loan of a different type than the existing Figure Tech loan" should {
             "throw an appropriate exception" {
                 checkAll(anyUuid, anyUuid, anyValidUli) { randomAssetId, randomLoanId, randomUli ->
@@ -403,9 +347,14 @@ class RecordLoanContractUnitTest : WordSpec({
                 }
             }
         }
-        "given an input with a loan of a different type than the existing MISMO loan" should {
+        "given an input with a MISMO loan of a different type than the existing MISMO loan" should {
             "throw an appropriate exception" {
-                checkAll(anyUuid, anyUuid, anyValidUli) { randomAssetId, randomLoanId, randomUli ->
+                checkAll(
+                    anyUuid,
+                    anyUuid,
+                    anyValidUli,
+                    anyValidFigureTechLoan,
+                ) { randomAssetId, randomLoanId, randomUli, randomLoan ->
                     val existingAsset = Asset.newBuilder().also { assetBuilder ->
                         assetBuilder.id = randomAssetId // To mark the existing asset as being set
                         assetBuilder.putKv(
@@ -414,6 +363,7 @@ class RecordLoanContractUnitTest : WordSpec({
                                 loanBuilder.uli = randomUli
                             }.build().toProtoAny()
                         )
+                        assetBuilder.putKv(assetLoanKey, randomLoan.toProtoAny())
                     }.build()
                     val newAsset = Asset.newBuilder().also { assetBuilder ->
                         assetBuilder.id = randomAssetId
@@ -423,6 +373,7 @@ class RecordLoanContractUnitTest : WordSpec({
                                 loanBuilder.id = randomLoanId
                             }.build().toProtoAny()
                         )
+                        assetBuilder.putKv(assetLoanKey, randomLoan.toProtoAny())
                     }.build()
                     shouldThrow<ContractViolationException> {
                         RecordLoanContract(
@@ -489,27 +440,30 @@ class RecordLoanContractUnitTest : WordSpec({
                     anyValidUli,
                     anyUuid,
                     anyNonEmptyString,
+                    anyValidFigureTechLoan,
                     anyValidMismoLoan,
-                ) { randomExistingUli, randomNewUli, randomAssetId, randomAssetType, randomLoan ->
+                ) { randomExistingUli, randomNewUli, randomAssetId, randomAssetType, randomLoan, randomMismoLoan ->
                     val existingAsset = Asset.newBuilder().also { assetBuilder ->
                         assetBuilder.id = randomAssetId
                         assetBuilder.type = randomAssetType
                         assetBuilder.putKv(
                             assetMismoKey,
-                            randomLoan.toBuilder().also { loanBuilder ->
+                            randomMismoLoan.toBuilder().also { loanBuilder ->
                                 loanBuilder.uli = randomExistingUli
                             }.build().toProtoAny()
                         )
+                        assetBuilder.putKv(assetLoanKey, randomLoan.toProtoAny())
                     }.build()
                     val newAsset = Asset.newBuilder().also { assetBuilder ->
                         assetBuilder.id = randomAssetId
                         assetBuilder.type = randomAssetType
                         assetBuilder.putKv(
                             assetMismoKey,
-                            randomLoan.toBuilder().also { loanBuilder ->
+                            randomMismoLoan.toBuilder().also { loanBuilder ->
                                 loanBuilder.uli = randomNewUli
                             }.build().toProtoAny()
                         )
+                        assetBuilder.putKv(assetLoanKey, randomLoan.toProtoAny())
                     }.build()
                     if (randomExistingUli != randomNewUli) {
                         shouldThrow<ContractViolationException> {
@@ -530,7 +484,7 @@ class RecordLoanContractUnitTest : WordSpec({
                 }
             }
         }
-        "given an input to an empty scope with a valid Figure Tech loan" should {
+        "given an input to an empty scope with a valid Figure Tech loan and no MISMO loan" should {
             "not throw an exception" {
                 checkAll(anyUuid, anyNonEmptyString, anyValidFigureTechLoan) { randomAssetId, randomType, randomLoan ->
                     recordContractWithEmptyScope.recordAsset(
@@ -542,8 +496,7 @@ class RecordLoanContractUnitTest : WordSpec({
                     ).let { newAsset ->
                         newAsset.id shouldBe randomAssetId
                         newAsset.type shouldBe randomType
-                        /* We don't use anyValidAsset<FigureTechLoan>() for this test case so that we can make the following check useful */
-                        newAsset.kvMap[assetLoanKey]!!.toFigureTechLoan() shouldBe randomLoan
+                        newAsset.kvMap[assetLoanKey]?.toFigureTechLoan() shouldBe randomLoan
                     }
                 }
             }
@@ -553,39 +506,74 @@ class RecordLoanContractUnitTest : WordSpec({
                 // TODO: Implement
             }
         }
-        "given a Figure Tech loan input to update an existing MISMO loan record" should {
-            "throw an appropriate exception" {
-                checkAll(anyValidAsset<MISMOLoanMetadata>(), anyValidAsset<FigureTechLoan>()) { randomExistingAsset, randomNewAsset ->
-                    shouldThrow<ContractViolationException> {
-                        RecordLoanContract(
-                            existingAsset = randomExistingAsset,
-                            // The rest of the parameters are not relevant to this test case
-                            existingENote = ENote.getDefaultInstance(),
-                            existingServicingData = ServicingData.getDefaultInstance(),
-                            existingServicingRights = ServicingRights.getDefaultInstance(),
-                        ).recordAsset(
-                            newAsset = randomNewAsset
-                        )
-                    }.let { exception ->
-                        exception.message shouldContain "The input asset had key \"${assetLoanKey}\" but the existing asset did not"
+        "given an asset which removes the MISMO loan from an existing loan record" should {
+            "not throw an exception" {
+                checkAll(
+                    anyValidAsset(hasMismoLoan = true),
+                ) { randomExistingAsset ->
+                    val randomNewAsset = randomExistingAsset.toBuilder().also { newAssetBuilder ->
+                        newAssetBuilder.removeKv(assetMismoKey)
+                    }.build()
+                    RecordLoanContract(
+                        existingAsset = randomExistingAsset,
+                        // The rest of the parameters are not relevant to this test case
+                        existingENote = ENote.getDefaultInstance(),
+                        existingServicingData = ServicingData.getDefaultInstance(),
+                        existingServicingRights = ServicingRights.getDefaultInstance(),
+                    ).recordAsset(
+                        newAsset = randomNewAsset
+                    ).let { resultingNewAsset ->
+                        resultingNewAsset.id shouldBe randomExistingAsset.id
+                        resultingNewAsset.type shouldBe randomExistingAsset.type
+                        resultingNewAsset.kvMap[assetMismoKey] shouldBe null
                     }
                 }
             }
         }
-        "given an input to an empty scope with a valid MISMO loan" should {
+        "given an asset which adds a MISMO loan to an existing loan record" should {
             "not throw an exception" {
-                checkAll(anyUuid, anyNonEmptyString, anyValidMismoLoan) { randomAssetId, randomType, randomLoan ->
+                checkAll(
+                    anyValidAsset(hasMismoLoan = true),
+                ) { randomNewAsset ->
+                    val randomExistingAsset = randomNewAsset.toBuilder().also { existingAssetBuilder ->
+                        existingAssetBuilder.removeKv(assetMismoKey)
+                    }.build()
+                    RecordLoanContract(
+                        existingAsset = randomExistingAsset,
+                        // The rest of the parameters are not relevant to this test case
+                        existingENote = ENote.getDefaultInstance(),
+                        existingServicingData = ServicingData.getDefaultInstance(),
+                        existingServicingRights = ServicingRights.getDefaultInstance(),
+                    ).recordAsset(
+                        newAsset = randomNewAsset
+                    ).let { resultingNewAsset ->
+                        resultingNewAsset.id shouldBe randomExistingAsset.id
+                        resultingNewAsset.type shouldBe randomExistingAsset.type
+                        resultingNewAsset.kvMap[assetMismoKey] shouldBe randomNewAsset.kvMap[assetMismoKey]
+                    }
+                }
+            }
+        }
+        "given an input to an empty scope with a valid Figure Tech loan and valid MISMO loan" should {
+            "not throw an exception" {
+                checkAll(
+                    anyUuid,
+                    anyNonEmptyString,
+                    anyValidFigureTechLoan,
+                    anyValidMismoLoan,
+                ) { randomAssetId, randomType, randomFigureTechLoan, randomMismoLoan ->
                     recordContractWithEmptyScope.recordAsset(
                         Asset.newBuilder().apply {
                             id = randomAssetId
                             type = randomType
-                            putKv(assetMismoKey, randomLoan.toProtoAny())
+                            putKv(assetMismoKey, randomMismoLoan.toProtoAny())
+                            putKv(assetLoanKey, randomFigureTechLoan.toProtoAny())
                         }.build()
                     ).let { newAsset ->
                         newAsset.id shouldBe randomAssetId
                         newAsset.type shouldBe randomType
-                        /* We don't use anyValidAsset<MISMOLoanMetadata>() for this test case so that we can make the following check useful */
-                        newAsset.kvMap[assetMismoKey]!!.toMISMOLoan() shouldBe randomLoan
+                        newAsset.kvMap[assetLoanKey]?.toFigureTechLoan() shouldBe randomFigureTechLoan
+                        newAsset.kvMap[assetMismoKey]?.toMISMOLoan() shouldBe randomMismoLoan
                     }
                 }
             }
@@ -595,9 +583,17 @@ class RecordLoanContractUnitTest : WordSpec({
                 // TODO: Implement
             }
         }
-        "given a MISMO loan input to update an existing Figure Tech loan record" should {
+        "given an input with a MISMO loan but no Figure Tech loan to update an existing Figure Tech loan record" should {
             "throw an appropriate exception" {
-                checkAll(anyValidAsset<FigureTechLoan>(), anyValidAsset<MISMOLoanMetadata>()) { randomExistingAsset, randomNewAsset ->
+                checkAll(
+                    anyValidAsset(hasMismoLoan = true),
+                ) { randomBaseAsset ->
+                    val randomExistingAsset = randomBaseAsset.toBuilder().also { existingAssetBuilder ->
+                        existingAssetBuilder.removeKv(assetMismoKey)
+                    }.build()
+                    val randomNewAsset = randomBaseAsset.toBuilder().also { existingAssetBuilder ->
+                        existingAssetBuilder.removeKv(assetLoanKey)
+                    }.build()
                     shouldThrow<ContractViolationException> {
                         RecordLoanContract(
                             existingAsset = randomExistingAsset,
@@ -609,7 +605,7 @@ class RecordLoanContractUnitTest : WordSpec({
                             newAsset = randomNewAsset
                         )
                     }.let { exception ->
-                        exception.message shouldContain "The input asset had key \"${assetMismoKey}\" but the existing asset did not"
+                        exception.message shouldContain "\"${assetLoanKey}\" must be a key in the input asset"
                     }
                 }
             }

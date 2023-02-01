@@ -61,8 +61,8 @@ open class RecordLoanContract(
                     newAsset.type.isNotBlank() orError "Asset is missing type",
                 )
             }
-            if (newAsset.containsKv(assetLoanKey) xor newAsset.containsKv(assetMismoKey)) {
-                newAsset.kvMap[assetLoanKey]?.let { newLoanValue ->
+            if (newAsset.containsKv(assetLoanKey)) {
+                newAsset.kvMap[assetLoanKey]!!.let { newLoanValue ->
                     newLoanValue.tryUnpackingAs<FigureTechLoan, Unit>("input asset's \"${assetLoanKey}\"") { newLoan ->
                         if (existingAsset.isSet()) {
                             existingAsset!!.kvMap[assetLoanKey]?.toFigureTechLoan()?.also { existingLoan ->
@@ -81,24 +81,24 @@ open class RecordLoanContract(
                         }
                     }
                 }
-                newAsset.kvMap[assetMismoKey]?.let { newLoanValue ->
-                    newLoanValue.tryUnpackingAs<MISMOLoanMetadata, Unit>("input asset's \"${assetMismoKey}\"") { newLoan ->
-                        documentValidation(newLoan.document)
-                        if (existingAsset.isSet()) {
-                            existingAsset!!.kvMap[assetMismoKey]?.toMISMOLoan()?.also { existingLoan ->
-                                // TODO: Allow doc with different checksum to replace existing one or not?
-                                documentModificationValidation(existingLoan.document, newLoan.document)
-                                requireThat(
-                                    (existingLoan.uli == newLoan.uli) orError "Cannot change loan ULI",
-                                )
-                            } ?: raiseError("The input asset had key \"${assetMismoKey}\" but the existing asset did not")
-                        } else {
-                            uliValidation(newLoan.uli)
+            } else {
+                raiseError("\"${assetLoanKey}\" must be a key in the input asset")
+            }
+            newAsset.kvMap[assetMismoKey]?.let { newMismoLoanValue ->
+                newMismoLoanValue.tryUnpackingAs<MISMOLoanMetadata, Unit>("input asset's \"${assetMismoKey}\"") { newLoan ->
+                    documentValidation(newLoan.document)
+                    if (existingAsset.isSet()) {
+                        existingAsset!!.kvMap[assetMismoKey]?.toMISMOLoan()?.also { existingLoan ->
+                            // TODO: Allow doc with different checksum to replace existing one or not?
+                            documentModificationValidation(existingLoan.document, newLoan.document)
+                            requireThat(
+                                (existingLoan.uli == newLoan.uli) orError "Cannot change loan ULI",
+                            )
                         }
+                    } else {
+                        uliValidation(newLoan.uli)
                     }
                 }
-            } else {
-                raiseError("Exactly one of \"${assetLoanKey}\" or \"${assetMismoKey}\" must be a key in the input asset")
             }
         }
     }
