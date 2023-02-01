@@ -70,7 +70,13 @@ open class RecordLoanContract(
                                     (existingLoan.id == newLoan.id)                         orError "Cannot change loan ID",
                                     (existingLoan.originatorName == newLoan.originatorName) orError "Cannot change loan originator name",
                                 )
-                            } ?: raiseError("The input asset had key \"${assetLoanKey}\" but the existing asset did not")
+                            } ?: run {
+                                /**
+                                 * This violation breaks executions against loans which were onboarded as MISMO-only loans before
+                                 * support for MISMO-only loans was removed.
+                                 */
+                                raiseError("The input asset had key \"${assetLoanKey}\" but the existing asset did not")
+                            }
                         } else {
                             requireThat(
                                 newLoan.id.isValid()                orError "Loan must have valid ID",
