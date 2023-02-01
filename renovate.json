@@ -1,6 +1,91 @@
 {
-  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "commitMessageExtra": "from `{{#if isPinDigest}}{{{currentDigestShort}}}{{else}}{{#if isSingleVersion}}{{{currentVersion}}}{{else}}{{#if currentValue}}{{{currentValue}}}{{else}}{{{currentDigestShort}}}{{/if}}{{/if}}{{/if}}` to `{{#if isPinDigest}}{{{newDigestShort}}}{{else}}{{#if isMajor}}v{{{newMajor}}}{{else}}{{#if isSingleVersion}}{{{newVersion}}}{{else}}{{#if newValue}}{{{newValue}}}{{else}}{{{newDigestShort}}}{{/if}}{{/if}}{{/if}}{{/if}}`",
   "extends": [
-    "config:base"
-  ]
+    "config:base",
+    "github>whitesource/merge-confidence:beta"
+  ],
+  "separateMinorPatch": true,
+  "patch": {
+    "groupName": "all patch updates"
+  },
+  "labels": ["dependencies"],
+  "packageRules": [
+    {
+      "matchPackagePatterns": [".*"],
+      "allowedVersions": "/^([0-9]+.[0-9]+.[0-9]+|(main|master)-[0-9]+)$/"
+    },
+    {
+      "groupName": "Kotlin",
+      "matchPackagePrefixes": [
+        "org.jetbrains.kotlin"
+      ],
+      "excludePackageNames": [
+        "org.jetbrains.kotlinx.kover"
+      ]
+    },
+    {
+      "groupName": "Protocol Buffers",
+      "matchPackagePrefixes": [
+        "com.google.protobuf"
+      ]
+    },
+    {
+      "groupName": "p8e-scope-sdk",
+      "matchPackagePrefixes": [
+        "io.provenance.p8e.p8e-publish",
+        "io.provenance.scope"
+      ]
+    },
+    {
+      "groupName": "protoc plugins",
+      "matchPackagePrefixes": [
+        "com.github.marcoferrer.krotoplus",
+        "io.envoyproxy.protoc-gen-validate"
+      ]
+    },
+    {
+      "groupName": "GRPC",
+      "matchPackagePrefixes": [
+        "io.grpc"
+      ]
+    },
+    {
+      "groupName": "Kotest",
+      "matchPackagePrefixes": [
+        "io.kotest"
+      ]
+    },
+    {
+      "groupName": "Jackson",
+      "matchPackagePrefixes": [
+        "com.fasterxml.jackson.module",
+        "com.hubspot.jackson"
+      ]
+    },
+    {
+      "groupName": "code quality plugins",
+      "matchPackagePrefixes": [
+        "com.pinterest:ktlint",
+        "org.jetbrains.kotlinx.kover"
+      ]
+    }
+  ],
+  "prConcurrentLimit": 4,
+  "ignorePaths": [
+    "**/node_modules/**",
+    "**/bower_components/**",
+    "**/vendor/**",
+    "**/examples/**",
+    "**/__tests__/**",
+    "**/__fixtures__/**"
+  ],
+  "gradle": {
+    "fileMatch": [
+      "(^|/)buildSrc/.*",
+      "\\.gradle(\\.kts)?$",
+      "(^|/)gradle.properties$",
+      "(^|\\/)gradle\\/.+\\.toml$",
+      "\\.versions\\.toml$"
+    ]
+  }
 }
