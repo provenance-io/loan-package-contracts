@@ -5,42 +5,34 @@ buildscript {
     repositories {
         mavenCentral()
     }
-
-    classpathSpecs(
-        Plugins.GradleProtobuf,
-    )
 }
 
+@Suppress("DSL_SCOPE_VIOLATION") // https://github.com/gradle/gradle/issues/22797
 plugins {
-    pluginSpecs(
-        Plugins.Kotlin,
-        Plugins.Protobuf,
-        Plugins.KrotoPlus,
-    )
+    alias(libs.plugins.protobuf.gradle)
+    alias(libs.plugins.protocGen.krotoPlus)
     `maven-publish`
     `java-library`
 }
 
 dependencies {
-    implementationSpecs(
-        Dependencies.Provenance.ContractBase,
-        Dependencies.Provenance.MetadataAssetModel,
-        Dependencies.ProtocGen.ValidateBase,
-        Dependencies.ProtocGen.ValidateJavaStub,
-        Dependencies.ProtocGen.KrotoPlus,
-        Dependencies.Grpc.Stub,
-        Dependencies.Grpc.Protobuf,
-    )
+    listOf(
+        libs.bundles.protocGen,
+        libs.grpc.protobuf,
+        libs.grpc.stub,
+        libs.metadataAssetModel,
+        libs.p8eScopeSdk.contractBase,
+    ).forEach(::implementation)
 
-    apiSpecs(
-        Dependencies.Protobuf.Java,
-        Dependencies.Protobuf.JavaUtil,
-    )
+    listOf(
+        libs.protobuf.java,
+        libs.protobuf.java.util,
+    ).forEach(::api)
 }
 
 protobuf {
     protoc {
         // The artifact spec for the Protobuf Compiler
-        artifact = Dependencies.Protobuf.Protoc.toDependencyNotation()
+        artifact = "com.google.protobuf:protoc:3.20.1"
     }
 }

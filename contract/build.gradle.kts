@@ -13,19 +13,16 @@ plugins {
 dependencies {
     api(project(":proto"))
 
-    implementationSpecs(
-        Dependencies.Provenance.ContractBase,
-        Dependencies.Provenance.ScopeUtil,
-        Dependencies.Provenance.MetadataAssetModel,
-    )
+    listOf(
+        libs.metadataAssetModel,
+        libs.p8eScopeSdk.contractBase,
+        libs.p8eScopeSdk.util,
+    ).forEach(::implementation)
 
-    testImplementationSpecs(
-        Dependencies.Kotest.Framework,
-        Dependencies.Kotest.Assertions,
-        Dependencies.Kotest.Property,
-        Dependencies.Jackson.KotlinModule,
-        Dependencies.Jackson.ProtobufModule,
-    )
+    listOf(
+        libs.bundles.jackson,
+        libs.bundles.kotest,
+    ).forEach(::testImplementation)
 }
 
 tasks.withType<Test>().configureEach {

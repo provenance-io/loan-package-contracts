@@ -1,0 +1,82 @@
+[versions]
+## Kotlin
+kotlin = "1.6.21"
+## Provenance
+metadataAssetModel = "0.1.14"
+p8eScopeSdk = "0.6.2"
+## Protocol Buffers
+grpc = "1.45.0"
+krotoPlus = "0.6.1"
+protobuf = "3.20.1"
+protobuf_gradle_plugin = "0.8.18"
+protocGenValidate = "0.6.7"
+## Jackson
+jackson_kotlin = "2.13.3"
+jackson_protobuf = "0.9.12"
+## Publishing
+nexusPublishing = "1.1.0"
+p8e_publishing = "0.6.7"
+## Code Quality
+kover = "0.5.1"
+ktlint = "0.45.2"
+## Testing
+kotest = "5.3.0"
+
+[plugins]
+## Development
+idea = { id = "idea" }
+java = { id = "java" }
+kotlin = { id = "kotlin", version.ref = "kotlin" }
+## Protobuf
+protobuf_gradle = { id = "com.google.protobuf", version.ref = "protobuf_gradle_plugin" }
+protocGen_krotoPlus = { id = "com.github.marcoferrer.kroto-plus", version.ref = "krotoPlus" }
+## Code Quality
+kover = { id = "org.jetbrains.kotlinx.kover", version.ref = "kover" }
+## Publishing
+nexusPublishing = { id = "io.github.gradle-nexus.publish-plugin", version.ref = "nexusPublishing" }
+p8e_publishing = { id = "io.provenance.p8e.p8e-publish", version.ref = "p8e_publishing" }
+
+[libraries]
+## Protobuf
+protobuf_java = { module = "com.google.protobuf:protobuf-java", version.ref = "protobuf" }
+protobuf_java_util = { module = "com.google.protobuf:protobuf-java-util", version.ref = "protobuf" }
+protoc = { module = "com.google.protobuf:protoc", version.ref = "protobuf" }
+## ProtocGen
+protocGen_validate_base = { module = "io.envoyproxy.protoc-gen-validate:protoc-gen-validate", version.ref = "protocGenValidate" }
+protocGen_validate_javaStub = { module = "io.envoyproxy.protoc-gen-validate:pgv-java-stub", version.ref = "protocGenValidate" }
+protocGen_krotoPlus = { module = "com.github.marcoferrer.krotoplus:protoc-gen-kroto-plus", version.ref = "krotoPlus" }
+## Provenance
+metadataAssetModel = { module = "io.provenance.model:metadata-asset-model", version.ref = "metadataAssetModel" }
+## p8e
+p8eScopeSdk_contractBase = { module = "io.provenance.scope:contract-base", version.ref = "p8eScopeSdk" }
+p8eScopeSdk_sdk = { module = "io.provenance.scope:sdk", version.ref = "p8eScopeSdk" }
+p8eScopeSdk_util = { module = "io.provenance.scope:util", version.ref = "p8eScopeSdk" }
+## GRPC
+grpc_protobuf = { module = "io.grpc:grpc-protobuf", version.ref = "grpc" }
+grpc_stub = { module = "io.grpc:grpc-stub", version.ref = "grpc" }
+## Code Quality
+ktlint = { module = "com.pinterest:ktlint", version.ref = "ktlint" }
+## Jackson
+jackson_kotlin = { module = "com.fasterxml.jackson.module:jackson-module-kotlin", version.ref = "jackson_kotlin" }
+jackson_protobuf = { module = "com.hubspot.jackson:jackson-datatype-protobuf", version.ref = "jackson_protobuf" }
+
+### Kotest
+kotest_assertions = { module = "io.kotest:kotest-assertions-core", version.ref = "kotest" }
+kotest_framework = { module = "io.kotest:kotest-runner-junit5", version.ref = "kotest" }
+kotest_property = { module = "io.kotest:kotest-property", version.ref = "kotest" }
+
+[bundles]
+jackson = [
+    "jackson_kotlin",
+    "jackson_protobuf",
+]
+kotest = [
+    "kotest_assertions",
+    "kotest_framework",
+    "kotest_property",
+]
+protocGen = [
+    "protocGen_validate_base",
+    "protocGen_validate_javaStub",
+    "protocGen_krotoPlus",
+]
