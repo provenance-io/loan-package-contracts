@@ -13,7 +13,7 @@ buildscript {
 
 @Suppress("DSL_SCOPE_VIOLATION") // https://github.com/gradle/gradle/issues/22797
 plugins {
-    kotlin("jvm") version "1.6.21" apply false
+    kotlin("jvm") version "1.8.0" apply false
     id("java")
     alias(libs.plugins.kover)
     alias(libs.plugins.nexusPublishing)
