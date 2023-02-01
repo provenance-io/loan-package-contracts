@@ -5,7 +5,6 @@ kotlin = "1.6.21"
 metadataAssetModel = "0.1.14"
 p8eScopeSdk = "0.6.2"
 ## Protocol Buffers
-grpc = "1.45.4"
 krotoPlus = "0.6.1"
 protobuf = "3.20.1"
 protobuf_gradle_plugin = "0.8.18"
@@ -51,9 +50,6 @@ metadataAssetModel = { module = "io.provenance.model:metadata-asset-model", vers
 p8eScopeSdk_contractBase = { module = "io.provenance.scope:contract-base", version.ref = "p8eScopeSdk" }
 p8eScopeSdk_sdk = { module = "io.provenance.scope:sdk", version.ref = "p8eScopeSdk" }
 p8eScopeSdk_util = { module = "io.provenance.scope:util", version.ref = "p8eScopeSdk" }
-## GRPC
-grpc_protobuf = { module = "io.grpc:grpc-protobuf", version.ref = "grpc" }
-grpc_stub = { module = "io.grpc:grpc-stub", version.ref = "grpc" }
 ## Code Quality
 ktlint = { module = "com.pinterest:ktlint", version.ref = "ktlint" }
 ## Jackson
