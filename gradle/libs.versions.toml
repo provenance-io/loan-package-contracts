@@ -20,7 +20,7 @@ p8e_publishing = "0.6.7"
 kover = "0.5.1"
 ktlint = "0.45.2"
 ## Testing
-kotest = "5.3.0"
+kotest = "5.5.4"
 
 [plugins]
 ## Development
