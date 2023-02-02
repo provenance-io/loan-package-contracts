@@ -1,6 +1,6 @@
 [versions]
 ## Kotlin
-kotlin = "1.8.0"
+kotlin = "1.8.10"
 ## Provenance
 metadataAssetModel = "0.1.14"
 p8eScopeSdk = "0.6.2"
