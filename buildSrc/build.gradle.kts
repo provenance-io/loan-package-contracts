@@ -16,8 +16,8 @@ java {
 
 tasks.withType<KotlinCompile>().all {
     kotlinOptions {
-        apiVersion = "1.6"
-        languageVersion = "1.6"
+        apiVersion = "1.8"
+        languageVersion = "1.8"
         jvmTarget = "11"
     }
 }
