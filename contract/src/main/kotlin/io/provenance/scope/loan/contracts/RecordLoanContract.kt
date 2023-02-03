@@ -13,7 +13,6 @@ import io.provenance.scope.loan.LoanScopeFacts
 import io.provenance.scope.loan.LoanScopeProperties.assetLoanKey
 import io.provenance.scope.loan.LoanScopeProperties.assetMismoKey
 import io.provenance.scope.loan.utility.ContractRequirementType.VALID_INPUT
-import io.provenance.scope.loan.utility.documentModificationValidation
 import io.provenance.scope.loan.utility.documentValidation
 import io.provenance.scope.loan.utility.eNoteInputValidation
 import io.provenance.scope.loan.utility.isSet
@@ -24,7 +23,6 @@ import io.provenance.scope.loan.utility.orError
 import io.provenance.scope.loan.utility.raiseError
 import io.provenance.scope.loan.utility.servicingRightsInputValidation
 import io.provenance.scope.loan.utility.toFigureTechLoan
-import io.provenance.scope.loan.utility.toMISMOLoan
 import io.provenance.scope.loan.utility.tryUnpackingAs
 import io.provenance.scope.loan.utility.uliValidation
 import io.provenance.scope.loan.utility.updateServicingData
@@ -87,17 +85,6 @@ open class RecordLoanContract(
             newAsset.kvMap[assetMismoKey]?.let { newMismoLoanValue ->
                 newMismoLoanValue.tryUnpackingAs<MISMOLoanMetadata, Unit>("input asset's \"${assetMismoKey}\"") { newLoan ->
                     documentValidation(newLoan.document)
-                    if (existingAsset.isSet()) {
-                        existingAsset!!.kvMap[assetMismoKey]?.toMISMOLoan()?.also { existingLoan ->
-                            // TODO: Allow doc with different checksum to replace existing one or not?
-                            documentModificationValidation(existingLoan.document, newLoan.document)
-                            requireThat(
-                                (existingLoan.uli == newLoan.uli) orError "Cannot change loan ULI",
-                            )
-                        }
-                    } else {
-                        uliValidation(newLoan.uli)
-                    }
                 }
             }
         }

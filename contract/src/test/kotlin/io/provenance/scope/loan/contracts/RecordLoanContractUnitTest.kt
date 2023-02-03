@@ -211,33 +211,6 @@ class RecordLoanContractUnitTest : WordSpec({
                 }
             }
         }
-        "given a MISMO loan input to an empty scope with a ULI of an invalid length" should {
-            "throw an appropriate exception" {
-                checkAll(
-                    anyUuid,
-                    anyNonEmptyString,
-                    anyValidMismoLoan,
-                    anyNonUliString,
-                ) { randomAssetId, randomType, randomLoan, randomInvalidUli ->
-                    Asset.newBuilder().also { assetBuilder ->
-                        assetBuilder.id = randomAssetId
-                        assetBuilder.type = randomType
-                        assetBuilder.putKv(
-                            assetMismoKey,
-                            randomLoan.toBuilder().also { loanBuilder ->
-                                loanBuilder.uli = randomInvalidUli
-                            }.build().toProtoAny()
-                        )
-                    }.build().let { assetWithInvalidId ->
-                        shouldThrow<ContractViolationException> {
-                            recordContractWithEmptyScope.recordAsset(assetWithInvalidId)
-                        }.let { exception ->
-                            exception.message shouldContainIgnoringCase "Loan ULI must be between 23 and 45 (inclusive) characters long"
-                        }
-                    }
-                }
-            }
-        }
         "given an input with invalid changes to the existing asset's ID" should {
             "throw an appropriate exception" {
                 checkAll(anyUuid, anyUuid, anyUuid, anyNonEmptyString) { randomExistingUuid, randomNewUuid, randomLoanId, randomAssetType ->
@@ -428,57 +401,6 @@ class RecordLoanContractUnitTest : WordSpec({
                         }.let { exception ->
                             exception shouldHaveViolationCount 1
                             exception.message shouldContainIgnoringCase "Cannot change loan ID"
-                        }
-                    }
-                }
-            }
-        }
-        "given an input with invalid changes to the existing MISMO loan's ULI" should {
-            "throw an appropriate exception" {
-                checkAll(
-                    anyValidUli,
-                    anyValidUli,
-                    anyUuid,
-                    anyNonEmptyString,
-                    anyValidFigureTechLoan,
-                    anyValidMismoLoan,
-                ) { randomExistingUli, randomNewUli, randomAssetId, randomAssetType, randomLoan, randomMismoLoan ->
-                    val existingAsset = Asset.newBuilder().also { assetBuilder ->
-                        assetBuilder.id = randomAssetId
-                        assetBuilder.type = randomAssetType
-                        assetBuilder.putKv(
-                            assetMismoKey,
-                            randomMismoLoan.toBuilder().also { loanBuilder ->
-                                loanBuilder.uli = randomExistingUli
-                            }.build().toProtoAny()
-                        )
-                        assetBuilder.putKv(assetLoanKey, randomLoan.toProtoAny())
-                    }.build()
-                    val newAsset = Asset.newBuilder().also { assetBuilder ->
-                        assetBuilder.id = randomAssetId
-                        assetBuilder.type = randomAssetType
-                        assetBuilder.putKv(
-                            assetMismoKey,
-                            randomMismoLoan.toBuilder().also { loanBuilder ->
-                                loanBuilder.uli = randomNewUli
-                            }.build().toProtoAny()
-                        )
-                        assetBuilder.putKv(assetLoanKey, randomLoan.toProtoAny())
-                    }.build()
-                    if (randomExistingUli != randomNewUli) {
-                        shouldThrow<ContractViolationException> {
-                            RecordLoanContract(
-                                existingAsset = existingAsset,
-                                // The rest of the parameters are not relevant to this test case
-                                existingENote = ENote.getDefaultInstance(),
-                                existingServicingData = ServicingData.getDefaultInstance(),
-                                existingServicingRights = ServicingRights.getDefaultInstance(),
-                            ).recordAsset(
-                                newAsset = newAsset
-                            )
-                        }.let { exception ->
-                            exception shouldHaveViolationCount 1
-                            exception.message shouldContain "Cannot change loan ULI"
                         }
                     }
                 }
