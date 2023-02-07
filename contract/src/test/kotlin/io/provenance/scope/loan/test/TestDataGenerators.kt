@@ -16,9 +16,7 @@ import io.provenance.scope.loan.test.MetadataAssetModelArbs.anyValidLoanDocument
 import io.provenance.scope.loan.test.MetadataAssetModelArbs.anyValidServicingData
 import io.provenance.scope.loan.test.MetadataAssetModelArbs.anyValidServicingRights
 import io.provenance.scope.loan.test.MetadataAssetModelArbs.anyValidValidationRecord
-import tech.figure.loan.v1beta1.MISMOLoanMetadata
 import tech.figure.proto.util.toProtoAny
-import tech.figure.loan.v1beta1.Loan as FigureTechLoan
 
 @Ignored
 internal class TestDataGenerators : WordSpec({
@@ -30,8 +28,8 @@ internal class TestDataGenerators : WordSpec({
     val randomSource = RandomSource.default()
     /* JSON generators */
     "KotestHelpers" should {
-        "be able to generate a random fully populated Figure Tech loan scope" {
-            anyValidLoan<FigureTechLoan>().next(randomSource).let { randomLoanPackage ->
+        "be able to generate a random fully populated loan scope without a MISMO loan" {
+            anyValidLoan(hasMismoLoan = false).next(randomSource).let { randomLoanPackage ->
                 println(
                     mapper.writeValueAsString(
                         mapOf(
@@ -46,8 +44,8 @@ internal class TestDataGenerators : WordSpec({
                 )
             }
         }
-        "be able to generate a random fully populated MISMO loan scope" {
-            anyValidLoan<MISMOLoanMetadata>().next(randomSource).let { randomLoanPackage ->
+        "be able to generate a random fully populated loan scope with a MISMO loan" {
+            anyValidLoan(hasMismoLoan = true).next(randomSource).let { randomLoanPackage ->
                 println(
                     mapper.writeValueAsString(
                         mapOf(
@@ -64,12 +62,12 @@ internal class TestDataGenerators : WordSpec({
         }
         "be able to generate a random asset for a Figure Tech loan" {
             println(
-                mapper.writeValueAsString(anyValidAsset<FigureTechLoan>().next(randomSource))
+                mapper.writeValueAsString(anyValidAsset(hasMismoLoan = false).next(randomSource))
             )
         }
-        "be able to generate a random asset for a MISMO loan" {
+        "be able to generate a random asset for a Figure Tech loan with a MISMO loan" {
             println(
-                mapper.writeValueAsString(anyValidAsset<MISMOLoanMetadata>().next(randomSource))
+                mapper.writeValueAsString(anyValidAsset(hasMismoLoan = true).next(randomSource))
             )
         }
         "be able to generate a random eNote" {

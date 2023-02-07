@@ -1,7 +1,6 @@
 package io.provenance.scope.loan.test
 
 import com.google.protobuf.InvalidProtocolBufferException
-import com.google.protobuf.Message
 import com.google.protobuf.Timestamp
 import com.google.protobuf.util.Timestamps
 import io.dartinc.registry.v1beta1.Controller
@@ -22,6 +21,7 @@ import io.kotest.property.arbitrary.boolean
 import io.kotest.property.arbitrary.double
 import io.kotest.property.arbitrary.filter
 import io.kotest.property.arbitrary.filterNot
+import io.kotest.property.arbitrary.flatMap
 import io.kotest.property.arbitrary.int
 import io.kotest.property.arbitrary.list
 import io.kotest.property.arbitrary.localDate
@@ -391,21 +391,37 @@ internal object MetadataAssetModelArbs {
         }.build()
     }
     /* Loan scope records */
-    inline fun <reified T : Message> anyValidAsset(): Arb<Asset> =
-        when (T::class) {
-            FigureTechLoan::class -> LoanScopeProperties.assetLoanKey to anyValidFigureTechLoan
-            MISMOLoanMetadata::class -> LoanScopeProperties.assetMismoKey to anyValidMismoLoan
-            else -> throw IllegalArgumentException("Must supply an expected loan type for an asset")
-        }.let { (loanKey, anyLoan) ->
+    fun anyValidAsset(): Arb<Asset> =
+        Arb.boolean().flatMap { hasMismoLoan ->
+            anyValidAsset(hasMismoLoan = hasMismoLoan)
+        }
+    fun anyValidAsset(
+        hasMismoLoan: Boolean,
+    ): Arb<Asset> =
+        if (hasMismoLoan) {
             Arb.bind(
                 anyUuid,
                 PrimitiveArbs.anyNonEmptyString,
-                anyLoan,
-            ) { assetId, assetType, loan ->
+                anyValidFigureTechLoan,
+                anyValidMismoLoan,
+            ) { assetId, assetType, figureTechLoan, mismoLoan ->
                 Asset.newBuilder().also { assetBuilder ->
                     assetBuilder.id = assetId
                     assetBuilder.type = assetType
-                    assetBuilder.putKv(loanKey, loan.toProtoAny())
+                    assetBuilder.putKv(LoanScopeProperties.assetLoanKey, figureTechLoan.toProtoAny())
+                    assetBuilder.putKv(LoanScopeProperties.assetMismoKey, mismoLoan.toProtoAny())
+                }.build()
+            }
+        } else {
+            Arb.bind(
+                anyUuid,
+                PrimitiveArbs.anyNonEmptyString,
+                anyValidFigureTechLoan,
+            ) { assetId, assetType, figureTechLoan ->
+                Asset.newBuilder().also { assetBuilder ->
+                    assetBuilder.id = assetId
+                    assetBuilder.type = assetType
+                    assetBuilder.putKv(LoanScopeProperties.assetLoanKey, figureTechLoan.toProtoAny())
                 }.build()
             }
         }
@@ -488,14 +504,32 @@ internal object MetadataAssetModelArbs {
             }.build()
         }
     }
-    inline fun <reified T : Message> anyValidLoan(
+    fun anyValidLoan(
         maxAssumptionCount: Int = 0,
         maxModificationCount: Int = 0,
         loanStateCount: Int = 3,
         iterationCount: Int = 3,
         loanDocumentCount: Int = 3,
+    ): Arb<LoanPackage> = Arb.boolean().flatMap { hasMismoLoan ->
+        anyValidLoan(
+            maxAssumptionCount = maxAssumptionCount,
+            maxModificationCount = maxModificationCount,
+            loanStateCount = loanStateCount,
+            iterationCount = iterationCount,
+            loanDocumentCount = loanDocumentCount,
+            hasMismoLoan = hasMismoLoan,
+        )
+    }
+
+    fun anyValidLoan(
+        maxAssumptionCount: Int = 0,
+        maxModificationCount: Int = 0,
+        loanStateCount: Int = 3,
+        iterationCount: Int = 3,
+        loanDocumentCount: Int = 3,
+        hasMismoLoan: Boolean,
     ): Arb<LoanPackage> = Arb.bind(
-        anyValidAsset<T>(),
+        anyValidAsset(hasMismoLoan = hasMismoLoan),
         anyValidENote(maxAssumptionCount = maxAssumptionCount, maxModificationCount = maxModificationCount),
         anyValidServicingRights,
         anyValidServicingData(loanStateAndDocumentCount = loanStateCount),
