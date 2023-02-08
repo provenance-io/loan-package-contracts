@@ -2,17 +2,19 @@
 Defines a loan package scope specification and [p8e](https://github.com/provenance-io/p8e-scope-sdk/)
 smart contracts that can be executed against it.
 ## Status
+[![Build][build-badge]][build-workflow]
 [![stability-beta][stability-badge]][stability-info]
 [![Code Coverage][code-coverage-badge]][code-coverage-report]
-[![Latest Release][release-badge]][release-latest]
-
 [![LOC][loc-badge]][loc-url]
 ### Artifacts
+[![Latest Release][release-badge]][release-latest]
 #### Contracts JAR
 [![Contracts Artifact][contracts-publication-badge]][contracts-publication-url]
 #### Protobuf JAR
 [![Proto Artifact][proto-publication-badge]][proto-publication-url]
 
+[build-badge]: https://img.shields.io/github/actions/workflow/status/provenance-io/loan-package-contracts/build.yml?branch=main&style=for-the-badge
+[build-workflow]: https://github.com/provenance-io/loan-package-contracts/actions/workflows/build.yml
 [stability-badge]: https://img.shields.io/badge/stability-beta-33bbff.svg?style=for-the-badge
 [stability-info]: https://github.com/mkenney/software-guides/blob/master/STABILITY-BADGES.md#beta
 [code-coverage-badge]: https://img.shields.io/codecov/c/gh/provenance-io/loan-package-contracts/main?label=Codecov&style=for-the-badge
@@ -25,7 +27,7 @@ smart contracts that can be executed against it.
 [proto-publication-url]: https://maven-badges.herokuapp.com/maven-central/io.provenance.loan-package/proto
 [license-badge]: https://img.shields.io/github/license/provenance-io/loan-package-contracts.svg
 [license-url]: https://github.com/provenance-io/loan-package-contracts/blob/main/LICENSE
-[loc-badge]: https://tokei.rs/b1/github/provenance-io/loan-package-contracts
+[loc-badge]: https://img.shields.io/tokei/lines/github/provenance-io/loan-package-contracts?style=for-the-badge
 [loc-url]: https://github.com/provenance-io/loan-package-contracts
 ## Development
 ### Commands
