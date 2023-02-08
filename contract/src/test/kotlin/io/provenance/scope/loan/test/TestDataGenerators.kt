@@ -37,7 +37,7 @@ internal class TestDataGenerators : WordSpec({
                             LoanScopeFacts.eNote to randomLoanPackage.eNote,
                             LoanScopeFacts.servicingRights to randomLoanPackage.servicingRights,
                             LoanScopeFacts.servicingData to randomLoanPackage.servicingData,
-                            LoanScopeFacts.loanValidations to randomLoanPackage.loanValidations,
+                            LoanScopeFacts.loanValidationMetadata to randomLoanPackage.loanValidations,
                             LoanScopeFacts.documents to randomLoanPackage.documents,
                         )
                     )
@@ -53,7 +53,7 @@ internal class TestDataGenerators : WordSpec({
                             LoanScopeFacts.eNote to randomLoanPackage.eNote,
                             LoanScopeFacts.servicingRights to randomLoanPackage.servicingRights,
                             LoanScopeFacts.servicingData to randomLoanPackage.servicingData,
-                            LoanScopeFacts.loanValidations to randomLoanPackage.loanValidations,
+                            LoanScopeFacts.loanValidationMetadata to randomLoanPackage.loanValidations,
                             LoanScopeFacts.documents to randomLoanPackage.documents,
                         )
                     )

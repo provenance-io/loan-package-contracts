@@ -18,8 +18,8 @@ import io.provenance.scope.loan.test.breakOffLast
 import io.provenance.scope.loan.test.shouldHaveViolationCount
 import io.provenance.scope.loan.utility.ContractViolationException
 import io.provenance.scope.loan.utility.IllegalContractStateException
-import tech.figure.validation.v1beta1.LoanValidation
-import tech.figure.validation.v1beta1.ValidationResponse
+import tech.figure.validation.v1beta2.LoanValidation
+import tech.figure.validation.v1beta2.ValidationResponse
 
 class RecordLoanValidationResultsUnitTest : WordSpec({
     "recordLoanValidationResults" When {
@@ -54,7 +54,7 @@ class RecordLoanValidationResultsUnitTest : WordSpec({
                 }
             }
         }
-        "given an input without a valid result set ID" should {
+        "given an input without a valid result ID" should {
             "throw an appropriate exception" {
                 checkAll(
                     anyValidValidationRecord,
@@ -76,13 +76,13 @@ class RecordLoanValidationResultsUnitTest : WordSpec({
                             submission = ValidationResponse.newBuilder().also { responseBuilder ->
                                 responseBuilder.requestId = randomNewIteration.request.requestId
                                 responseBuilder.results = randomNewIteration.results.toBuilder().also { resultsBuilder ->
-                                    resultsBuilder.resultSetUuid = randomInvalidId
+                                    resultsBuilder.id = randomInvalidId
                                 }.build()
                             }.build()
                         )
                     }.let { exception ->
                         exception shouldHaveViolationCount 1
-                        exception.message shouldContain "Results must have valid result set UUID"
+                        exception.message shouldContain "Results must have valid ID"
                     }
                 }
             }

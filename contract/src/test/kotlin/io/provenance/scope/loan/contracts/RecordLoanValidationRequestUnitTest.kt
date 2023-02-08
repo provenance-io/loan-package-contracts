@@ -13,7 +13,7 @@ import io.provenance.scope.loan.test.MetadataAssetModelArbs.anyInvalidUuid
 import io.provenance.scope.loan.test.MetadataAssetModelArbs.anyValidValidationRequest
 import io.provenance.scope.loan.test.shouldHaveViolationCount
 import io.provenance.scope.loan.utility.ContractViolationException
-import tech.figure.validation.v1beta1.ValidationRequest
+import tech.figure.validation.v1beta2.ValidationRequest
 
 class RecordLoanValidationRequestUnitTest : WordSpec({
     "recordLoanValidationRequest" When {

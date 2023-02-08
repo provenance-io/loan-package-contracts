@@ -2,8 +2,8 @@
 ## Kotlin
 kotlin = "1.8.10"
 ## Provenance
-metadataAssetModel = "0.1.14"
-p8eScopeSdk = "0.6.2"
+metadataAssetModel = "1.0.0"
+p8eScopeSdk = "0.6.4"
 ## Protocol Buffers
 grpc = "1.45.0"
 krotoPlus = "0.6.1"

@@ -9,7 +9,7 @@ import tech.figure.asset.v1beta1.Asset
 import tech.figure.loan.v1beta1.LoanDocuments
 import tech.figure.servicing.v1beta1.LoanStateOuterClass.ServicingData
 import tech.figure.servicing.v1beta1.ServicingRightsOuterClass.ServicingRights
-import tech.figure.validation.v1beta1.LoanValidation
+import tech.figure.validation.v1beta2.LoanValidation
 
 /**
  * Denotes the string literals used in [Record] annotations for the [LoanScopeSpecification] and its contracts.
@@ -19,7 +19,13 @@ object LoanScopeFacts {
     const val documents = "documents"
     const val servicingRights = "servicingRights"
     const val servicingData = "servicingData"
+    @Deprecated(
+        message = "This label is for a record no longer supported by the latest validation contracts.",
+        replaceWith = ReplaceWith("LoanScopeFacts.loanValidationMetadata", "io.provenance.scope.loan.LoanScopeFacts"),
+        level = DeprecationLevel.WARNING,
+    )
     const val loanValidations = "loanValidations"
+    const val loanValidationMetadata = "loanValidation"
     const val eNote = "eNote"
 }
 
@@ -69,7 +75,7 @@ data class LoanPackage(
     /** Servicing data for the loan, including a list of metadata on loan states. */
     @Record(LoanScopeFacts.servicingData) var servicingData: ServicingData,
     /** A list of third-party validation iterations. */
-    @Record(LoanScopeFacts.loanValidations) var loanValidations: LoanValidation,
+    @Record(LoanScopeFacts.loanValidationMetadata) var loanValidations: LoanValidation,
     /** The eNote for the loan. */
     @Record(LoanScopeFacts.eNote) var eNote: ENote,
 )

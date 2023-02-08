@@ -11,15 +11,20 @@ import io.kotest.matchers.ints.shouldBeInRange
 import io.kotest.matchers.ints.shouldBeLessThan
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.string.shouldContainIgnoringCase
+import io.kotest.matchers.string.shouldMatch
 import io.kotest.matchers.types.shouldBeTypeOf
 import io.kotest.property.Arb
 import io.kotest.property.arbitrary.flatMap
 import io.kotest.property.arbitrary.int
+import io.kotest.property.arbitrary.intArray
 import io.kotest.property.arbitrary.list
+import io.kotest.property.arbitrary.map
+import io.kotest.property.arbitrary.of
+import io.kotest.property.arbitrary.pair
 import io.kotest.property.checkAll
 import io.provenance.scope.loan.test.MetadataAssetModelArbs.anyValidDocumentMetadata
 import io.provenance.scope.loan.test.MetadataAssetModelArbs.anyValidServicingData
-import io.provenance.scope.loan.test.PrimitiveArbs
+import io.provenance.scope.loan.test.PrimitiveArbs.anyContractEnforcement
 import io.provenance.scope.loan.test.shouldHaveViolationCount
 
 class ContractRequirementsUnitTest : WordSpec({
@@ -50,7 +55,7 @@ class ContractRequirementsUnitTest : WordSpec({
                 }
             }
             "return state violations only for failed conditions" {
-                checkAll(Arb.list(PrimitiveArbs.anyContractEnforcement)) { enforcementList ->
+                checkAll(Arb.list(anyContractEnforcement)) { enforcementList ->
                     val expectedOverallViolationCount = getExpectedViolationCount(enforcementList)
                     if (expectedOverallViolationCount > 0U) {
                         shouldThrow<IllegalContractStateException> {
@@ -66,7 +71,7 @@ class ContractRequirementsUnitTest : WordSpec({
                 }
             }
             "return input violations only for failed conditions" {
-                checkAll(Arb.list(PrimitiveArbs.anyContractEnforcement)) { enforcementList ->
+                checkAll(Arb.list(anyContractEnforcement)) { enforcementList ->
                     val expectedOverallViolationCount = getExpectedViolationCount(enforcementList)
                     if (expectedOverallViolationCount > 0U) {
                         shouldThrow<ContractViolationException> {
@@ -83,15 +88,40 @@ class ContractRequirementsUnitTest : WordSpec({
             }
         }
         "invoked with a function body" should {
-            "!properly handle calling requireThatEach on a collection with violations in multiple iterations" {
-                shouldThrow<IllegalContractStateException> {
-                    // TODO: Implement
+            "properly handle calling requireThatEach on a collection with violations in multiple iterations" {
+                checkAll(
+                    Arb.int(2..30).flatMap { itemCount ->
+                        Arb.pair(
+                            Arb.intArray(Arb.of(itemCount), Arb.int(min = 0)),
+                            Arb.int(1..itemCount)
+                        )
+                    }.map { (items, invalidItemCount) ->
+                        Pair(
+                            items.toList(),
+                            items.take(invalidItemCount)
+                        )
+                    },
+                ) { (items, invalidItems) ->
+                    shouldThrow<ContractViolationException> {
+                        validateRequirements(ContractRequirementType.VALID_INPUT) {
+                            items.requireThatEach { item ->
+                                askThat(
+                                    (item !in invalidItems) orError "Item is invalid"
+                                )
+                            }
+                        }
+                    }.let { exception ->
+                        exception shouldHaveViolationCount 1
+                        exception.message shouldMatch Regex(
+                            ".*Item is invalid \\[Iterations (\\d+, )*\\d+(\\, \\.\\.\\.\\(\\d+ more omitted\\))?\\].*"
+                        )
+                    }
                 }
             }
             "return state violations only for failed conditions" {
                 checkAll(
-                    Arb.list(PrimitiveArbs.anyContractEnforcement),
-                    Arb.list(PrimitiveArbs.anyContractEnforcement),
+                    Arb.list(anyContractEnforcement),
+                    Arb.list(anyContractEnforcement),
                 ) { enforcementListA, enforcementListB ->
                     val expectedOverallViolationCount = getExpectedViolationCount(enforcementListA + enforcementListB)
                     if (expectedOverallViolationCount > 0U) {
@@ -121,8 +151,8 @@ class ContractRequirementsUnitTest : WordSpec({
             }
             "return input violations only for failed conditions" {
                 checkAll(
-                    Arb.list(PrimitiveArbs.anyContractEnforcement),
-                    Arb.list(PrimitiveArbs.anyContractEnforcement),
+                    Arb.list(anyContractEnforcement),
+                    Arb.list(anyContractEnforcement),
                 ) { enforcementListA, enforcementListB ->
                     val expectedOverallViolationCount = getExpectedViolationCount(enforcementListA + enforcementListB)
                     if (expectedOverallViolationCount > 0U) {

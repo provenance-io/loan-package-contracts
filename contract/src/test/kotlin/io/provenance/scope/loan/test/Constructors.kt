@@ -8,7 +8,7 @@ import io.provenance.scope.loan.contracts.RecordLoanValidationResultsContract
 import tech.figure.asset.v1beta1.Asset
 import tech.figure.servicing.v1beta1.LoanStateOuterClass.ServicingData
 import tech.figure.servicing.v1beta1.ServicingRightsOuterClass.ServicingRights
-import tech.figure.validation.v1beta1.LoanValidation
+import tech.figure.validation.v1beta2.LoanValidation
 import java.util.UUID as JavaUUID
 import tech.figure.util.v1beta1.UUID as FigureTechUUID
 

@@ -32,8 +32,9 @@ import tech.figure.loan.v1beta1.LoanDocuments
 import tech.figure.loan.v1beta1.MISMOLoanMetadata
 import tech.figure.servicing.v1beta1.LoanStateOuterClass.ServicingData
 import tech.figure.servicing.v1beta1.ServicingRightsOuterClass.ServicingRights
-import tech.figure.validation.v1beta1.LoanValidation
 import tech.figure.loan.v1beta1.Loan as FigureTechLoan
+import tech.figure.validation.v1beta1.LoanValidation as LoanValidation_v1beta1
+import tech.figure.validation.v1beta2.LoanValidation as LoanValidation_v1beta2
 
 @Participants(roles = [PartyType.OWNER])
 @ScopeSpecification(["tech.figure.loan"])
@@ -110,9 +111,19 @@ open class RecordLoanContract(
             )
         }
 
+    @Suppress("deprecation")
     @Function(invokedBy = PartyType.OWNER)
     @Record(LoanScopeFacts.loanValidations)
-    open fun recordValidationData(@Input(LoanScopeFacts.loanValidations) loanValidations: LoanValidation) = loanValidations.also(
+    /**
+     * Overwrites the value of the deprecated validation record.
+     *
+     * This function exists to provide backwards compatibility for scopes which used a validation record before the newer one was introduced.
+     */
+    open fun recordOldValidationData(@Input(LoanScopeFacts.loanValidations) loanValidations: LoanValidation_v1beta1) = loanValidations
+
+    @Function(invokedBy = PartyType.OWNER)
+    @Record(LoanScopeFacts.loanValidationMetadata)
+    open fun recordValidationData(@Input(LoanScopeFacts.loanValidationMetadata) loanValidations: LoanValidation_v1beta2) = loanValidations.also(
         loanValidationInputValidation
     )
 
