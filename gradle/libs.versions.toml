@@ -11,8 +11,8 @@ protobuf = "3.20.1"
 protobuf_gradle_plugin = "0.8.18"
 protocGenValidate = "0.6.7"
 ## Jackson
-jackson_kotlin = "2.13.3"
-jackson_protobuf = "0.9.12"
+jackson_kotlin = "2.13.5"
+jackson_protobuf = "0.9.13"
 ## Publishing
 nexusPublishing = "1.1.0"
 p8e_publishing = "0.6.7"
