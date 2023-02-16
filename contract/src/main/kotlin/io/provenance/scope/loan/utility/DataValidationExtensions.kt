@@ -49,21 +49,37 @@ internal fun FigureTechDate?.isValidForSignedDate() = isSet() && this!!.value.is
 
 internal fun FigureTechUUID?.isValid() = isSet() && this!!.value.isNotBlank() && tryOrFalse { JavaUUID.fromString(value) }
 
-internal fun ContractEnforcementContext.checksumValidation(parentDescription: String = "Input", checksum: FigureTechChecksum?) {
+// TODO: Figure out how to DRY this method so it can be used with and without a ContractEnforcementContext, while still letting requireThatEach work
+internal fun ContractEnforcementContext.validateChecksum(
+    parentDescription: String = "Input",
+    checksum: FigureTechChecksum?
+): List<ContractEnforcement> =
     checksum.takeIf { it.isSet() }?.let { setChecksum ->
         requireThat(
             setChecksum.checksum.isNotBlank()  orError "$parentDescription must have a valid checksum string",
             setChecksum.algorithm.isNotBlank() orError "$parentDescription must specify a checksum algorithm",
         )
     } ?: raiseError("$parentDescription's checksum is not set")
-}
 
-internal fun ContractEnforcementContext.moneyValidation(parentDescription: String = "Input's money", money: FigureTechMoney?) {
+internal fun checksumValidation(
+    parentDescription: String = "Input",
+    checksum: FigureTechChecksum?
+): List<ContractEnforcement> =
+    checksum.takeIf { it.isSet() }?.let { setChecksum ->
+        askThat(
+            setChecksum.checksum.isNotBlank()  orError "$parentDescription must have a valid checksum string",
+            setChecksum.algorithm.isNotBlank() orError "$parentDescription must specify a checksum algorithm",
+        )
+    } ?: askToRaiseError("$parentDescription's checksum is not set")
+
+internal fun ContractEnforcementContext.moneyValidation(
+    parentDescription: String = "Input's money",
+    money: FigureTechMoney?
+): List<ContractEnforcement> =
     money.takeIf { it.isSet() }?.let { setMoney ->
         requireThat(
-            setMoney.value.matches(Regex("^[-]?([0-9]+(?:[\\\\.][0-9]+)?|\\\\.[0-9]+)\$")) orError "$parentDescription must have a valid value",
+            setMoney.value.matches(Regex("^-?([0-9]+(?:[\\\\.][0-9]+)?|\\\\.[0-9]+)\$")) orError "$parentDescription must have a valid value",
             (setMoney.currency.length == 3 && setMoney.currency.all { character -> character.isLetter() })
                 orError "$parentDescription must have a 3-letter ISO 4217 currency",
         )
     } ?: raiseError("$parentDescription is not set")
-}

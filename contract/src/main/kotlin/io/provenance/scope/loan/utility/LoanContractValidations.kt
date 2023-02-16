@@ -5,9 +5,9 @@ import tech.figure.loan.v1beta1.LoanDocuments
 import tech.figure.servicing.v1beta1.LoanStateOuterClass.LoanStateMetadata
 import tech.figure.servicing.v1beta1.ServicingRightsOuterClass.ServicingRights
 import tech.figure.util.v1beta1.DocumentMetadata
-import tech.figure.validation.v1beta1.LoanValidation
-import tech.figure.validation.v1beta1.ValidationRequest
-import tech.figure.validation.v1beta1.ValidationResults
+import tech.figure.validation.v1beta2.LoanValidation
+import tech.figure.validation.v1beta2.ValidationRequest
+import tech.figure.validation.v1beta2.ValidationResultsMetadata
 import io.dartinc.registry.v1beta1.Controller as ENoteController
 
 /**
@@ -58,7 +58,7 @@ internal val documentValidation: ContractEnforcementContext.(DocumentMetadata) -
             setDocument.documentType.isNotBlank() orError "Document$documentIdSnippet is missing document type",
             setDocument.fileName.isNotBlank()     orError "Document$documentIdSnippet is missing file name",
         )
-        checksumValidation("Document$documentIdSnippet", setDocument.checksum)
+        validateChecksum("Document$documentIdSnippet", setDocument.checksum)
     } ?: raiseError("Document is not set")
 }
 
@@ -80,7 +80,7 @@ internal val eNoteDocumentValidation: ContractEnforcementContext.(DocumentMetada
             setENote.documentType.isNotBlank() orError "eNote is missing document type",
             setENote.fileName.isNotBlank()     orError "eNote is missing file name",
         )
-        checksumValidation("eNote", setENote.checksum)
+        validateChecksum("eNote", setENote.checksum)
     } ?: raiseError("eNote document is not set")
 }
 
@@ -141,7 +141,7 @@ internal val loanStateValidation: ContractEnforcementContext.(LoanStateMetadata)
         loanState.effectiveTime.isValidForLoanState() orError "Loan state$idSnippet must have valid effective time",
         loanState.uri.isNotBlank()                    orError "Loan state$idSnippet is missing URI",
     )
-    checksumValidation("Loan state$idSnippet", loanState.checksum)
+    validateChecksum("Loan state$idSnippet", loanState.checksum)
 }
 
 internal val loanValidationInputValidation: (LoanValidation) -> Unit = { validationRecord ->
@@ -166,20 +166,47 @@ internal val loanValidationInputValidation: (LoanValidation) -> Unit = { validat
     }
 }
 
-internal val loanValidationResultsValidation: ContractEnforcementContext.(ValidationResults) -> List<ContractEnforcement> = { results ->
+internal val loanValidationResultsValidation: (ValidationResultsMetadata) -> List<ContractEnforcement> = { results ->
     results.takeIf { it.isSet() }?.let { setResults ->
-        requireThat(
-            setResults.resultSetUuid.isValid()                        orError "Results must have valid result set UUID",
-            setResults.resultSetEffectiveTime.isValidAndNotInFuture() orError "Results must have valid effective time",
-            (setResults.validationExceptionCount >= 0)                orError "Results report an invalid validation exception count",
-            (setResults.validationWarningCount >= 0)                  orError "Results report an invalid validation warning count",
-            (setResults.validationItemsCount > 0)                     orError "Results must have at least one validation item",
-            setResults.resultSetProvider.isNotBlank()                 orError "Results missing provider name",
+        listOf(
+            askThat(
+                setResults.id.isValid()                          orError "Results must have valid ID",
+                setResults.effectiveTime.isValidAndNotInFuture() orError "Results must have valid effective time",
+                setResults.uri.isNotBlank()                      orError "Results are missing a URI",
+            ),
+            checksumValidation("Results", setResults.checksum),
+        ).flatten()
+    } ?: askToRaiseError("Results are not set")
+}
+
+internal val loanValidationRequestValidation: (ValidationRequest) -> List<ContractEnforcement> = { request ->
+    request.takeIf { it.isSet() }?.let { setRequest ->
+        askThat(
+            setRequest.requestId.isValid()                   orError "Request must have valid ID",
+            setRequest.effectiveTime.isValidAndNotInFuture() orError "Request must have valid effective time",
+            (setRequest.blockHeight >= 0L)                   orError "Request must have valid block height",
+            setRequest.validatorName.isNotBlank()            orError "Request is missing validator name",
+            setRequest.requesterName.isNotBlank()            orError "Request is missing requester name",
         )
+    } ?: askToRaiseError("Request is not set")
+}
+
+// TODO: Figure out how to DRY this method so it can be used with and without a ContractEnforcementContext, while still letting requireThatEach work
+internal val validateLoanValidationResults: ContractEnforcementContext.(ValidationResultsMetadata) -> List<ContractEnforcement> = { results ->
+    results.takeIf { it.isSet() }?.let { setResults ->
+        listOf(
+            requireThat(
+                setResults.id.isValid()                          orError "Results must have valid ID",
+                setResults.effectiveTime.isValidAndNotInFuture() orError "Results must have valid effective time",
+                setResults.uri.isNotBlank()                      orError "Results are missing a URI",
+            ),
+            validateChecksum("Results", setResults.checksum),
+        ).flatten()
     } ?: raiseError("Results are not set")
 }
 
-internal val loanValidationRequestValidation: ContractEnforcementContext.(ValidationRequest) -> List<ContractEnforcement> = { request ->
+// TODO: Figure out how to DRY this method so it can be used with and without a ContractEnforcementContext, while still letting requireThatEach work
+internal val validateLoanValidationRequest: ContractEnforcementContext.(ValidationRequest) -> List<ContractEnforcement> = { request ->
     request.takeIf { it.isSet() }?.let { setRequest ->
         requireThat(
             setRequest.requestId.isValid()                   orError "Request must have valid ID",

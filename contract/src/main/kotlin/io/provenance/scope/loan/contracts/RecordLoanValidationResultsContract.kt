@@ -12,43 +12,35 @@ import io.provenance.scope.loan.LoanScopeInputs
 import io.provenance.scope.loan.utility.ContractRequirementType
 import io.provenance.scope.loan.utility.isSet
 import io.provenance.scope.loan.utility.isValid
-import io.provenance.scope.loan.utility.loanValidationResultsValidation
 import io.provenance.scope.loan.utility.orError
+import io.provenance.scope.loan.utility.raiseError
+import io.provenance.scope.loan.utility.validateLoanValidationResults
 import io.provenance.scope.loan.utility.validateRequirements
-import tech.figure.validation.v1beta1.LoanValidation
-import tech.figure.validation.v1beta1.ValidationResponse
+import tech.figure.validation.v1beta2.LoanValidation
+import tech.figure.validation.v1beta2.ValidationResponse
 
 @Participants(roles = [PartyType.VALIDATOR])
 @ScopeSpecification(["tech.figure.loan"])
 open class RecordLoanValidationResultsContract(
-    @Record(LoanScopeFacts.loanValidations) val validationRecord: LoanValidation,
+    @Record(LoanScopeFacts.loanValidationMetadata) val validationRecord: LoanValidation,
 ) : P8eContract() {
 
     @Function(invokedBy = PartyType.VALIDATOR)
-    @Record(LoanScopeFacts.loanValidations)
+    @Record(LoanScopeFacts.loanValidationMetadata)
     open fun recordLoanValidationResults(
         @Input(LoanScopeInputs.validationResponse) submission: ValidationResponse
     ): LoanValidation {
         validateRequirements(ContractRequirementType.LEGAL_SCOPE_STATE,
             validationRecord.isSet() orError "A validation iteration must already exist for results to be submitted",
         )
-        validateRequirements(ContractRequirementType.VALID_INPUT) {
+        validateRequirements<Unit>(ContractRequirementType.VALID_INPUT) {
             requireThat(
                 submission.requestId.isValid() orError "Response must have valid ID",
             )
-            loanValidationResultsValidation(submission.results)
+            validateLoanValidationResults(submission.results)
             validationRecord.iterationList.singleOrNull { iteration ->
                 iteration.request.requestId == submission.requestId // For now, we won't support letting results arrive before the request
-            }.let { maybeIteration ->
-                requireThat(
-                    if (maybeIteration === null) {
-                        false orError "No single validation iteration with a matching request ID exists"
-                    } else {
-                        (submission.results.resultSetProvider == maybeIteration.request.validatorName) orError
-                            "Result set provider does not match what was requested in this validation iteration"
-                    }
-                )
-            }
+            } ?: raiseError("No single validation iteration with a matching request ID exists")
         }
         return validationRecord.iterationList.indexOfLast { iteration -> // The enforcement above ensures exactly one match
             iteration.request.requestId == submission.requestId

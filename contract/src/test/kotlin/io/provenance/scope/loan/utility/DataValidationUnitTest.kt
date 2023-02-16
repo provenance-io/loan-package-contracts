@@ -26,8 +26,8 @@ import io.provenance.scope.loan.test.PrimitiveArbs.anyNonUuidString
 import io.provenance.scope.loan.test.PrimitiveArbs.anyZoneOffset
 import io.provenance.scope.loan.test.shouldHaveViolationCount
 import io.provenance.scope.util.toProtoTimestamp
-import tech.figure.validation.v1beta1.ValidationIteration
-import tech.figure.validation.v1beta1.ValidationRequest
+import tech.figure.validation.v1beta2.ValidationIteration
+import tech.figure.validation.v1beta2.ValidationRequest
 import java.time.LocalDateTime
 import java.time.ZoneOffset
 import tech.figure.util.v1beta1.Checksum as FigureTechChecksum
@@ -188,7 +188,7 @@ class DataValidationUnitTest : WordSpec({
         "throw an appropriate exception for a default instance" {
             shouldThrow<ContractViolationException> {
                 validateRequirements(ContractRequirementType.VALID_INPUT) {
-                    checksumValidation(checksum = FigureTechChecksum.getDefaultInstance())
+                    validateChecksum(checksum = FigureTechChecksum.getDefaultInstance())
                 }
             }.let { exception ->
                 exception.message shouldContain "Input's checksum is not set"
@@ -198,7 +198,7 @@ class DataValidationUnitTest : WordSpec({
             checkAll(anyNonEmptyString) { randomChecksum ->
                 shouldThrow<ContractViolationException> {
                     validateRequirements(ContractRequirementType.VALID_INPUT) {
-                        checksumValidation(
+                        validateChecksum(
                             checksum = FigureTechChecksum.newBuilder().apply {
                                 clearAlgorithm()
                                 checksum = randomChecksum
@@ -214,7 +214,7 @@ class DataValidationUnitTest : WordSpec({
             checkAll(anyNonEmptyString) { randomAlgorithm ->
                 shouldThrow<ContractViolationException> {
                     validateRequirements(ContractRequirementType.VALID_INPUT) {
-                        checksumValidation(
+                        validateChecksum(
                             checksum = FigureTechChecksum.newBuilder().apply {
                                 clearChecksum()
                                 algorithm = randomAlgorithm
@@ -229,7 +229,7 @@ class DataValidationUnitTest : WordSpec({
         "not throw an exception for any non-empty checksum and algorithm strings" {
             checkAll(anyNonEmptyString, anyNonEmptyString) { randomChecksum, randomAlgorithm ->
                 validateRequirements(ContractRequirementType.VALID_INPUT) {
-                    checksumValidation(
+                    validateChecksum(
                         checksum = FigureTechChecksum.newBuilder().apply {
                             checksum = randomChecksum
                             algorithm = randomAlgorithm

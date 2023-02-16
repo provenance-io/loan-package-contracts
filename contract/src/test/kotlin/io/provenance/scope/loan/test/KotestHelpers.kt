@@ -49,13 +49,13 @@ import tech.figure.servicing.v1beta1.LoanStateOuterClass.ServicingData
 import tech.figure.servicing.v1beta1.ServicingRightsOuterClass.ServicingRights
 import tech.figure.util.v1beta1.AssetType
 import tech.figure.util.v1beta1.DocumentMetadata
-import tech.figure.validation.v1beta1.LoanValidation
-import tech.figure.validation.v1beta1.ValidationItem
-import tech.figure.validation.v1beta1.ValidationIteration
-import tech.figure.validation.v1beta1.ValidationOutcome
-import tech.figure.validation.v1beta1.ValidationRequest
-import tech.figure.validation.v1beta1.ValidationResponse
-import tech.figure.validation.v1beta1.ValidationResults
+import tech.figure.validation.v1beta2.LoanValidation
+import tech.figure.validation.v1beta2.ValidationItem
+import tech.figure.validation.v1beta2.ValidationIteration
+import tech.figure.validation.v1beta2.ValidationOutcome
+import tech.figure.validation.v1beta2.ValidationRequest
+import tech.figure.validation.v1beta2.ValidationResponse
+import tech.figure.validation.v1beta2.ValidationResultsMetadata
 import java.text.DecimalFormat
 import java.text.DecimalFormatSymbols
 import java.time.Instant
@@ -343,50 +343,32 @@ internal object MetadataAssetModelArbs {
         anyUuid,
         anyPastNonEpochTimestamp,
         PrimitiveArbs.anyNonEmptyString,
-        Arb.int(min = 0),
-        Arb.int(min = 0),
-        Arb.list(anyValidValidationItem, range = 1..(if (KotestConfig.runTestsExtended) 50 else 10)),
-        Arb.list(anyValidDocumentMetadata, range = 0..(if (KotestConfig.runTestsExtended) 50 else 10)),
-    ) { requestId, resultSetId, effectiveTime, providerName, exceptionCount, warningCount, validationItems, policyDocuments ->
+        anyValidChecksum,
+    ) { requestId, resultsId, effectiveTime, uri, checksum ->
         ValidationResponse.newBuilder().also { responseBuilder ->
             responseBuilder.requestId = requestId
-            responseBuilder.results = ValidationResults.newBuilder().also { resultsBuilder ->
-                resultsBuilder.resultSetUuid = resultSetId
-                resultsBuilder.resultSetEffectiveTime = effectiveTime
-                resultsBuilder.resultSetProvider = providerName
-                resultsBuilder.validationExceptionCount = exceptionCount
-                resultsBuilder.validationWarningCount = warningCount
-                resultsBuilder.clearValidationItems()
-                resultsBuilder.addAllValidationItems(validationItems)
-                resultsBuilder.clearPolicyDocuments()
-                resultsBuilder.addAllPolicyDocuments(policyDocuments)
+            responseBuilder.results = ValidationResultsMetadata.newBuilder().also { resultsBuilder ->
+                resultsBuilder.id = resultsId
+                resultsBuilder.uri = uri
+                resultsBuilder.checksum = checksum
+                resultsBuilder.effectiveTime = effectiveTime
             }.build()
         }.build()
     }
-    fun anyValidValidationIteration(
-        itemCount: IntRange = 1..5,
-        policyDocumentCount: IntRange = 0..5,
-    ): Arb<ValidationIteration> = Arb.bind(
+    fun anyValidValidationIteration(): Arb<ValidationIteration> = Arb.bind(
         anyValidValidationRequest,
         anyUuid,
         anyPastNonEpochTimestamp,
-        Arb.int(min = 0),
-        Arb.int(min = 0),
-        Arb.list(anyValidValidationItem, itemCount),
-        Arb.list(anyValidDocumentMetadata, policyDocumentCount),
-    ) { request, resultSetId, effectiveTime, exceptionCount, warningCount, validationItems, policyDocuments ->
+        PrimitiveArbs.anyNonEmptyString,
+        anyValidChecksum,
+    ) { request, resultsId, effectiveTime, uri, checksum ->
         ValidationIteration.newBuilder().also { iterationBuilder ->
             iterationBuilder.request = request
-            iterationBuilder.results = ValidationResults.newBuilder().also { resultsBuilder ->
-                resultsBuilder.resultSetUuid = resultSetId
-                resultsBuilder.resultSetEffectiveTime = effectiveTime
-                resultsBuilder.resultSetProvider = request.validatorName
-                resultsBuilder.validationExceptionCount = exceptionCount
-                resultsBuilder.validationWarningCount = warningCount
-                resultsBuilder.clearValidationItems()
-                resultsBuilder.addAllValidationItems(validationItems)
-                resultsBuilder.clearPolicyDocuments()
-                resultsBuilder.addAllPolicyDocuments(policyDocuments)
+            iterationBuilder.results = ValidationResultsMetadata.newBuilder().also { resultsBuilder ->
+                resultsBuilder.id = resultsId
+                resultsBuilder.uri = uri
+                resultsBuilder.checksum = checksum
+                resultsBuilder.effectiveTime = effectiveTime
             }.build()
         }.build()
     }
@@ -482,11 +464,9 @@ internal object MetadataAssetModelArbs {
     fun anyValidValidationRecord(
         iterationCount: Int,
         slippage: Int = 30,
-        itemCounts: IntRange = 1..5,
-        policyDocumentCounts: IntRange = 0..5,
     ): Arb<LoanValidation> = Arb.bind(
         Arb.list(
-            anyValidValidationIteration(itemCount = itemCounts, policyDocumentCount = policyDocumentCounts),
+            anyValidValidationIteration(),
             range = iterationCount..iterationCount
         ),
         anyUuidSet(size = iterationCount, slippage = slippage),

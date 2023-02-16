@@ -61,7 +61,22 @@ internal enum class ContractRequirementType(
 internal infix fun Boolean.orError(error: ContractViolation): ContractEnforcement =
     Pair(this, error)
 
+/**
+ * Immediately raises a [ContractViolation].
+ *
+ * @param error The violation message to propagate.
+ */
 internal fun ContractEnforcementContext.raiseError(error: ContractViolation) = requireThat(false to error)
+
+/**
+ * Defines a [ContractViolation] without immediately enforcing it.
+ *
+ * Should be used over [ContractEnforcementContext.raiseError] within [ContractEnforcementContext.requireThatEach]'s `requirement` body to prevent
+ * duplication in a resulting exception message.
+ *
+ * @param error The violation message to propagate if the violation is enforced.
+ */
+internal fun askToRaiseError(error: ContractViolation) = askThat(false to error)
 
 /**
  * Performs validation of one or more [ContractEnforcement]s.
@@ -129,6 +144,14 @@ private fun ContractViolationMap.handleViolations(
     }
 
 /**
+ * Creates a list of [ContractEnforcement]s without immediately enforcing them.
+ *
+ * Should be used over [ContractEnforcementContext.requireThat] within [ContractEnforcementContext.requireThatEach]'s `requirement` body to prevent
+ * duplication in a resulting exception message.
+ */
+internal fun askThat(vararg enforcements: ContractEnforcement): List<ContractEnforcement> = enforcements.toList()
+
+/**
  * Defines a body in which [ContractEnforcement]s can be freely defined and then collectively evaluated.
  */
 internal class ContractEnforcementContext(
@@ -164,11 +187,12 @@ internal class ContractEnforcementContext(
                 }
             }
         }.forEach { (violationMessage, iterations) ->
-            val iterationsLimit = 5
-            iterations.joinToString(
-                limit = iterationsLimit,
-                truncated = "...(${(iterations.size - iterationsLimit)} more omitted)",
-            ).let { iterationIndicesSnippet ->
+            5.let { iterationsLimit ->
+                iterations.joinToString(
+                    limit = iterationsLimit,
+                    truncated = "...(${(iterations.size - iterationsLimit)} more omitted)",
+                )
+            }.let { iterationIndicesSnippet ->
                 addViolation("$violationMessage [$iterationsDescription $iterationIndicesSnippet]")
             }
         }
