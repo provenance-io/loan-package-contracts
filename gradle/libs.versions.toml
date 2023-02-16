@@ -15,7 +15,7 @@ jackson_kotlin = "2.13.5"
 jackson_protobuf = "0.9.13"
 ## Publishing
 nexusPublishing = "1.1.0"
-p8e_publishing = "0.6.7"
+p8e_publishing = "0.6.8"
 ## Code Quality
 kover = "0.5.1"
 ktlint = "0.45.2"
