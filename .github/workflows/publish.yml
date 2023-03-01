@@ -7,12 +7,17 @@ on:
         description: 'The version to publish'
         required: true
         type: string
-      skipMavenPublishing:
-        description: 'Skip publishing to Maven'
+      publishToMaven:
+        description: 'Publish the contracts and proto JARs to Maven'
         type: boolean
         required: true
-        default: false
-      publishing_environment:
+        default: true
+      bootstrapContracts:
+        description: 'Bootstrap contracts to an object store'
+        type: boolean
+        required: true
+        default: true
+      publishingEnvironment:
         description: 'Environment to bootstrap the contracts to'
         required: true
         default: 'testnet'
@@ -20,45 +25,33 @@ on:
         options:
           - 'testnet'
           - 'mainnet'
-      os_url:
+      objectStoreUrl:
         description: 'Object Store URL'
-        default: 'grpcs://test.figure.com/objectstore.'
-        required: true
-        type: string
-      prov_url:
-        description: 'Provenance URL'
-        default: 'grpcs://34.148.39.82:9090'
-        required: true
-        type: string
-      chain_id:
-        description: 'Chain ID'
-        default: 'pio-testnet-1'
+        default: 'grpcs://grpc.test.figure.com/objectstore.'
         required: true
         type: string
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.event.inputs.chain_id }}
+  group: ${{ github.workflow }}-${{ (github.event.inputs.publishToMaven || github.event.inputs.bootstrapContracts) && github.event.inputs.version || github.event.inputs.chain_id }}
   cancel-in-progress: true
 
 jobs:
   build-and-publish:
     name: Build and Publish Jar
     runs-on: ubuntu-latest
-    environment: ${{ github.event.inputs.publishing_environment }}
+    environment: ${{ github.event.inputs.publishingEnvironment }}
     env:
-      IS_TEST: ${{ github.event.inputs.publishing_environment == 'testnet' }}
-      OS_GRPC_URL: ${{ github.event.inputs.os_url }}
-      PROVENANCE_GRPC_URL: ${{ github.event.inputs.prov_url }}
+      IS_TEST: ${{ github.event.inputs.publishingEnvironment == 'testnet' }}
+      OS_GRPC_URL: ${{ github.event.inputs.objectStoreUrl }}
+      PROVENANCE_GRPC_URL: ${{ github.event.inputs.publishingEnvironment == 'testnet' && 'grpcs://34.148.39.82:9090' || 'grpcs://34.148.50.57:9090' }}
       ENCRYPTION_PRIVATE_KEY: ${{ secrets.ENCRYPTION_PRIVATE_KEY }}
       SIGNING_PRIVATE_KEY: ${{ secrets.SIGNING_PRIVATE_KEY }}
-      CHAIN_ID: ${{ github.event.inputs.chain_id }}
+      CHAIN_ID: ${{ github.event.inputs.publishingEnvironment == 'mainnet' && 'pio-mainnet-1' || 'pio-testnet-1' }}
       OS_GRPC_APIKEY: ${{ secrets.OS_GRPC_APIKEY }}
 
     steps:
       - name: Checkout
         uses: actions/checkout@v3
-        with:
-          ref: ${{ github.event.inputs.version }}
 
       - name: Set up JDK 11
         uses: actions/setup-java@v3
@@ -74,7 +67,8 @@ jobs:
       - name: Check Contract Syntax
         run: ./gradlew p8eClean p8eCheck --info --stacktrace
 
-      - name: Bootstrap Test
+      - name: Bootstrap Contracts
+        if: inputs.bootstrapContracts
         run: ./gradlew p8eBootstrap --info
 
       - name: Install gpg secret key
@@ -85,7 +79,7 @@ jobs:
           echo -n "${{ secrets.OSSRH_GPG_SECRET_KEY }}" | base64 --decode > $GITHUB_WORKSPACE/release.gpg
 
       - name: Publish to Maven Central
-        if: github.event.inputs.skipMavenPublishing == false
+        if: inputs.publishToMaven
         run: |
           VERSION=$( echo ${{ github.event.inputs.version }} | sed -e 's/^v//' )
           ./gradlew publishToSonatype -Pversion="$VERSION" \
