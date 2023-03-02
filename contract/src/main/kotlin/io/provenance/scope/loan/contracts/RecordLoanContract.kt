@@ -15,12 +15,12 @@ import io.provenance.scope.loan.LoanScopeProperties.assetMismoKey
 import io.provenance.scope.loan.utility.ContractRequirementType.VALID_INPUT
 import io.provenance.scope.loan.utility.documentValidation
 import io.provenance.scope.loan.utility.eNoteInputValidation
+import io.provenance.scope.loan.utility.fundingValidation
 import io.provenance.scope.loan.utility.isSet
 import io.provenance.scope.loan.utility.isValid
 import io.provenance.scope.loan.utility.loanDocumentInputValidation
 import io.provenance.scope.loan.utility.loanValidationInputValidation
 import io.provenance.scope.loan.utility.orError
-import io.provenance.scope.loan.utility.raiseError
 import io.provenance.scope.loan.utility.servicingRightsInputValidation
 import io.provenance.scope.loan.utility.toFigureTechLoan
 import io.provenance.scope.loan.utility.tryUnpackingAs
@@ -77,6 +77,9 @@ open class RecordLoanContract(
                                 newLoan.originatorName.isNotBlank() orError "Loan is missing originator name",
                             )
                             uliValidation(newLoan.uli)
+                            newLoan.funding.takeIf { it.isSet() }?.let { newLoanFunding ->
+                                fundingValidation(newLoanFunding)
+                            }
                         }
                     }
                 }

@@ -19,3 +19,5 @@ disabled_rules=wrapping,no-multi-spaces
 disabled_rules=no-multi-spaces
 [contract/**/utility/DataValidationExtensions.kt]
 disabled_rules=no-multi-spaces
+[contract/**/utility/FundingDataValidation.kt]
+disabled_rules=no-multi-spaces

@@ -27,4 +27,5 @@ dependencies {
 
 tasks.withType<Test>().configureEach {
     useJUnitPlatform()
+    maxParallelForks = 2
 }

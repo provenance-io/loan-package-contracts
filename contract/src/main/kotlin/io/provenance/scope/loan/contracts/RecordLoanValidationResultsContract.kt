@@ -12,9 +12,8 @@ import io.provenance.scope.loan.LoanScopeInputs
 import io.provenance.scope.loan.utility.ContractRequirementType
 import io.provenance.scope.loan.utility.isSet
 import io.provenance.scope.loan.utility.isValid
+import io.provenance.scope.loan.utility.loanValidationResultsValidation
 import io.provenance.scope.loan.utility.orError
-import io.provenance.scope.loan.utility.raiseError
-import io.provenance.scope.loan.utility.validateLoanValidationResults
 import io.provenance.scope.loan.utility.validateRequirements
 import tech.figure.validation.v1beta2.LoanValidation
 import tech.figure.validation.v1beta2.ValidationResponse
@@ -37,7 +36,7 @@ open class RecordLoanValidationResultsContract(
             requireThat(
                 submission.requestId.isValid() orError "Response must have valid ID",
             )
-            validateLoanValidationResults(submission.results)
+            loanValidationResultsValidation(submission.results)
             validationRecord.iterationList.singleOrNull { iteration ->
                 iteration.request.requestId == submission.requestId // For now, we won't support letting results arrive before the request
             } ?: raiseError("No single validation iteration with a matching request ID exists")

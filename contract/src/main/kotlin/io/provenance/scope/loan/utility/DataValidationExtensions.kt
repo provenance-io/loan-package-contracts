@@ -36,6 +36,11 @@ internal fun ProtobufTimestamp?.isValid() = this !== null
 
 internal fun ProtobufTimestamp?.isValidAndNotInFuture() = this !== null && toInstant() <= Instant.now()
 
+internal fun ProtobufTimestamp?.isValidForFundingTime() =
+    this !== null &&
+        this != defaultInstanceForType &&
+        toInstant() <= Instant.now()
+
 internal fun ProtobufTimestamp?.isValidForLoanState() =
     this !== null &&
         this != defaultInstanceForType && // TODO: This simply checks != epoch, may want to impose higher lower bound like closing/signing date
@@ -49,11 +54,10 @@ internal fun FigureTechDate?.isValidForSignedDate() = isSet() && this!!.value.is
 
 internal fun FigureTechUUID?.isValid() = isSet() && this!!.value.isNotBlank() && tryOrFalse { JavaUUID.fromString(value) }
 
-// TODO: Figure out how to DRY this method so it can be used with and without a ContractEnforcementContext, while still letting requireThatEach work
-internal fun ContractEnforcementContext.validateChecksum(
+internal fun EnforcementContext.checksumValidation(
     parentDescription: String = "Input",
     checksum: FigureTechChecksum?
-): List<ContractEnforcement> =
+) =
     checksum.takeIf { it.isSet() }?.let { setChecksum ->
         requireThat(
             setChecksum.checksum.isNotBlank()  orError "$parentDescription must have a valid checksum string",
@@ -61,24 +65,15 @@ internal fun ContractEnforcementContext.validateChecksum(
         )
     } ?: raiseError("$parentDescription's checksum is not set")
 
-internal fun checksumValidation(
-    parentDescription: String = "Input",
-    checksum: FigureTechChecksum?
-): List<ContractEnforcement> =
-    checksum.takeIf { it.isSet() }?.let { setChecksum ->
-        askThat(
-            setChecksum.checksum.isNotBlank()  orError "$parentDescription must have a valid checksum string",
-            setChecksum.algorithm.isNotBlank() orError "$parentDescription must specify a checksum algorithm",
-        )
-    } ?: askToRaiseError("$parentDescription's checksum is not set")
+private val validMoneyValue = Regex("^-?([0-9]+(?:[.][0-9]+)?|\\.[0-9]+)$")
 
-internal fun ContractEnforcementContext.moneyValidation(
+internal fun EnforcementContext.moneyValidation(
     parentDescription: String = "Input's money",
     money: FigureTechMoney?
-): List<ContractEnforcement> =
+) =
     money.takeIf { it.isSet() }?.let { setMoney ->
         requireThat(
-            setMoney.value.matches(Regex("^-?([0-9]+(?:[\\\\.][0-9]+)?|\\\\.[0-9]+)\$")) orError "$parentDescription must have a valid value",
+            setMoney.value.matches(validMoneyValue) orError "$parentDescription must have a valid value",
             (setMoney.currency.length == 3 && setMoney.currency.all { character -> character.isLetter() })
                 orError "$parentDescription must have a 3-letter ISO 4217 currency",
         )

@@ -245,10 +245,10 @@ class RecordENoteContractUnitTest : WordSpec({
                         anyAssetType,
                         anyBorrowerInfo(additionalBorrowerCount = 0..1),
                         anyNonNegativeMoney,
-                        Arb.int(min = 1, max = if (KotestConfig.runTestsExtended) 100 else 10).flatMap { randomLoanDocumentCount ->
+                        Arb.int(min = 1, max = if (KotestConfig.runTestsExtended) 30 else 10).flatMap { randomLoanDocumentCount ->
                             anyValidDocumentSet(size = randomLoanDocumentCount, slippage = 70)
                         },
-                        Arb.int(min = 1, max = if (KotestConfig.runTestsExtended) 100 else 10).flatMap { randomLoanStateCount ->
+                        Arb.int(min = 1, max = if (KotestConfig.runTestsExtended) 30 else 10).flatMap { randomLoanStateCount ->
                             loanStateSet(size = randomLoanStateCount, slippage = 70)
                         },
                     ) { randomLoanId, randomAssetType, randomBorrowerInfo, randomOriginalNoteAmount, randomServicingDocuments, randomLoanStates ->

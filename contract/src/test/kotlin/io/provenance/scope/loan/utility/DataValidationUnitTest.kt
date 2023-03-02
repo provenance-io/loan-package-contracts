@@ -188,7 +188,7 @@ class DataValidationUnitTest : WordSpec({
         "throw an appropriate exception for a default instance" {
             shouldThrow<ContractViolationException> {
                 validateRequirements(ContractRequirementType.VALID_INPUT) {
-                    validateChecksum(checksum = FigureTechChecksum.getDefaultInstance())
+                    checksumValidation(checksum = FigureTechChecksum.getDefaultInstance())
                 }
             }.let { exception ->
                 exception.message shouldContain "Input's checksum is not set"
@@ -198,7 +198,7 @@ class DataValidationUnitTest : WordSpec({
             checkAll(anyNonEmptyString) { randomChecksum ->
                 shouldThrow<ContractViolationException> {
                     validateRequirements(ContractRequirementType.VALID_INPUT) {
-                        validateChecksum(
+                        checksumValidation(
                             checksum = FigureTechChecksum.newBuilder().apply {
                                 clearAlgorithm()
                                 checksum = randomChecksum
@@ -214,7 +214,7 @@ class DataValidationUnitTest : WordSpec({
             checkAll(anyNonEmptyString) { randomAlgorithm ->
                 shouldThrow<ContractViolationException> {
                     validateRequirements(ContractRequirementType.VALID_INPUT) {
-                        validateChecksum(
+                        checksumValidation(
                             checksum = FigureTechChecksum.newBuilder().apply {
                                 clearChecksum()
                                 algorithm = randomAlgorithm
@@ -229,7 +229,7 @@ class DataValidationUnitTest : WordSpec({
         "not throw an exception for any non-empty checksum and algorithm strings" {
             checkAll(anyNonEmptyString, anyNonEmptyString) { randomChecksum, randomAlgorithm ->
                 validateRequirements(ContractRequirementType.VALID_INPUT) {
-                    validateChecksum(
+                    checksumValidation(
                         checksum = FigureTechChecksum.newBuilder().apply {
                             checksum = randomChecksum
                             algorithm = randomAlgorithm

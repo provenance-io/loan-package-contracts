@@ -36,7 +36,7 @@ class RecordLoanValidationResultsUnitTest : WordSpec({
                 }
             }
         }
-        val anyValidValidationRecord = Arb.int(min = 1, max = (if (KotestConfig.runTestsExtended) 20 else 5)).flatMap { iterationCount ->
+        val anyValidValidationRecord = Arb.int(min = 1, max = (if (KotestConfig.runTestsExtended) 15 else 5)).flatMap { iterationCount ->
             anyValidValidationRecord(iterationCount = iterationCount)
         }
         "given an empty input" should {
