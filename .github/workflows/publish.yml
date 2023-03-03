@@ -61,8 +61,6 @@ jobs:
 
       - name: Build with Gradle
         run: ./gradlew -i clean build --refresh-dependencies -x koverMergedReport
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Check Contract Syntax
         run: ./gradlew p8eClean p8eCheck --info --stacktrace
@@ -71,7 +69,30 @@ jobs:
         if: inputs.bootstrapContracts
         run: ./gradlew p8eBootstrap --info
 
+      - name: Verify that bootstrapping was successful
+        if: inputs.bootstrapContracts
+        shell: bash
+        run: |
+          CONTRACT_HASH_PATH=contract/src/main/kotlin/io/provenance/scope/loan/contracts/ContractHash*.kt
+          PROTO_HASH_PATH=proto/src/main/kotlin/io/provenance/scope/loan/proto/ProtoHash*.kt
+          if compgen -G "$CONTRACT_HASH_PATH" > /dev/null; then
+            if compgen -G "$PROTO_HASH_PATH" > /dev/null; then
+              echo "Both the contract hash file and the proto hash file were successfully generated."
+            else
+              echo "::error::The contract hash file was generated but the proto hash file was not."
+              exit 1
+            fi
+          else
+            if compgen -G "$PROTO_HASH_PATH" > /dev/null; then
+              echo "::error::The proto hash file was generated but the contract hash file was not."
+            else
+              echo "::error::Neither the proto hash file nor the contract hash file were generated."
+            fi
+            exit 1
+          fi
+
       - name: Install gpg secret key
+        if: inputs.publishToMaven
         run: |
           export GPG_TTY=$(tty)
           echo -n "${{ secrets.OSSRH_GPG_SECRET_KEY }}" | base64 --decode | gpg --batch --import
