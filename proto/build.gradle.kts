@@ -9,6 +9,7 @@ buildscript {
 
 @Suppress("DSL_SCOPE_VIOLATION") // https://github.com/gradle/gradle/issues/22797
 plugins {
+    id("kotlin")
     alias(libs.plugins.protobuf.gradle)
     alias(libs.plugins.protocGen.krotoPlus)
     `maven-publish`
@@ -33,6 +34,6 @@ dependencies {
 protobuf {
     protoc {
         // The artifact spec for the Protobuf Compiler
-        artifact = "com.google.protobuf:protoc:3.20.1"
+        artifact = libs.protoc.get().toString()
     }
 }
