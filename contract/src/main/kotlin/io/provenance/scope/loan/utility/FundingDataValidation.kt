@@ -1,5 +1,6 @@
 package io.provenance.scope.loan.utility
 
+import io.provenance.scope.util.toInstant
 import tech.figure.loan.v1beta1.Funding
 import tech.figure.util.v1beta1.ACH
 
@@ -9,14 +10,35 @@ internal val fundingValidation: ContractEnforcementContext.(Funding) -> Unit = {
     if (funding.isSet()) {
         funding.status.takeIf { it.isSet() }?.also { fundingStatus ->
             requireThat(
-                fundingStatus.status.isNotBlank()                   orError "Funding status must not be blank",
-                fundingStatus.effectiveTime.isValidForFundingTime() orError "Funding status must have valid effective time",
+                (fundingStatus.status in listOf("UNFUNDED", "INITIATED", "FUNDED", "CANCELLED"))
+                    orError "Funding status must be valid",
+                fundingStatus.effectiveTime.isValidFundingTime()
+                    orError "Funding status must have valid effective time",
             )
+            when (fundingStatus.status) {
+                "FUNDED" -> {
+                    requireThat(
+                        funding.started.isValidFundingTime()   orError "Completed funding's start time must be valid",
+                        funding.completed.isValidFundingTime() orError "Completed funding's end time must be valid",
+                    )
+                    if (funding.started.isValidFundingTime() && funding.completed.isValidFundingTime()) {
+                        requireThat(
+                            (funding.completed.toInstant() >= funding.started.toInstant()) orError "Funding end time must be after start time",
+                        )
+                    }
+                }
+                "CANCELLED" -> {
+                    requireThat(
+                        funding.completed.isValidFundingTime() orError "Cancelled funding's end time must be valid",
+                    )
+                }
+                !in listOf("UNFUNDED", "UNKNOWN") -> {
+                    requireThat(
+                        funding.started.isValidFundingTime() orError "Funding start time must be valid",
+                    )
+                }
+            }
         } ?: raiseError("Funding status must be set")
-        requireThat(
-            funding.started.isValidForFundingTime()   orError "Funding start time must be valid",
-            funding.completed.isValidForFundingTime() orError "Funding end time must be valid",
-        )
         if (funding.disbursementsCount > 0) {
             val incomingDisbursementIds = mutableMapOf<String, UInt>()
             funding.disbursementsList.requireThatEach { disbursement ->
@@ -25,18 +47,39 @@ internal val fundingValidation: ContractEnforcementContext.(Funding) -> Unit = {
                         incomingDisbursementIds[disbursementId] = incomingDisbursementIds.getOrDefault(disbursementId, 0U) + 1U
                     }
                     requireThat(
-                        setDisbursement.id.isValid()                      orError "Disbursement must have valid ID",
-                        setDisbursement.started.isValidForFundingTime()   orError "Disbursement start time must be valid",
-                        setDisbursement.completed.isValidForFundingTime() orError "Disbursement end time must be valid",
+                        setDisbursement.id.isValid() orError "Disbursement must have valid ID",
                         (setDisbursement.amount.value.toDoubleOrNull()?.let { it >= 0 } ?: true)
                             orError "Disbursement amount must not be negative",
                     )
                     setDisbursement.status.takeIf { it.isSet() }?.also { disbursementStatus ->
                         requireThat(
-                            (disbursementStatus.status in listOf("UNFUNDED", "INITIATED", "COMPLETED", "CANCELLED")) // TODO: Confirm if desired
-                                orError "Disbursement status must be valid",
-                            disbursementStatus.effectiveTime.isValidForFundingTime() orError "Disbursement must have valid effective time",
+                            disbursementStatus.status.isNotBlank()                orError "Disbursement status must not be empty",
+                            disbursementStatus.effectiveTime.isValidFundingTime() orError "Disbursement must have valid effective time",
                         )
+                        when (disbursementStatus.status) {
+                            in listOf("COMPLETED", "FUNDED") -> {
+                                requireThat(
+                                    setDisbursement.started.isValidFundingTime()   orError "Completed disbursement's start time must be valid",
+                                    setDisbursement.completed.isValidFundingTime() orError "Completed disbursement's end time must be valid",
+                                )
+                                if (setDisbursement.started.isValidFundingTime() && setDisbursement.completed.isValidFundingTime()) {
+                                    requireThat(
+                                        (setDisbursement.completed.toInstant() >= setDisbursement.started.toInstant())
+                                            orError "Disbursement end time must be after start time",
+                                    )
+                                }
+                            }
+                            "CANCELLED" -> {
+                                requireThat(
+                                    setDisbursement.completed.isValidFundingTime() orError "Cancelled disbursement's end time must be valid",
+                                )
+                            }
+                            !in listOf("UNFUNDED", "UNKNOWN") -> {
+                                requireThat(
+                                    setDisbursement.started.isValidFundingTime() orError "Disbursement start time must be valid",
+                                )
+                            }
+                        }
                     } ?: raiseError("Disbursement status must be set")
                     moneyValidation("Disbursement amount", setDisbursement.amount)
                     setDisbursement.disburseAccount.takeIf { it.isSet() }?.also { disburseAccount ->
@@ -66,7 +109,7 @@ internal val fundingValidation: ContractEnforcementContext.(Funding) -> Unit = {
                                         )
                                         ) orError
                                         "Disbursement bank account for ACH must have a valid type",
-                                    (moneyMovement.wire.isNotSet() || moneyMovement.wire.accountAddress.isSet())
+                                    (moneyMovement.wire.isNotSet() || moneyMovement.wire.accountAddress.isValid())
                                         orError "Disbursement bank account for wires must have a valid address",
                                     (moneyMovement.wire.isNotSet() || moneyMovement.wire.wireInstructions.isNotBlank())
                                         orError "Disbursement bank account for wires must have valid wire instructions",
@@ -85,7 +128,7 @@ internal val fundingValidation: ContractEnforcementContext.(Funding) -> Unit = {
                         }
                         disburseAccount.provenance.takeIf { it.isSet() }?.also { provenanceAccount ->
                             requireThat(
-                                provenanceAccount.address.matches(Regex("^(pb|tp)1.{38}.*"))
+                                provenanceAccount.address.isValidProvenanceAddress()
                                     orError "Disbursement account's Provenance address must be valid",
                             )
                         }

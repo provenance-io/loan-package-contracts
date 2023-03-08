@@ -121,6 +121,11 @@ internal object PrimitiveArbs {
  * Generators of [Arb]itrary instances of classes defined in the metadata asset model.
  */
 internal object MetadataAssetModelArbs {
+    /* Helper classes */
+    internal data class TimestampPair(
+        val earlierTimestamp: Timestamp,
+        val laterTimestamp: Timestamp,
+    )
     /* Protobufs */
     val anyAssetType: Arb<AssetType> = Arb.bind(
         PrimitiveArbs.anyNonEmptyString,
@@ -256,9 +261,25 @@ internal object MetadataAssetModelArbs {
     }
     val anyValidTimestamp: Arb<Timestamp> = anyTimestampComponents.toTimestamp()
     val anyPastNonEpochTimestamp: Arb<Timestamp> = anyPastNonEpochTimestampComponents.toTimestamp()
+    val anyPastNonEpochTimestampPair: Arb<TimestampPair> = Arb.set(
+        gen = anyPastNonEpochTimestampComponents,
+        range = 2..2,
+    ).map { set ->
+        set.toList().sortedWith(compareBy({ it.first }, { it.second })).map { (seconds, nanoSeconds) ->
+            Timestamp.newBuilder().also { timestampBuilder ->
+                timestampBuilder.seconds = seconds
+                timestampBuilder.nanos = nanoSeconds
+            }.build()
+        }.let { timestamps ->
+            TimestampPair(
+                earlierTimestamp = timestamps[0],
+                laterTimestamp = timestamps[1],
+            )
+        }
+    }
     val anyFutureTimestamp: Arb<Timestamp> = anyFutureTimestampComponents.toTimestamp()
-    val anyPastStatus: Arb<Status> = Arb.bind(
-        PrimitiveArbs.anyNonEmptyString,
+    val anyValidFundingStatus: Arb<Status> = Arb.bind(
+        Arb.of("UNFUNDED", "INITIATED", "FUNDED", "CANCELLED"),
         anyPastNonEpochTimestamp,
     ) { status, effectiveTime ->
         Status.newBuilder().also { statusBuilder ->
@@ -360,10 +381,9 @@ internal object MetadataAssetModelArbs {
     val anyValidDisbursement: Arb<Disbursement> = Arb.bind(
         anyUuid,
         anyNonNegativeMoney,
-        anyPastNonEpochTimestamp,
-        anyPastNonEpochTimestamp, // TODO: Validate and check that completed > started
+        anyPastNonEpochTimestampPair,
         Arb.bind(
-            Arb.of("UNFUNDED", "INITIATED", "COMPLETED", "CANCELLED"),
+            PrimitiveArbs.anyNonEmptyString, /* NOTE: This forms a passing, but not necessarily coherent, disbursement status */
             anyPastNonEpochTimestamp,
         ) { status, effectiveTime ->
             Status.newBuilder().also { statusBuilder ->
@@ -372,12 +392,12 @@ internal object MetadataAssetModelArbs {
             }.build()
         },
         anyValidDisbursementAccount(),
-    ) { id, amount, startedTime, completedTime, status, disbursementAccount ->
+    ) { id, amount, timestamps, status, disbursementAccount ->
         Disbursement.newBuilder().also { disbursementBuilder ->
             disbursementBuilder.id = id
             disbursementBuilder.amount = amount
-            disbursementBuilder.started = startedTime
-            disbursementBuilder.completed = completedTime
+            disbursementBuilder.started = timestamps.earlierTimestamp
+            disbursementBuilder.completed = timestamps.laterTimestamp
             disbursementBuilder.status = status
             disbursementBuilder.disburseAccount = disbursementAccount
         }.build()
@@ -395,15 +415,14 @@ internal object MetadataAssetModelArbs {
     fun anyValidFunding(
         disbursementCount: IntRange,
     ): Arb<Funding> = Arb.bind(
-        anyPastStatus,
-        anyPastNonEpochTimestamp,
-        anyPastNonEpochTimestamp,
+        anyValidFundingStatus,
+        anyPastNonEpochTimestampPair,
         Arb.int(range = disbursementCount).flatMap { count -> anyValidDisbursementList(size = count) },
-    ) { status, startedTime, completedTime, disbursementList ->
+    ) { status, timestamps, disbursementList ->
         Funding.newBuilder().also { fundingBuilder ->
             fundingBuilder.status = status
-            fundingBuilder.started = startedTime
-            fundingBuilder.completed = completedTime
+            fundingBuilder.started = timestamps.earlierTimestamp
+            fundingBuilder.completed = timestamps.laterTimestamp
             fundingBuilder.clearDisbursements()
             fundingBuilder.addAllDisbursements(disbursementList)
         }.build()

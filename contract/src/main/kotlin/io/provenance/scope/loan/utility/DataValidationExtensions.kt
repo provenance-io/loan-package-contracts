@@ -6,6 +6,7 @@ import com.google.protobuf.Message as ProtobufMessage
 import com.google.protobuf.Timestamp as ProtobufTimestamp
 import java.time.LocalDate as JavaLocalDate
 import java.util.UUID as JavaUUID
+import tech.figure.util.v1beta1.Address as FigureTechAddress
 import tech.figure.util.v1beta1.Checksum as FigureTechChecksum
 import tech.figure.util.v1beta1.Date as FigureTechDate
 import tech.figure.util.v1beta1.Money as FigureTechMoney
@@ -36,10 +37,7 @@ internal fun ProtobufTimestamp?.isValid() = this !== null
 
 internal fun ProtobufTimestamp?.isValidAndNotInFuture() = this !== null && toInstant() <= Instant.now()
 
-internal fun ProtobufTimestamp?.isValidForFundingTime() =
-    this !== null &&
-        this != defaultInstanceForType &&
-        toInstant() <= Instant.now()
+internal fun ProtobufTimestamp?.isValidFundingTime() = this !== null && this != defaultInstanceForType && toInstant() <= Instant.now()
 
 internal fun ProtobufTimestamp?.isValidForLoanState() =
     this !== null &&
@@ -53,6 +51,12 @@ internal fun FigureTechDate?.isValidForSignedDate() = isSet() && this!!.value.is
 }
 
 internal fun FigureTechUUID?.isValid() = isSet() && this!!.value.isNotBlank() && tryOrFalse { JavaUUID.fromString(value) }
+
+internal fun FigureTechAddress?.isValid() = this !== null && street.isNotBlank() && city.isNotBlank() && state.isNotBlank() && zip.isNotBlank()
+
+private val validProvenanceAddress = Regex("^(pb|tp)1.{38}.*")
+
+internal fun String?.isValidProvenanceAddress() = this !== null && matches(validProvenanceAddress)
 
 internal fun EnforcementContext.checksumValidation(
     parentDescription: String = "Input",

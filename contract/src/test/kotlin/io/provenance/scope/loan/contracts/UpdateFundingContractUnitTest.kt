@@ -5,6 +5,7 @@ import io.kotest.common.ExperimentalKotest
 import io.kotest.core.spec.style.WordSpec
 import io.kotest.core.test.TestCaseOrder
 import io.kotest.matchers.ints.shouldBeGreaterThanOrEqual
+import io.kotest.matchers.shouldBe
 import io.kotest.matchers.string.shouldContain
 import io.kotest.property.Arb
 import io.kotest.property.arbitrary.filterNot
@@ -17,9 +18,11 @@ import io.kotest.property.arbitrary.pair
 import io.kotest.property.arbitrary.set
 import io.kotest.property.arbitrary.string
 import io.kotest.property.checkAll
+import io.provenance.scope.loan.LoanScopeProperties.assetLoanKey
 import io.provenance.scope.loan.test.KotestConfig
 import io.provenance.scope.loan.test.MetadataAssetModelArbs.anyFutureTimestamp
 import io.provenance.scope.loan.test.MetadataAssetModelArbs.anyInvalidUuid
+import io.provenance.scope.loan.test.MetadataAssetModelArbs.anyPastNonEpochTimestampPair
 import io.provenance.scope.loan.test.MetadataAssetModelArbs.anyUuid
 import io.provenance.scope.loan.test.MetadataAssetModelArbs.anyValidAch
 import io.provenance.scope.loan.test.MetadataAssetModelArbs.anyValidAsset
@@ -28,10 +31,12 @@ import io.provenance.scope.loan.test.MetadataAssetModelArbs.anyValidFunding
 import io.provenance.scope.loan.test.MetadataAssetModelArbs.anyValidProvenanceAccount
 import io.provenance.scope.loan.test.MetadataAssetModelArbs.anyValidWire
 import io.provenance.scope.loan.test.PrimitiveArbs.anyBlankString
+import io.provenance.scope.loan.test.PrimitiveArbs.anyNonEmptyString
 import io.provenance.scope.loan.test.PrimitiveArbs.anyNonUuidString
 import io.provenance.scope.loan.test.shouldContainAtLeastOneOf
 import io.provenance.scope.loan.test.shouldHaveViolationCount
 import io.provenance.scope.loan.utility.ContractViolationException
+import io.provenance.scope.loan.utility.toFigureTechLoan
 import tech.figure.loan.v1beta1.Funding
 import tech.figure.util.v1beta1.UUID
 import tech.figure.util.v1beta1.ACH.AccountType as ACHAccountType
@@ -74,7 +79,7 @@ class UpdateFundingContractUnitTest : WordSpec({
             "throw an appropriate exception" {
                 checkAll(
                     if (KotestConfig.runTestsExtended) anyValidAsset else anyValidAsset(hasMismoLoan = false, hasFunding = false),
-                    anyValidFunding(disbursementCount = 1..6),
+                    anyValidFunding(disbursementCount = 1..if (KotestConfig.runTestsExtended) 6 else 3),
                 ) { randomExistingAsset, randomNewFunding ->
                     shouldThrow<ContractViolationException> {
                         UpdateFundingContract(
@@ -89,25 +94,26 @@ class UpdateFundingContractUnitTest : WordSpec({
                 }
             }
         }
-        "given an input without a funding status value" should {
+        "given an input with an invalid funding status value" should {
             "throw an appropriate exception" {
                 checkAll(
                     if (KotestConfig.runTestsExtended) anyValidAsset else anyValidAsset(hasMismoLoan = false, hasFunding = false),
-                    anyValidFunding(disbursementCount = 1..6),
-                ) { randomExistingAsset, randomNewFunding ->
+                    anyValidFunding(disbursementCount = 1..if (KotestConfig.runTestsExtended) 6 else 3),
+                    Arb.string().filterNot { it in listOf("UNFUNDED", "INITIATED", "FUNDED", "CANCELLED") },
+                ) { randomExistingAsset, randomNewFunding, randomInvalidFundingStatus ->
                     shouldThrow<ContractViolationException> {
                         UpdateFundingContract(
                             existingAsset = randomExistingAsset,
                         ).updateFunding(
                             randomNewFunding.toBuilder().also { fundingBuilder ->
                                 fundingBuilder.status = fundingBuilder.statusBuilder.also { statusBuilder ->
-                                    statusBuilder.clearStatus()
+                                    statusBuilder.status = randomInvalidFundingStatus
                                 }.build()
                             }.build()
                         )
                     }.let { exception ->
                         exception shouldHaveViolationCount 1
-                        exception.message shouldContain "Funding status must not be blank"
+                        exception.message shouldContain "Funding status must be valid"
                     }
                 }
             }
@@ -116,7 +122,7 @@ class UpdateFundingContractUnitTest : WordSpec({
             "throw an appropriate exception" {
                 checkAll(
                     if (KotestConfig.runTestsExtended) anyValidAsset else anyValidAsset(hasMismoLoan = false, hasFunding = false),
-                    anyValidFunding(disbursementCount = 1..6),
+                    anyValidFunding(disbursementCount = 1..if (KotestConfig.runTestsExtended) 6 else 3),
                 ) { randomExistingAsset, randomNewFunding ->
                     shouldThrow<ContractViolationException> {
                         UpdateFundingContract(
@@ -139,7 +145,7 @@ class UpdateFundingContractUnitTest : WordSpec({
             "throw an appropriate exception" {
                 checkAll(
                     if (KotestConfig.runTestsExtended) anyValidAsset else anyValidAsset(hasMismoLoan = false, hasFunding = false),
-                    anyValidFunding(disbursementCount = 1..6),
+                    anyValidFunding(disbursementCount = 1..if (KotestConfig.runTestsExtended) 6 else 3),
                     anyFutureTimestamp,
                 ) { randomExistingAsset, randomNewFunding, randomFutureTimestamp ->
                     shouldThrow<ContractViolationException> {
@@ -159,30 +165,11 @@ class UpdateFundingContractUnitTest : WordSpec({
                 }
             }
         }
-        "given an input without a funding start time" should {
-            "throw an appropriate exception" {
-                checkAll(
-                    if (KotestConfig.runTestsExtended) anyValidAsset else anyValidAsset(hasMismoLoan = false, hasFunding = false),
-                    anyValidFunding(disbursementCount = 1..6),
-                ) { randomExistingAsset, randomNewFunding ->
-                    shouldThrow<ContractViolationException> {
-                        UpdateFundingContract(
-                            existingAsset = randomExistingAsset,
-                        ).updateFunding(
-                            randomNewFunding.toBuilder().clearStarted().build()
-                        )
-                    }.let { exception ->
-                        exception shouldHaveViolationCount 1
-                        exception.message shouldContain "Funding start time must be valid"
-                    }
-                }
-            }
-        }
         "given an input with a funding start time in the future" should {
             "throw an appropriate exception" {
                 checkAll(
                     if (KotestConfig.runTestsExtended) anyValidAsset else anyValidAsset(hasMismoLoan = false, hasFunding = false),
-                    anyValidFunding(disbursementCount = 1..6),
+                    anyValidFunding(disbursementCount = 1..if (KotestConfig.runTestsExtended) 6 else 3),
                     anyFutureTimestamp,
                 ) { randomExistingAsset, randomNewFunding, randomFutureTimestamp ->
                     shouldThrow<ContractViolationException> {
@@ -190,6 +177,9 @@ class UpdateFundingContractUnitTest : WordSpec({
                             existingAsset = randomExistingAsset,
                         ).updateFunding(
                             randomNewFunding.toBuilder().also { fundingBuilder ->
+                                fundingBuilder.status = fundingBuilder.statusBuilder.also { statusBuilder ->
+                                    statusBuilder.status = "INITIATED"
+                                }.build()
                                 fundingBuilder.started = randomFutureTimestamp
                             }.build()
                         )
@@ -200,30 +190,11 @@ class UpdateFundingContractUnitTest : WordSpec({
                 }
             }
         }
-        "given an input without a funding end time" should {
-            "throw an appropriate exception" {
-                checkAll(
-                    if (KotestConfig.runTestsExtended) anyValidAsset else anyValidAsset(hasMismoLoan = false, hasFunding = false),
-                    anyValidFunding(disbursementCount = 1..6),
-                ) { randomExistingAsset, randomNewFunding ->
-                    shouldThrow<ContractViolationException> {
-                        UpdateFundingContract(
-                            existingAsset = randomExistingAsset,
-                        ).updateFunding(
-                            randomNewFunding.toBuilder().clearCompleted().build()
-                        )
-                    }.let { exception ->
-                        exception shouldHaveViolationCount 1
-                        exception.message shouldContain "Funding end time must be valid"
-                    }
-                }
-            }
-        }
         "given an input with a funding end time in the future" should {
             "throw an appropriate exception" {
                 checkAll(
                     if (KotestConfig.runTestsExtended) anyValidAsset else anyValidAsset(hasMismoLoan = false, hasFunding = false),
-                    anyValidFunding(disbursementCount = 1..6),
+                    anyValidFunding(disbursementCount = 1..if (KotestConfig.runTestsExtended) 6 else 3),
                     anyFutureTimestamp,
                 ) { randomExistingAsset, randomNewFunding, randomFutureTimestamp ->
                     shouldThrow<ContractViolationException> {
@@ -231,12 +202,41 @@ class UpdateFundingContractUnitTest : WordSpec({
                             existingAsset = randomExistingAsset,
                         ).updateFunding(
                             randomNewFunding.toBuilder().also { fundingBuilder ->
+                                fundingBuilder.status = fundingBuilder.statusBuilder.also { statusBuilder ->
+                                    statusBuilder.status = "FUNDED"
+                                }.build()
                                 fundingBuilder.completed = randomFutureTimestamp
                             }.build()
                         )
                     }.let { exception ->
                         exception shouldHaveViolationCount 1
-                        exception.message shouldContain "Funding end time must be valid"
+                        exception.message shouldContain "Completed funding's end time must be valid"
+                    }
+                }
+            }
+        }
+        "given an input with a funding start time which is after the funding end time" should {
+            "throw an appropriate exception" {
+                checkAll(
+                    if (KotestConfig.runTestsExtended) anyValidAsset else anyValidAsset(hasMismoLoan = false, hasFunding = false),
+                    anyValidFunding(disbursementCount = 1..if (KotestConfig.runTestsExtended) 6 else 3),
+                    anyPastNonEpochTimestampPair,
+                ) { randomExistingAsset, randomNewFunding, randomTimestampPair ->
+                    shouldThrow<ContractViolationException> {
+                        UpdateFundingContract(
+                            existingAsset = randomExistingAsset,
+                        ).updateFunding(
+                            randomNewFunding.toBuilder().also { fundingBuilder ->
+                                fundingBuilder.status = fundingBuilder.statusBuilder.also { statusBuilder ->
+                                    statusBuilder.status = "FUNDED"
+                                }.build()
+                                fundingBuilder.started = randomTimestampPair.laterTimestamp
+                                fundingBuilder.completed = randomTimestampPair.earlierTimestamp
+                            }.build()
+                        )
+                    }.let { exception ->
+                        exception shouldHaveViolationCount 1
+                        exception.message shouldContain "Funding end time must be after start time"
                     }
                 }
             }
@@ -264,7 +264,7 @@ class UpdateFundingContractUnitTest : WordSpec({
             "throw an appropriate exception" {
                 checkAll(
                     if (KotestConfig.runTestsExtended) anyValidAsset else anyValidAsset(hasMismoLoan = false, hasFunding = false),
-                    anyValidFunding(disbursementCount = 2..6).flatMap { funding ->
+                    anyValidFunding(disbursementCount = 2..if (KotestConfig.runTestsExtended) 6 else 3).flatMap { funding ->
                         Arb.pair(
                             Arb.of(funding),
                             funding.disbursementsCount.let { disbursementCount ->
@@ -307,7 +307,7 @@ class UpdateFundingContractUnitTest : WordSpec({
             "throw an appropriate exception" {
                 checkAll(
                     if (KotestConfig.runTestsExtended) anyValidAsset else anyValidAsset(hasMismoLoan = false, hasFunding = false),
-                    fundingWithDataSet(disbursementCount = 2..5) { invalidIdCount ->
+                    fundingWithDataSet(disbursementCount = 2..if (KotestConfig.runTestsExtended) 5 else 3) { invalidIdCount ->
                         Arb.set(anyNonUuidString, size = invalidIdCount).map { it.toList() }
                     },
                 ) { randomExistingAsset, (randomNewFunding, invalidIdData) ->
@@ -343,10 +343,11 @@ class UpdateFundingContractUnitTest : WordSpec({
             "throw an appropriate exception" {
                 checkAll(
                     if (KotestConfig.runTestsExtended) anyValidAsset else anyValidAsset(hasMismoLoan = false, hasFunding = false),
-                    fundingWithDataSet(disbursementCount = 2..5) { invalidStartTimeCount ->
+                    fundingWithDataSet(disbursementCount = 2..if (KotestConfig.runTestsExtended) 5 else 3) { invalidStartTimeCount ->
                         Arb.list(anyFutureTimestamp, range = invalidStartTimeCount..invalidStartTimeCount)
                     },
-                ) { randomExistingAsset, (randomNewFunding, invalidStartTimeData) ->
+                    anyNonEmptyString.filterNot { it in listOf("UNFUNDED", "UNKNOWN") },
+                ) { randomExistingAsset, (randomNewFunding, invalidStartTimeData), disbursementStatus ->
                     val invalidStartTimeIndices = invalidStartTimeData.first
                     val invalidStartTimes = invalidStartTimeData.second.toMutableList()
                     shouldThrow<ContractViolationException> {
@@ -358,6 +359,9 @@ class UpdateFundingContractUnitTest : WordSpec({
                                     fundingBuilder.setDisbursements(
                                         index,
                                         fundingBuilder.getDisbursementsBuilder(index).also { disbursementBuilder ->
+                                            disbursementBuilder.status = disbursementBuilder.statusBuilder.also { statusBuilder ->
+                                                statusBuilder.status = disbursementStatus
+                                            }.build()
                                             disbursementBuilder.started = invalidStartTimes.removeAt(0)
                                         }.build()
                                     )
@@ -377,7 +381,7 @@ class UpdateFundingContractUnitTest : WordSpec({
             "throw an appropriate exception" {
                 checkAll(
                     if (KotestConfig.runTestsExtended) anyValidAsset else anyValidAsset(hasMismoLoan = false, hasFunding = false),
-                    fundingWithDataSet(disbursementCount = 2..5) { invalidEndTimeCount ->
+                    fundingWithDataSet(disbursementCount = 2..if (KotestConfig.runTestsExtended) 5 else 3) { invalidEndTimeCount ->
                         Arb.list(anyFutureTimestamp, range = invalidEndTimeCount..invalidEndTimeCount)
                     },
                 ) { randomExistingAsset, (randomNewFunding, invalidEndTimeData) ->
@@ -392,6 +396,9 @@ class UpdateFundingContractUnitTest : WordSpec({
                                     fundingBuilder.setDisbursements(
                                         index,
                                         fundingBuilder.getDisbursementsBuilder(index).also { disbursementBuilder ->
+                                            disbursementBuilder.status = disbursementBuilder.statusBuilder.also { statusBuilder ->
+                                                statusBuilder.status = "FUNDED"
+                                            }.build()
                                             disbursementBuilder.completed = invalidEndTimes.removeAt(0)
                                         }.build()
                                     )
@@ -401,8 +408,85 @@ class UpdateFundingContractUnitTest : WordSpec({
                     }.let { exception ->
                         exception shouldHaveViolationCount 1
                         exception.message shouldContain
-                            "Disbursement end time must be valid [Iteration${if (invalidEndTimeIndices.size == 1) "" else "s"} " +
+                            "Completed disbursement's end time must be valid [Iteration${if (invalidEndTimeIndices.size == 1) "" else "s"} " +
                             "${invalidEndTimeIndices.sorted().joinToString()}]"
+                    }
+                }
+            }
+        }
+        "given an input with one or more invalid end times for cancelled disbursements" should {
+            "throw an appropriate exception" {
+                checkAll(
+                    if (KotestConfig.runTestsExtended) anyValidAsset else anyValidAsset(hasMismoLoan = false, hasFunding = false),
+                    fundingWithDataSet(disbursementCount = 2..if (KotestConfig.runTestsExtended) 5 else 3) { invalidEndTimeCount ->
+                        Arb.list(anyFutureTimestamp, range = invalidEndTimeCount..invalidEndTimeCount)
+                    },
+                ) { randomExistingAsset, (randomNewFunding, invalidEndTimeData) ->
+                    val invalidEndTimeIndices = invalidEndTimeData.first
+                    val invalidEndTimes = invalidEndTimeData.second.toMutableList()
+                    shouldThrow<ContractViolationException> {
+                        UpdateFundingContract(
+                            existingAsset = randomExistingAsset,
+                        ).updateFunding(
+                            randomNewFunding.toBuilder().also { fundingBuilder ->
+                                invalidEndTimeIndices.forEach { index ->
+                                    fundingBuilder.setDisbursements(
+                                        index,
+                                        fundingBuilder.getDisbursementsBuilder(index).also { disbursementBuilder ->
+                                            disbursementBuilder.status = disbursementBuilder.statusBuilder.also { statusBuilder ->
+                                                statusBuilder.status = "CANCELLED"
+                                            }.build()
+                                            disbursementBuilder.completed = invalidEndTimes.removeAt(0)
+                                        }.build()
+                                    )
+                                }
+                            }.build()
+                        )
+                    }.let { exception ->
+                        exception shouldHaveViolationCount 1
+                        exception.message shouldContain
+                            "Cancelled disbursement's end time must be valid [Iteration${if (invalidEndTimeIndices.size == 1) "" else "s"} " +
+                            "${invalidEndTimeIndices.sorted().joinToString()}]"
+                    }
+                }
+            }
+        }
+        "given an input with one or more disbursements with start times which are after their end times" should {
+            "throw an appropriate exception" {
+                checkAll(
+                    if (KotestConfig.runTestsExtended) anyValidAsset else anyValidAsset(hasMismoLoan = false, hasFunding = false),
+                    fundingWithDataSet(disbursementCount = 2..if (KotestConfig.runTestsExtended) 5 else 3) { invalidEndTimeCount ->
+                        Arb.list(anyPastNonEpochTimestampPair, range = invalidEndTimeCount..invalidEndTimeCount)
+                    },
+                ) { randomExistingAsset, (randomNewFunding, invalidEndTimeData) ->
+                    val invalidTimeIndices = invalidEndTimeData.first
+                    val invalidTimePairs = invalidEndTimeData.second.toMutableList()
+                    shouldThrow<ContractViolationException> {
+                        UpdateFundingContract(
+                            existingAsset = randomExistingAsset,
+                        ).updateFunding(
+                            randomNewFunding.toBuilder().also { fundingBuilder ->
+                                invalidTimeIndices.forEach { index ->
+                                    fundingBuilder.setDisbursements(
+                                        index,
+                                        fundingBuilder.getDisbursementsBuilder(index).also { disbursementBuilder ->
+                                            disbursementBuilder.status = disbursementBuilder.statusBuilder.also { statusBuilder ->
+                                                statusBuilder.status = "FUNDED"
+                                            }.build()
+                                            invalidTimePairs.removeAt(0).let { timestamps ->
+                                                disbursementBuilder.started = timestamps.laterTimestamp
+                                                disbursementBuilder.completed = timestamps.earlierTimestamp
+                                            }
+                                        }.build()
+                                    )
+                                }
+                            }.build()
+                        )
+                    }.let { exception ->
+                        exception shouldHaveViolationCount 1
+                        exception.message shouldContain
+                            "Disbursement end time must be after start time [Iteration${if (invalidTimeIndices.size == 1) "" else "s"} " +
+                            "${invalidTimeIndices.sorted().joinToString()}]"
                     }
                 }
             }
@@ -411,7 +495,7 @@ class UpdateFundingContractUnitTest : WordSpec({
             "throw an appropriate exception" {
                 checkAll(
                     if (KotestConfig.runTestsExtended) anyValidAsset else anyValidAsset(hasMismoLoan = false, hasFunding = false),
-                    fundingWithDataSet(disbursementCount = 2..5) { invalidAmountCount ->
+                    fundingWithDataSet(disbursementCount = 2..if (KotestConfig.runTestsExtended) 5 else 3) { invalidAmountCount ->
                         Arb.list(
                             Arb.string().filterNot { it.matches(Regex("^([0-9]+(?:[.][0-9]+)?|\\.[0-9]+)$")) },
                             range = invalidAmountCount..invalidAmountCount,
@@ -453,7 +537,7 @@ class UpdateFundingContractUnitTest : WordSpec({
             "throw an appropriate exception" {
                 checkAll(
                     if (KotestConfig.runTestsExtended) anyValidAsset else anyValidAsset(hasMismoLoan = false, hasFunding = false),
-                    anyValidFunding(disbursementCount = 1..5).flatMap { funding ->
+                    anyValidFunding(disbursementCount = 1..if (KotestConfig.runTestsExtended) 5 else 3).flatMap { funding ->
                         Arb.pair(
                             Arb.of(funding),
                             funding.disbursementsCount.let { disbursementCount ->
@@ -491,7 +575,7 @@ class UpdateFundingContractUnitTest : WordSpec({
             "throw an appropriate exception" {
                 checkAll(
                     if (KotestConfig.runTestsExtended) anyValidAsset else anyValidAsset(hasMismoLoan = false, hasFunding = false),
-                    anyValidFunding(disbursementCount = 1..7),
+                    anyValidFunding(disbursementCount = 1..if (KotestConfig.runTestsExtended) 7 else 3),
                     anyInvalidUuid,
                 ) { randomExistingAsset, randomNewFunding, randomInvalidId ->
                     val invalidAccountIdIndex = randomNewFunding.disbursementsCount - 1
@@ -521,7 +605,7 @@ class UpdateFundingContractUnitTest : WordSpec({
             "throw an appropriate exception" {
                 checkAll(
                     if (KotestConfig.runTestsExtended) anyValidAsset else anyValidAsset(hasMismoLoan = false, hasFunding = false),
-                    anyValidFunding(disbursementCount = 1..7),
+                    anyValidFunding(disbursementCount = 1..if (KotestConfig.runTestsExtended) 7 else 3),
                     anyValidFinancialAccount,
                 ) { randomExistingAsset, randomNewFunding, randomBankAccount ->
                     val invalidAccountIdIndex = randomNewFunding.disbursementsCount - 1
@@ -554,7 +638,7 @@ class UpdateFundingContractUnitTest : WordSpec({
             "throw an appropriate exception" {
                 checkAll(
                     if (KotestConfig.runTestsExtended) anyValidAsset else anyValidAsset(hasMismoLoan = false, hasFunding = false),
-                    anyValidFunding(disbursementCount = 1..7),
+                    anyValidFunding(disbursementCount = 1..if (KotestConfig.runTestsExtended) 7 else 3),
                     anyValidFinancialAccount,
                     Arb.string().filterNot { it.length in 4..17 },
                 ) { randomExistingAsset, randomNewFunding, randomBankAccount, randomInvalidAccountNumber ->
@@ -589,7 +673,7 @@ class UpdateFundingContractUnitTest : WordSpec({
             "throw an appropriate exception" {
                 checkAll(
                     if (KotestConfig.runTestsExtended) anyValidAsset else anyValidAsset(hasMismoLoan = false, hasFunding = false),
-                    anyValidFunding(disbursementCount = 1..7),
+                    anyValidFunding(disbursementCount = 1..if (KotestConfig.runTestsExtended) 7 else 3),
                     anyValidFinancialAccount,
                     Arb.string().filterNot { it.length == 9 },
                 ) { randomExistingAsset, randomNewFunding, randomBankAccount, randomInvalidRoutingNumber ->
@@ -624,7 +708,7 @@ class UpdateFundingContractUnitTest : WordSpec({
             "throw an appropriate exception" {
                 checkAll(
                     if (KotestConfig.runTestsExtended) anyValidAsset else anyValidAsset(hasMismoLoan = false, hasFunding = false),
-                    anyValidFunding(disbursementCount = 1..7),
+                    anyValidFunding(disbursementCount = 1..if (KotestConfig.runTestsExtended) 7 else 3),
                     anyValidFinancialAccount,
                     Arb.string().filterNot { it.length == 9 },
                 ) { randomExistingAsset, randomNewFunding, randomBankAccount, randomInvalidRoutingNumber ->
@@ -659,7 +743,7 @@ class UpdateFundingContractUnitTest : WordSpec({
             "throw an appropriate exception" {
                 checkAll(
                     if (KotestConfig.runTestsExtended) anyValidAsset else anyValidAsset(hasMismoLoan = false, hasFunding = false),
-                    anyValidFunding(disbursementCount = 1..7),
+                    anyValidFunding(disbursementCount = 1..if (KotestConfig.runTestsExtended) 7 else 3),
                     anyValidFinancialAccount,
                     anyValidAch,
                 ) { randomExistingAsset, randomNewFunding, randomBankAccount, randomAch ->
@@ -702,7 +786,7 @@ class UpdateFundingContractUnitTest : WordSpec({
             "throw an appropriate exception" {
                 checkAll(
                     if (KotestConfig.runTestsExtended) anyValidAsset else anyValidAsset(hasMismoLoan = false, hasFunding = false),
-                    anyValidFunding(disbursementCount = 1..7),
+                    anyValidFunding(disbursementCount = 1..if (KotestConfig.runTestsExtended) 7 else 3),
                     anyValidFinancialAccount,
                     anyValidWire,
                 ) { randomExistingAsset, randomNewFunding, randomBankAccount, randomWire ->
@@ -746,7 +830,7 @@ class UpdateFundingContractUnitTest : WordSpec({
             "throw an appropriate exception" {
                 checkAll(
                     if (KotestConfig.runTestsExtended) anyValidAsset else anyValidAsset(hasMismoLoan = false, hasFunding = false),
-                    anyValidFunding(disbursementCount = 1..7),
+                    anyValidFunding(disbursementCount = 1..if (KotestConfig.runTestsExtended) 7 else 3),
                     anyValidFinancialAccount,
                     anyValidWire,
                     anyBlankString,
@@ -791,7 +875,7 @@ class UpdateFundingContractUnitTest : WordSpec({
             "throw an appropriate exception" {
                 checkAll(
                     if (KotestConfig.runTestsExtended) anyValidAsset else anyValidAsset(hasMismoLoan = false, hasFunding = false),
-                    anyValidFunding(disbursementCount = 1..7),
+                    anyValidFunding(disbursementCount = 1..if (KotestConfig.runTestsExtended) 7 else 3),
                     anyValidFinancialAccount,
                     anyValidWire,
                 ) { randomExistingAsset, randomNewFunding, randomBankAccount, randomWire ->
@@ -837,7 +921,7 @@ class UpdateFundingContractUnitTest : WordSpec({
             "throw an appropriate exception" {
                 checkAll(
                     if (KotestConfig.runTestsExtended) anyValidAsset else anyValidAsset(hasMismoLoan = false, hasFunding = false),
-                    anyValidFunding(disbursementCount = 1..7),
+                    anyValidFunding(disbursementCount = 1..if (KotestConfig.runTestsExtended) 7 else 3),
                     anyValidFinancialAccount,
                     anyValidWire,
                 ) { randomExistingAsset, randomNewFunding, randomBankAccount, randomWire ->
@@ -883,7 +967,7 @@ class UpdateFundingContractUnitTest : WordSpec({
             "throw an appropriate exception" {
                 checkAll(
                     if (KotestConfig.runTestsExtended) anyValidAsset else anyValidAsset(hasMismoLoan = false, hasFunding = false),
-                    anyValidFunding(disbursementCount = 1..7),
+                    anyValidFunding(disbursementCount = 1..if (KotestConfig.runTestsExtended) 7 else 3),
                     anyValidProvenanceAccount,
                     Arb.string(maxSize = 40),
                 ) { randomExistingAsset, randomNewFunding, randomBankAccount, randomInvalidProvenanceAddress ->
@@ -923,7 +1007,9 @@ class UpdateFundingContractUnitTest : WordSpec({
                         existingAsset = randomExistingAsset,
                     ).updateFunding(
                         newFunding = randomNewFunding,
-                    )
+                    ).let { newAsset ->
+                        newAsset.kvMap[assetLoanKey]?.toFigureTechLoan()?.funding shouldBe randomNewFunding
+                    }
                 }
             }
         }
