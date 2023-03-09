@@ -68,17 +68,17 @@ object LoanScopeInputs {
  */
 data class LoanPackage(
     /** The loan asset. */
-    @Record(LoanScopeFacts.asset) var asset: Asset,
+    @Record(LoanScopeFacts.asset) var asset: Asset?,
     /** The servicing rights to the loan. Defaults to the lender. */
-    @Record(LoanScopeFacts.servicingRights) var servicingRights: ServicingRights,
+    @Record(LoanScopeFacts.servicingRights) var servicingRights: ServicingRights?,
     /** A list of metadata for documents, including their URIs in an encrypted object store. */
-    @Record(LoanScopeFacts.documents) var documents: LoanDocuments,
+    @Record(LoanScopeFacts.documents) var documents: LoanDocuments?,
     /** Servicing data for the loan, including a list of metadata on loan states. */
-    @Record(LoanScopeFacts.servicingData) var servicingData: ServicingData,
+    @Record(LoanScopeFacts.servicingData) var servicingData: ServicingData?,
     /** A list of third-party validation iterations. */
-    @Record(LoanScopeFacts.loanValidationMetadata) var loanValidations: LoanValidation,
+    @Record(LoanScopeFacts.loanValidationMetadata) var loanValidations: LoanValidation?,
     /** The eNote for the loan. */
-    @Record(LoanScopeFacts.eNote) var eNote: ENote,
+    @Record(LoanScopeFacts.eNote) var eNote: ENote?,
 )
 
 /**
