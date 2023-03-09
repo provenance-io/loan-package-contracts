@@ -31,6 +31,7 @@ import io.kotest.property.arbitrary.of
 import io.kotest.property.arbitrary.pair
 import io.kotest.property.arbitrary.set
 import io.kotest.property.arbitrary.string
+import io.kotest.property.arbitrary.stringPattern
 import io.kotest.property.arbitrary.uInt
 import io.kotest.property.arbitrary.uuid
 import io.provenance.scope.loan.LoanPackage
@@ -41,14 +42,26 @@ import io.provenance.scope.loan.utility.ContractViolationMap
 import io.provenance.scope.loan.utility.IllegalContractStateException
 import io.provenance.scope.loan.utility.UnexpectedContractStateException
 import tech.figure.asset.v1beta1.Asset
+import tech.figure.loan.v1beta1.Disbursement
+import tech.figure.loan.v1beta1.Funding
 import tech.figure.loan.v1beta1.LoanDocuments
 import tech.figure.loan.v1beta1.MISMOLoanMetadata
 import tech.figure.proto.util.toProtoAny
 import tech.figure.servicing.v1beta1.LoanStateOuterClass.LoanStateMetadata
 import tech.figure.servicing.v1beta1.LoanStateOuterClass.ServicingData
 import tech.figure.servicing.v1beta1.ServicingRightsOuterClass.ServicingRights
+import tech.figure.util.v1beta1.ACH
+import tech.figure.util.v1beta1.ACH.AccountType
+import tech.figure.util.v1beta1.Account
+import tech.figure.util.v1beta1.Address
 import tech.figure.util.v1beta1.AssetType
 import tech.figure.util.v1beta1.DocumentMetadata
+import tech.figure.util.v1beta1.FinancialAccount
+import tech.figure.util.v1beta1.MoneyMovement
+import tech.figure.util.v1beta1.ProvenanceAccount
+import tech.figure.util.v1beta1.SWIFT
+import tech.figure.util.v1beta1.Status
+import tech.figure.util.v1beta1.WIRE
 import tech.figure.validation.v1beta2.LoanValidation
 import tech.figure.validation.v1beta2.ValidationItem
 import tech.figure.validation.v1beta2.ValidationIteration
@@ -108,6 +121,11 @@ internal object PrimitiveArbs {
  * Generators of [Arb]itrary instances of classes defined in the metadata asset model.
  */
 internal object MetadataAssetModelArbs {
+    /* Helper classes */
+    internal data class TimestampPair(
+        val earlierTimestamp: Timestamp,
+        val laterTimestamp: Timestamp,
+    )
     /* Protobufs */
     val anyAssetType: Arb<AssetType> = Arb.bind(
         PrimitiveArbs.anyNonEmptyString,
@@ -141,7 +159,7 @@ internal object MetadataAssetModelArbs {
             }
         }
     val anyNonNegativeMoney: Arb<FigureTechMoney> = Arb.bind(
-        Arb.double(min = 0.0).filterNot { double -> double in listOf(Double.NaN, Double.POSITIVE_INFINITY) }.toSimpleString(),
+        Arb.stringPattern(Regex("^([0-9]+(?:[.][0-9]+)?|\\.[0-9]+)$").pattern),
         Arb.string(size = 3, codepoints = Codepoint.az()),
     ) { amount, currency ->
         FigureTechMoney.newBuilder().also { moneyBuilder ->
@@ -216,9 +234,199 @@ internal object MetadataAssetModelArbs {
     }.filterNot { date ->
         date.value === JavaLocalDate.of(1970, 1, 1).toString()
     }
+    val anyValidAddress: Arb<Address> = Arb.bind(
+        PrimitiveArbs.anyNonEmptyString,
+        Arb.string(),
+        Arb.string(),
+        PrimitiveArbs.anyNonEmptyString,
+        PrimitiveArbs.anyNonEmptyString,
+        PrimitiveArbs.anyNonEmptyString,
+        PrimitiveArbs.anyNonEmptyString,
+        Arb.string(),
+        PrimitiveArbs.anyNonEmptyString,
+        PrimitiveArbs.anyNonEmptyString,
+    ) { street, street2, street3, city, state, country, zip, unitNumber, addressType, ownershipType ->
+        Address.newBuilder().also { addressBuilder ->
+            addressBuilder.street = street
+            addressBuilder.street2 = street2
+            addressBuilder.street3 = street3
+            addressBuilder.city = city
+            addressBuilder.state = state
+            addressBuilder.country = country
+            addressBuilder.zip = zip
+            addressBuilder.unitNumber = unitNumber
+            addressBuilder.addressType = addressType
+            addressBuilder.ownershipType = ownershipType
+        }.build()
+    }
     val anyValidTimestamp: Arb<Timestamp> = anyTimestampComponents.toTimestamp()
     val anyPastNonEpochTimestamp: Arb<Timestamp> = anyPastNonEpochTimestampComponents.toTimestamp()
+    val anyPastNonEpochTimestampPair: Arb<TimestampPair> = Arb.set(
+        gen = anyPastNonEpochTimestampComponents,
+        range = 2..2,
+    ).map { set ->
+        set.toList().sortedWith(compareBy({ it.first }, { it.second })).map { (seconds, nanoSeconds) ->
+            Timestamp.newBuilder().also { timestampBuilder ->
+                timestampBuilder.seconds = seconds
+                timestampBuilder.nanos = nanoSeconds
+            }.build()
+        }.let { timestamps ->
+            TimestampPair(
+                earlierTimestamp = timestamps[0],
+                laterTimestamp = timestamps[1],
+            )
+        }
+    }
     val anyFutureTimestamp: Arb<Timestamp> = anyFutureTimestampComponents.toTimestamp()
+    val anyValidFundingStatus: Arb<Status> = Arb.bind(
+        Arb.of("UNFUNDED", "INITIATED", "FUNDED", "CANCELLED"),
+        anyPastNonEpochTimestamp,
+    ) { status, effectiveTime ->
+        Status.newBuilder().also { statusBuilder ->
+            statusBuilder.status = status
+            statusBuilder.effectiveTime = effectiveTime
+        }.build()
+    }
+    val anyValidAch: Arb<ACH> = Arb.bind(
+        Arb.of(AccountType.CHECKING, AccountType.SAVINGS, AccountType.OTHER),
+        Arb.string(),
+    ) { accountType, ownerType ->
+        ACH.newBuilder().also { achBuilder ->
+            achBuilder.accountType = accountType
+            achBuilder.ownerType = ownerType
+        }.build()
+    }
+    val anyValidWire: Arb<WIRE> = Arb.bind(
+        anyValidAddress,
+        PrimitiveArbs.anyNonEmptyString,
+        Arb.bind(
+            PrimitiveArbs.anyNonEmptyString,
+            anyValidAddress,
+        ) { swiftId, swiftBankAddress ->
+            SWIFT.newBuilder().also { swiftBuilder ->
+                swiftBuilder.swiftId = swiftId
+                swiftBuilder.swiftBankAddress = swiftBankAddress
+            }.build()
+        },
+    ) { accountAddress, wireInstructions, swiftInstructions ->
+        WIRE.newBuilder().also { wireBuilder ->
+            wireBuilder.accountAddress = accountAddress
+            wireBuilder.wireInstructions = wireInstructions
+            wireBuilder.swiftInstructions = swiftInstructions
+        }.build()
+    }
+    fun anyValidMoneyMovement(
+        useACH: Boolean? = null,
+    ): Arb<MoneyMovement> = Arb.bind(
+        anyValidAch,
+        anyValidWire,
+        useACH?.let { Arb.of(it) } ?: Arb.boolean(),
+    ) { ach, wire, useAch ->
+        MoneyMovement.newBuilder().also { movementBuilder ->
+            if (useAch) {
+                movementBuilder.ach = ach
+                movementBuilder.clearWire()
+            } else {
+                movementBuilder.wire = wire
+                movementBuilder.clearAch()
+            }
+        }.build()
+    }
+    val anyValidFinancialAccount: Arb<FinancialAccount> = Arb.bind(
+        anyUuid,
+        Arb.string(),
+        Arb.string(),
+        Arb.string(minSize = 4, maxSize = 17),
+        Arb.string(size = 9),
+        Arb.list(anyValidMoneyMovement(), range = 1..3),
+    ) { id, ownerName, financialInstitution, accountNumber, routingNumber, moneyMovementList ->
+        FinancialAccount.newBuilder().also { accountBuilder ->
+            accountBuilder.id = id
+            accountBuilder.ownerName = ownerName
+            accountBuilder.financialInstitution = financialInstitution
+            accountBuilder.accountNumber = accountNumber
+            accountBuilder.routingNumber = routingNumber
+            accountBuilder.clearMovement()
+            accountBuilder.addAllMovement(moneyMovementList)
+        }.build()
+    }
+    val anyValidProvenanceAccount: Arb<ProvenanceAccount> = Arb.bind(
+        Arb.stringPattern(Regex("^(pb|tp)1.{38}.*").pattern),
+        Arb.string(),
+    ) { address, description ->
+        ProvenanceAccount.newBuilder().also { accountBuilder ->
+            accountBuilder.address = address
+            accountBuilder.description = description
+        }.build()
+    }
+    fun anyValidDisbursementAccount(
+        useBankAccount: Boolean? = null,
+    ): Arb<Account> = Arb.bind(
+        anyUuid,
+        anyValidFinancialAccount,
+        anyValidProvenanceAccount,
+        useBankAccount?.let { Arb.of(it) } ?: Arb.boolean(),
+    ) { id, financialAccount, provenanceAccount, useFinancialAccount ->
+        Account.newBuilder().also { accountBuilder ->
+            accountBuilder.accountOwnerId = id
+            if (useFinancialAccount) {
+                accountBuilder.financial = financialAccount
+                accountBuilder.clearProvenance()
+            } else {
+                accountBuilder.provenance = provenanceAccount
+                accountBuilder.clearFinancial()
+            }
+        }.build()
+    }
+    val anyValidDisbursement: Arb<Disbursement> = Arb.bind(
+        anyUuid,
+        anyNonNegativeMoney,
+        anyPastNonEpochTimestampPair,
+        Arb.bind(
+            PrimitiveArbs.anyNonEmptyString, /* NOTE: This forms a passing, but not necessarily coherent, disbursement status */
+            anyPastNonEpochTimestamp,
+        ) { status, effectiveTime ->
+            Status.newBuilder().also { statusBuilder ->
+                statusBuilder.status = status
+                statusBuilder.effectiveTime = effectiveTime
+            }.build()
+        },
+        anyValidDisbursementAccount(),
+    ) { id, amount, timestamps, status, disbursementAccount ->
+        Disbursement.newBuilder().also { disbursementBuilder ->
+            disbursementBuilder.id = id
+            disbursementBuilder.amount = amount
+            disbursementBuilder.started = timestamps.earlierTimestamp
+            disbursementBuilder.completed = timestamps.laterTimestamp
+            disbursementBuilder.status = status
+            disbursementBuilder.disburseAccount = disbursementAccount
+        }.build()
+    }
+    fun anyValidDisbursementList(size: Int, slippage: Int = 10): Arb<List<Disbursement>> = Arb.bind(
+        anyUuidSet(size = size, slippage = slippage),
+        Arb.list(anyValidDisbursement, range = size..size),
+    ) { disbursementIds, disbursements ->
+        disbursements.mapIndexed { index, disbursement ->
+            disbursement.toBuilder().also { disbursementBuilder ->
+                disbursementBuilder.id = disbursementIds[index]
+            }.build()
+        }
+    }
+    fun anyValidFunding(
+        disbursementCount: IntRange,
+    ): Arb<Funding> = Arb.bind(
+        anyValidFundingStatus,
+        anyPastNonEpochTimestampPair,
+        Arb.int(range = disbursementCount).flatMap { count -> anyValidDisbursementList(size = count) },
+    ) { status, timestamps, disbursementList ->
+        Funding.newBuilder().also { fundingBuilder ->
+            fundingBuilder.status = status
+            fundingBuilder.started = timestamps.earlierTimestamp
+            fundingBuilder.completed = timestamps.laterTimestamp
+            fundingBuilder.clearDisbursements()
+            fundingBuilder.addAllDisbursements(disbursementList)
+        }.build()
+    }
     val anyValidENoteController: Arb<Controller> = Arb.bind(
         anyUuid,
         PrimitiveArbs.anyNonEmptyString,
@@ -228,19 +436,26 @@ internal object MetadataAssetModelArbs {
             controllerBuilder.controllerName = controllerName
         }.build()
     }
-    val anyValidFigureTechLoan: Arb<FigureTechLoan> = Arb.bind(
+    fun anyValidFigureTechLoan(
+        hasFunding: Boolean,
+    ): Arb<FigureTechLoan> = Arb.bind(
         anyUuid,
         anyUuid,
         PrimitiveArbs.anyNonEmptyString,
         PrimitiveArbs.anyValidUli,
-    ) { loanId, originatorUuid, originatorName, uli ->
+        if (hasFunding) anyValidFunding(disbursementCount = 1..6) else Arb.of(Funding.getDefaultInstance()),
+    ) { loanId, originatorUuid, originatorName, uli, funding ->
         FigureTechLoan.newBuilder().also { loanBuilder ->
             loanBuilder.id = loanId
             loanBuilder.originatorUuid = originatorUuid
             loanBuilder.originatorName = originatorName
             loanBuilder.uli = uli
+            if (hasFunding) {
+                loanBuilder.funding = funding
+            }
         }.build()
     }
+    val anyValidFigureTechLoan: Arb<FigureTechLoan> = Arb.boolean().flatMap { hasFunding -> anyValidFigureTechLoan(hasFunding = hasFunding) }
     val anyValidMismoLoan: Arb<MISMOLoanMetadata> = Arb.bind(
         PrimitiveArbs.anyValidUli,
         anyValidDocumentMetadata,
@@ -373,40 +588,28 @@ internal object MetadataAssetModelArbs {
         }.build()
     }
     /* Loan scope records */
-    fun anyValidAsset(): Arb<Asset> =
-        Arb.boolean().flatMap { hasMismoLoan ->
-            anyValidAsset(hasMismoLoan = hasMismoLoan)
-        }
     fun anyValidAsset(
         hasMismoLoan: Boolean,
+        hasFunding: Boolean,
     ): Arb<Asset> =
-        if (hasMismoLoan) {
-            Arb.bind(
-                anyUuid,
-                PrimitiveArbs.anyNonEmptyString,
-                anyValidFigureTechLoan,
-                anyValidMismoLoan,
-            ) { assetId, assetType, figureTechLoan, mismoLoan ->
-                Asset.newBuilder().also { assetBuilder ->
-                    assetBuilder.id = assetId
-                    assetBuilder.type = assetType
-                    assetBuilder.putKv(LoanScopeProperties.assetLoanKey, figureTechLoan.toProtoAny())
+        Arb.bind(
+            anyUuid,
+            PrimitiveArbs.anyNonEmptyString,
+            anyValidFigureTechLoan(hasFunding = hasFunding),
+            if (hasMismoLoan) anyValidMismoLoan else Arb.of(MISMOLoanMetadata.getDefaultInstance()),
+        ) { assetId, assetType, figureTechLoan, mismoLoan ->
+            Asset.newBuilder().also { assetBuilder ->
+                assetBuilder.id = assetId
+                assetBuilder.type = assetType
+                assetBuilder.putKv(LoanScopeProperties.assetLoanKey, figureTechLoan.toProtoAny())
+                if (hasMismoLoan) {
                     assetBuilder.putKv(LoanScopeProperties.assetMismoKey, mismoLoan.toProtoAny())
-                }.build()
-            }
-        } else {
-            Arb.bind(
-                anyUuid,
-                PrimitiveArbs.anyNonEmptyString,
-                anyValidFigureTechLoan,
-            ) { assetId, assetType, figureTechLoan ->
-                Asset.newBuilder().also { assetBuilder ->
-                    assetBuilder.id = assetId
-                    assetBuilder.type = assetType
-                    assetBuilder.putKv(LoanScopeProperties.assetLoanKey, figureTechLoan.toProtoAny())
-                }.build()
-            }
+                }
+            }.build()
         }
+    val anyValidAsset: Arb<Asset> = Arb.pair(Arb.boolean(), Arb.boolean()).flatMap { (hasMismoLoan, hasFunding) ->
+        anyValidAsset(hasMismoLoan = hasMismoLoan, hasFunding = hasFunding)
+    }
     fun anyValidENote(
         minAssumptionCount: Int = 0,
         maxAssumptionCount: Int = 10,
@@ -509,7 +712,7 @@ internal object MetadataAssetModelArbs {
         loanDocumentCount: Int = 3,
         hasMismoLoan: Boolean,
     ): Arb<LoanPackage> = Arb.bind(
-        anyValidAsset(hasMismoLoan = hasMismoLoan),
+        Arb.boolean().flatMap { hasFunding -> anyValidAsset(hasMismoLoan = hasMismoLoan, hasFunding = hasFunding) },
         anyValidENote(maxAssumptionCount = maxAssumptionCount, maxModificationCount = maxModificationCount),
         anyValidServicingRights,
         anyValidServicingData(loanStateAndDocumentCount = loanStateCount),
@@ -529,7 +732,7 @@ internal object MetadataAssetModelArbs {
 
 /** Based on [this StackOverflow answer](https://stackoverflow.com/a/25307973). */
 internal fun Arb<Double>.toSimpleString(): Arb<String> = map { double ->
-    DecimalFormat("0", DecimalFormatSymbols.getInstance(Locale.ENGLISH)).apply {
+    DecimalFormat("0.00", DecimalFormatSymbols.getInstance(Locale.ENGLISH)).apply {
         maximumFractionDigits = 340
     }.format(double)
 }
@@ -572,7 +775,7 @@ private fun Arb<Pair<Long, Int>>.toTimestamp(): Arb<Timestamp> = map { (seconds,
 /**
  * Defines a custom [Matcher] to check the violation count value in a [ContractViolationException].
  */
-internal fun throwViolationCount(violationCount: UInt) = Matcher<ContractViolationException> { exception ->
+private fun throwViolationCount(violationCount: UInt) = Matcher<ContractViolationException> { exception ->
     { count: UInt ->
         if (count == 1U) {
             "$count violation"
@@ -591,6 +794,18 @@ internal fun throwViolationCount(violationCount: UInt) = Matcher<ContractViolati
     }
 }
 
+private fun containAtLeastOneOf(substrings: Iterable<String>) = Matcher<String> { message ->
+    MatcherResult(
+        substrings.any { substring -> message.contains(substring) },
+        {
+            "None of the given strings [${substrings.joinToString(limit = 5)}] were a substring of $message"
+        },
+        {
+            "None of the given strings [${substrings.joinToString(limit = 5)}] should have been a substring of $message"
+        }
+    )
+}
+
 /**
  * Wraps the custom matcher [throwViolationCount] following the style outlined in the
  * [Kotest documentation](https://kotest.io/docs/assertions/custom-matchers.html#extension-variants).
@@ -606,6 +821,14 @@ internal infix fun ContractViolationException.shouldHaveViolationCount(violation
  * This should be called by the result of [`shouldThrow<ContractViolationException>`][io.kotest.assertions.throwables.shouldThrow].
  */
 internal infix fun ContractViolationException.shouldHaveViolationCount(violationCount: Int) = shouldHaveViolationCount(violationCount.toUInt())
+
+/**
+ * Wraps the custom matcher [throwViolationCount] following the style outlined in the
+ * [Kotest documentation](https://kotest.io/docs/assertions/custom-matchers.html#extension-variants).
+ */
+internal infix fun String.shouldContainAtLeastOneOf(substrings: Iterable<String>) = apply {
+    this should containAtLeastOneOf(substrings)
+}
 
 internal fun IllegalContractStateException.shouldBeParseFailureFor(classifier: String, inputDescription: String = "input") = apply {
     message shouldContain "Could not unpack the $inputDescription as class $classifier"

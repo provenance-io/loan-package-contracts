@@ -10,8 +10,8 @@ import io.provenance.scope.contract.spec.P8eContract
 import io.provenance.scope.loan.LoanScopeFacts
 import io.provenance.scope.loan.LoanScopeInputs
 import io.provenance.scope.loan.utility.ContractRequirementType.VALID_INPUT
+import io.provenance.scope.loan.utility.loanValidationRequestValidation
 import io.provenance.scope.loan.utility.orError
-import io.provenance.scope.loan.utility.validateLoanValidationRequest
 import io.provenance.scope.loan.utility.validateRequirements
 import tech.figure.validation.v1beta2.LoanValidation
 import tech.figure.validation.v1beta2.ValidationIteration
@@ -27,7 +27,7 @@ open class RecordLoanValidationRequestContract(
     @Record(LoanScopeFacts.loanValidationMetadata)
     open fun recordLoanValidationRequest(@Input(LoanScopeInputs.validationRequest) submission: ValidationRequest): LoanValidation {
         validateRequirements(VALID_INPUT) {
-            validateLoanValidationRequest(submission)
+            loanValidationRequestValidation(submission)
             validationRecord?.let { existingValidationRecord ->
                 requireThat(
                     existingValidationRecord.iterationList.none { iteration ->

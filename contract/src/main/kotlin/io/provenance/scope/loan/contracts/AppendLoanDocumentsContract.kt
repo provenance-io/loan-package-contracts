@@ -14,7 +14,6 @@ import io.provenance.scope.loan.utility.ContractRequirementType.VALID_INPUT
 import io.provenance.scope.loan.utility.documentModificationValidation
 import io.provenance.scope.loan.utility.documentValidation
 import io.provenance.scope.loan.utility.isSet
-import io.provenance.scope.loan.utility.raiseError
 import io.provenance.scope.loan.utility.toChecksumMap
 import io.provenance.scope.loan.utility.tryUnpackingAs
 import io.provenance.scope.loan.utility.updateServicingData

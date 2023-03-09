@@ -62,12 +62,12 @@ internal class TestDataGenerators : WordSpec({
         }
         "be able to generate a random asset for a Figure Tech loan" {
             println(
-                mapper.writeValueAsString(anyValidAsset(hasMismoLoan = false).next(randomSource))
+                mapper.writeValueAsString(anyValidAsset(hasMismoLoan = false, hasFunding = true).next(randomSource))
             )
         }
         "be able to generate a random asset for a Figure Tech loan with a MISMO loan" {
             println(
-                mapper.writeValueAsString(anyValidAsset(hasMismoLoan = true).next(randomSource))
+                mapper.writeValueAsString(anyValidAsset(hasMismoLoan = true, hasFunding = true).next(randomSource))
             )
         }
         "be able to generate a random eNote" {

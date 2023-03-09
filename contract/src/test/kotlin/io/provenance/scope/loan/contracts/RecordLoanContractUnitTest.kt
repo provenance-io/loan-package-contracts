@@ -431,7 +431,7 @@ class RecordLoanContractUnitTest : WordSpec({
         "given an asset which removes the MISMO loan from an existing loan record" should {
             "not throw an exception" {
                 checkAll(
-                    anyValidAsset(hasMismoLoan = true),
+                    anyValidAsset(hasMismoLoan = true, hasFunding = true),
                 ) { randomExistingAsset ->
                     val randomNewAsset = randomExistingAsset.toBuilder().also { newAssetBuilder ->
                         newAssetBuilder.removeKv(assetMismoKey)
@@ -455,7 +455,7 @@ class RecordLoanContractUnitTest : WordSpec({
         "given an asset which adds a MISMO loan to an existing loan record" should {
             "not throw an exception" {
                 checkAll(
-                    anyValidAsset(hasMismoLoan = true),
+                    anyValidAsset(hasMismoLoan = true, hasFunding = true),
                 ) { randomNewAsset ->
                     val randomExistingAsset = randomNewAsset.toBuilder().also { existingAssetBuilder ->
                         existingAssetBuilder.removeKv(assetMismoKey)
@@ -508,7 +508,7 @@ class RecordLoanContractUnitTest : WordSpec({
         "given an input with a MISMO loan but no Figure Tech loan to update an existing Figure Tech loan record" should {
             "throw an appropriate exception" {
                 checkAll(
-                    anyValidAsset(hasMismoLoan = true),
+                    anyValidAsset(hasMismoLoan = true, hasFunding = true),
                 ) { randomBaseAsset ->
                     val randomExistingAsset = randomBaseAsset.toBuilder().also { existingAssetBuilder ->
                         existingAssetBuilder.removeKv(assetMismoKey)

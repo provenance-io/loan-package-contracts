@@ -60,6 +60,7 @@ object LoanScopeInputs {
     const val eNoteUpdate = "newENote"
     const val eNoteControllerUpdate = "newController"
     const val newLoanStates = "newLoanStates"
+    const val funding = "newFunding"
 }
 
 /**

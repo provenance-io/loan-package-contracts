@@ -61,22 +61,10 @@ internal enum class ContractRequirementType(
 internal infix fun Boolean.orError(error: ContractViolation): ContractEnforcement =
     Pair(this, error)
 
-/**
- * Immediately raises a [ContractViolation].
- *
- * @param error The violation message to propagate.
- */
-internal fun ContractEnforcementContext.raiseError(error: ContractViolation) = requireThat(false to error)
-
-/**
- * Defines a [ContractViolation] without immediately enforcing it.
- *
- * Should be used over [ContractEnforcementContext.raiseError] within [ContractEnforcementContext.requireThatEach]'s `requirement` body to prevent
- * duplication in a resulting exception message.
- *
- * @param error The violation message to propagate if the violation is enforced.
- */
-internal fun askToRaiseError(error: ContractViolation) = askThat(false to error)
+internal sealed interface EnforcementContext {
+    fun raiseError(error: ContractViolation)
+    fun requireThat(vararg newEnforcements: ContractEnforcement)
+}
 
 /**
  * Performs validation of one or more [ContractEnforcement]s.
@@ -144,19 +132,11 @@ private fun ContractViolationMap.handleViolations(
     }
 
 /**
- * Creates a list of [ContractEnforcement]s without immediately enforcing them.
- *
- * Should be used over [ContractEnforcementContext.requireThat] within [ContractEnforcementContext.requireThatEach]'s `requirement` body to prevent
- * duplication in a resulting exception message.
- */
-internal fun askThat(vararg enforcements: ContractEnforcement): List<ContractEnforcement> = enforcements.toList()
-
-/**
  * Defines a body in which [ContractEnforcement]s can be freely defined and then collectively evaluated.
  */
 internal class ContractEnforcementContext(
     private val requirementType: ContractRequirementType,
-) {
+) : EnforcementContext {
     /**
      * A [ContractViolationMap] which can be updated by calls to [requireThat].
      */
@@ -171,31 +151,112 @@ internal class ContractEnforcementContext(
     /**
      * Adds [ContractViolation]s to a [ContractViolationMap] that have their corresponding requirement violated.
      */
-    fun requireThat(vararg enforcements: ContractEnforcement): List<ContractEnforcement> = enforcements.toList().onEach { (rule, violationReport) ->
+    override fun requireThat(vararg newEnforcements: ContractEnforcement) = newEnforcements.forEach { (rule, violationReport) ->
         if (!rule) {
             addViolation(violationReport)
         }
     }
 
-    fun <T> List<T>.requireThatEach(iterationsDescription: String = "Iterations", requirement: (T) -> List<ContractEnforcement>) =
-        fold(mutableMapOf<String, List<UInt>>()) { acc, item ->
-            acc.also { map ->
-                requirement(item).forEachIndexed { index, (rule, violationReport) ->
-                    if (!rule) {
-                        map[violationReport] = map.getOrDefault(violationReport, emptyList()) + index.toUInt()
+    /**
+     * Immediately raises a [ContractViolation].
+     *
+     * @param error The violation message to propagate.
+     */
+    override fun raiseError(error: ContractViolation) = requireThat(false to error)
+
+    internal class RequireThatEach(
+        private val enforcements: MutableList<Item>,
+    ) : Iterable<Pair<ContractViolation, List<UInt>>> {
+        constructor() : this(mutableListOf())
+
+        internal class Item(
+            internal val index: UInt,
+            internal val enforcements: MutableList<ContractEnforcement>,
+        ) : EnforcementContext {
+            constructor(index: Int) : this(index.toUInt(), mutableListOf<ContractEnforcement>())
+
+            override fun requireThat(vararg newEnforcements: ContractEnforcement) {
+                enforcements.addAll(newEnforcements)
+            }
+
+            override fun raiseError(error: ContractViolation) = requireThat(false to error)
+
+            fun <T> List<T>.requireThatEach(
+                listIndices: Boolean = true,
+                requirement: Item.(T) -> Unit
+            ) {
+                RequireThatEach().apply {
+                    forEachItem(requirement)
+                }.forEach { (violationMessage, iterations) ->
+                    iterations.count().let { iterationsCount ->
+                        if (listIndices && iterationsCount < 6) {
+                            iterations.joinToString().let { indicesSnippet ->
+                                if (iterationsCount == 1) {
+                                    "Iteration $indicesSnippet"
+                                } else {
+                                    "Iterations $indicesSnippet"
+                                }
+                            }
+                        } else {
+                            if (iterationsCount == 1) {
+                                "1 instance"
+                            } else {
+                                "$iterationsCount instances"
+                            }
+                        }.let { iterationsSnippet ->
+                            enforcements.add(false to "$violationMessage [$iterationsSnippet]")
+                        }
                     }
                 }
             }
-        }.forEach { (violationMessage, iterations) ->
-            5.let { iterationsLimit ->
-                iterations.joinToString(
-                    limit = iterationsLimit,
-                    truncated = "...(${(iterations.size - iterationsLimit)} more omitted)",
-                )
-            }.let { iterationIndicesSnippet ->
-                addViolation("$violationMessage [$iterationsDescription $iterationIndicesSnippet]")
+        }
+
+        internal fun <T> List<T>.forEachItem(requirement: Item.(T) -> Unit) {
+            forEachIndexed { index, item ->
+                enforcements.add(Item(index).apply { requirement(item) })
             }
         }
+
+        override fun iterator(): Iterator<Pair<ContractViolation, List<UInt>>> =
+            enforcements.fold(mutableMapOf<ContractViolation, List<UInt>>()) { acc, item ->
+                item.enforcements.forEach { (rule, violationReport) ->
+                    if (!rule) {
+                        acc[violationReport] = acc.getOrDefault(violationReport, emptyList()) + item.index
+                    }
+                }
+                return@fold acc
+            }.toList().iterator()
+    }
+
+    fun <T> List<T>.requireThatEach(
+        listIndices: Boolean = true,
+        requirement: RequireThatEach.Item.(T) -> Unit
+    ) {
+        RequireThatEach().apply {
+            forEachItem(requirement)
+        }.forEach { (violationMessage, iterations) ->
+            iterations.count().let { iterationsCount ->
+                if (listIndices && iterationsCount < 6) {
+                    iterations.joinToString().let { indicesSnippet ->
+                        if (iterationsCount == 1) {
+                            "Iteration $indicesSnippet"
+                        } else {
+                            "Iterations $indicesSnippet"
+                        }
+                    }
+                } else {
+                    if (iterationsCount == 1) {
+                        "1 instance"
+                    } else {
+                        "$iterationsCount instances"
+                    }
+                }.let { iterationsSnippet ->
+                    addViolation("$violationMessage [$iterationsSnippet]")
+                }
+            }
+        }
+    }
+
     /**
      * See [io.provenance.scope.loan.utility.handleViolations].
      */

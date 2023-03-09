@@ -13,10 +13,10 @@ import io.dartinc.registry.v1beta1.Controller as ENoteController
 /**
  * Performs validation to prevent a new document from changing specific fields of an existing document with the same checksum.
  */
-internal fun ContractEnforcementContext.documentModificationValidation(
+internal fun EnforcementContext.documentModificationValidation(
     existingDocument: DocumentMetadata,
     newDocument: DocumentMetadata,
-): List<ContractEnforcement> =
+) =
     existingDocument.checksum.checksum.let { existingChecksum ->
         if (existingChecksum == newDocument.checksum.checksum) {
             val checksumSnippet = if (existingChecksum.isNotBlank()) {
@@ -39,8 +39,6 @@ internal fun ContractEnforcementContext.documentModificationValidation(
                 (existingDocument.documentType == newDocument.documentType || existingDocument.documentType.isNullOrBlank())
                     orError "Cannot change document type of existing document$checksumSnippet",
             )
-        } else {
-            emptyList()
         }
     }
 
@@ -58,7 +56,7 @@ internal val documentValidation: ContractEnforcementContext.(DocumentMetadata) -
             setDocument.documentType.isNotBlank() orError "Document$documentIdSnippet is missing document type",
             setDocument.fileName.isNotBlank()     orError "Document$documentIdSnippet is missing file name",
         )
-        validateChecksum("Document$documentIdSnippet", setDocument.checksum)
+        checksumValidation("Document$documentIdSnippet", setDocument.checksum)
     } ?: raiseError("Document is not set")
 }
 
@@ -80,7 +78,7 @@ internal val eNoteDocumentValidation: ContractEnforcementContext.(DocumentMetada
             setENote.documentType.isNotBlank() orError "eNote is missing document type",
             setENote.fileName.isNotBlank()     orError "eNote is missing file name",
         )
-        validateChecksum("eNote", setENote.checksum)
+        checksumValidation("eNote", setENote.checksum)
     } ?: raiseError("eNote document is not set")
 }
 
@@ -141,7 +139,7 @@ internal val loanStateValidation: ContractEnforcementContext.(LoanStateMetadata)
         loanState.effectiveTime.isValidForLoanState() orError "Loan state$idSnippet must have valid effective time",
         loanState.uri.isNotBlank()                    orError "Loan state$idSnippet is missing URI",
     )
-    validateChecksum("Loan state$idSnippet", loanState.checksum)
+    checksumValidation("Loan state$idSnippet", loanState.checksum)
 }
 
 internal val loanValidationInputValidation: (LoanValidation) -> Unit = { validationRecord ->
@@ -153,7 +151,8 @@ internal val loanValidationInputValidation: (LoanValidation) -> Unit = { validat
                     incomingIterationRequestIds[iterationId] = incomingIterationRequestIds.getOrDefault(iterationId, 0U) + 1U
                 }
                 /** TODO: Find out if there is another way to do this, instead of having to concatenate lists */
-                return@requireThatEach loanValidationRequestValidation(iteration.request) + loanValidationResultsValidation(iteration.results)
+                loanValidationRequestValidation(iteration.request)
+                loanValidationResultsValidation(iteration.results)
             }
             incomingIterationRequestIds.entries.forEach { (iterationId, count) ->
                 if (count > 1U) {
@@ -166,47 +165,18 @@ internal val loanValidationInputValidation: (LoanValidation) -> Unit = { validat
     }
 }
 
-internal val loanValidationResultsValidation: (ValidationResultsMetadata) -> List<ContractEnforcement> = { results ->
+internal val loanValidationResultsValidation: EnforcementContext.(ValidationResultsMetadata) -> Unit = { results ->
     results.takeIf { it.isSet() }?.let { setResults ->
-        listOf(
-            askThat(
-                setResults.id.isValid()                          orError "Results must have valid ID",
-                setResults.effectiveTime.isValidAndNotInFuture() orError "Results must have valid effective time",
-                setResults.uri.isNotBlank()                      orError "Results are missing a URI",
-            ),
-            checksumValidation("Results", setResults.checksum),
-        ).flatten()
-    } ?: askToRaiseError("Results are not set")
-}
-
-internal val loanValidationRequestValidation: (ValidationRequest) -> List<ContractEnforcement> = { request ->
-    request.takeIf { it.isSet() }?.let { setRequest ->
-        askThat(
-            setRequest.requestId.isValid()                   orError "Request must have valid ID",
-            setRequest.effectiveTime.isValidAndNotInFuture() orError "Request must have valid effective time",
-            (setRequest.blockHeight >= 0L)                   orError "Request must have valid block height",
-            setRequest.validatorName.isNotBlank()            orError "Request is missing validator name",
-            setRequest.requesterName.isNotBlank()            orError "Request is missing requester name",
+        requireThat(
+            setResults.id.isValid()                          orError "Results must have valid ID",
+            setResults.effectiveTime.isValidAndNotInFuture() orError "Results must have valid effective time",
+            setResults.uri.isNotBlank()                      orError "Results are missing a URI",
         )
-    } ?: askToRaiseError("Request is not set")
-}
-
-// TODO: Figure out how to DRY this method so it can be used with and without a ContractEnforcementContext, while still letting requireThatEach work
-internal val validateLoanValidationResults: ContractEnforcementContext.(ValidationResultsMetadata) -> List<ContractEnforcement> = { results ->
-    results.takeIf { it.isSet() }?.let { setResults ->
-        listOf(
-            requireThat(
-                setResults.id.isValid()                          orError "Results must have valid ID",
-                setResults.effectiveTime.isValidAndNotInFuture() orError "Results must have valid effective time",
-                setResults.uri.isNotBlank()                      orError "Results are missing a URI",
-            ),
-            validateChecksum("Results", setResults.checksum),
-        ).flatten()
+        checksumValidation("Results", setResults.checksum)
     } ?: raiseError("Results are not set")
 }
 
-// TODO: Figure out how to DRY this method so it can be used with and without a ContractEnforcementContext, while still letting requireThatEach work
-internal val validateLoanValidationRequest: ContractEnforcementContext.(ValidationRequest) -> List<ContractEnforcement> = { request ->
+internal val loanValidationRequestValidation: EnforcementContext.(ValidationRequest) -> Unit = { request ->
     request.takeIf { it.isSet() }?.let { setRequest ->
         requireThat(
             setRequest.requestId.isValid()                   orError "Request must have valid ID",

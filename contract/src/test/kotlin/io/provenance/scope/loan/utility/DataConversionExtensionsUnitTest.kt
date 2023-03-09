@@ -74,7 +74,7 @@ class DataConversionExtensionsUnitTest : WordSpec({
         }
         "given a packed Figure Tech loan to unpack as a MISMO loan with inherently different fields" should {
             "throw an appropriate informative exception" {
-                checkAll(anyValidFigureTechLoan) { randomLoan ->
+                checkAll(anyValidFigureTechLoan(hasFunding = false)) { randomLoan ->
                     shouldThrow<IllegalContractStateException> {
                         validateRequirements(ContractRequirementType.LEGAL_SCOPE_STATE) {
                             randomLoan.toProtoAny().tryUnpackingAs<MISMOLoanMetadata, Unit> {}
@@ -124,7 +124,7 @@ class DataConversionExtensionsUnitTest : WordSpec({
         }
         "called on a packed Figure Tech loan" should {
             "not throw an exception" {
-                checkAll(anyValidFigureTechLoan) { randomLoan ->
+                checkAll(anyValidFigureTechLoan(hasFunding = false)) { randomLoan ->
                     randomLoan.toProtoAny().toFigureTechLoan() shouldBe randomLoan
                 }
             }

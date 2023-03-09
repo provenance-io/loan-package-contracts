@@ -38,7 +38,7 @@ import kotlin.math.max
 
 class AppendLoanDocumentsContractUnitTest : WordSpec({
     "appendDocuments" When {
-        val maxDocumentCount = (if (KotestConfig.runTestsExtended) 20 else 5)
+        val maxDocumentCount = (if (KotestConfig.runTestsExtended) 15 else 5)
         "given an empty input" should {
             "throw an appropriate exception" {
                 checkAll(
