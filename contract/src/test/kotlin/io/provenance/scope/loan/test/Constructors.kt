@@ -5,6 +5,7 @@ import io.provenance.scope.loan.contracts.AppendLoanStatesContract
 import io.provenance.scope.loan.contracts.RecordLoanContract
 import io.provenance.scope.loan.contracts.RecordLoanValidationRequestContract
 import io.provenance.scope.loan.contracts.RecordLoanValidationResultsContract
+import io.provenance.scope.loan.contracts.RecordStandaloneLoanValidationResultsContract
 import tech.figure.asset.v1beta1.Asset
 import tech.figure.servicing.v1beta1.LoanStateOuterClass.ServicingData
 import tech.figure.servicing.v1beta1.ServicingRightsOuterClass.ServicingRights
@@ -34,7 +35,10 @@ object Constructors {
         get() = RecordLoanValidationResultsContract(
             LoanValidation.getDefaultInstance()
         )
-
+    val standaloneResultsContractWithEmptyExistingRecord: RecordStandaloneLoanValidationResultsContract
+        get() = RecordStandaloneLoanValidationResultsContract(
+            LoanValidation.getDefaultInstance()
+        )
     val requestContractWithEmptyExistingRecord: RecordLoanValidationRequestContract
         get() = RecordLoanValidationRequestContract(
             LoanValidation.getDefaultInstance()

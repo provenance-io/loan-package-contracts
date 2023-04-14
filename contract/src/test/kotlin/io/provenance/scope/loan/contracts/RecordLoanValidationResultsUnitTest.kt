@@ -3,6 +3,7 @@ package io.provenance.scope.loan.contracts
 import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.core.spec.style.WordSpec
 import io.kotest.core.test.TestCaseOrder
+import io.kotest.matchers.shouldBe
 import io.kotest.matchers.string.shouldContain
 import io.kotest.matchers.string.shouldContainIgnoringCase
 import io.kotest.property.Arb
@@ -87,6 +88,39 @@ class RecordLoanValidationResultsUnitTest : WordSpec({
                 }
             }
         }
+        "given an input which does not complete an existing validation request" should {
+            "throw an appropriate exception" {
+                checkAll(
+                    Arb.int(min = 2, max = (if (KotestConfig.runTestsExtended) 15 else 5)).flatMap { iterationCount ->
+                        anyValidValidationRecord(iterationCount = iterationCount)
+                    },
+                ) { randomRecord ->
+                    val (existingIterations, otherIterations) = randomRecord.iterationList.breakOffLast(2)
+                    val (reservedIteration, randomNewIteration) = otherIterations
+                    shouldThrow<ContractViolationException> {
+                        RecordLoanValidationResultsContract(
+                            validationRecord = randomRecord.toBuilder().also { recordBuilder ->
+                                recordBuilder.clearIteration()
+                                recordBuilder.addAllIteration(existingIterations)
+                                recordBuilder.addIteration(
+                                    randomNewIteration.toBuilder().also { iterationBuilder ->
+                                        iterationBuilder.clearResults()
+                                    }.build()
+                                )
+                            }.build(),
+                        ).recordLoanValidationResults(
+                            submission = ValidationResponse.newBuilder().also { responseBuilder ->
+                                responseBuilder.requestId = reservedIteration.request.requestId
+                                responseBuilder.results = randomNewIteration.results
+                            }.build()
+                        )
+                    }.let { exception ->
+                        exception shouldHaveViolationCount 1
+                        exception.message shouldContain "No single validation iteration with a matching request ID exists"
+                    }
+                }
+            }
+        }
         "given a valid input" should {
             "not throw an exception" {
                 checkAll(anyValidValidationRecord) { randomRecord ->
@@ -106,7 +140,11 @@ class RecordLoanValidationResultsUnitTest : WordSpec({
                             responseBuilder.requestId = randomNewIteration.request.requestId
                             responseBuilder.results = randomNewIteration.results
                         }.build()
-                    )
+                    ).let { resultingRecord ->
+                        resultingRecord.iterationList.singleOrNull { iteration ->
+                            iteration.request.requestId.value == randomNewIteration.request.requestId.value
+                        } shouldBe randomNewIteration
+                    }
                 }
             }
         }
