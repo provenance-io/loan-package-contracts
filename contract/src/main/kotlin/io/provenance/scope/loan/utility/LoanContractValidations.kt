@@ -10,56 +10,6 @@ import tech.figure.validation.v1beta2.ValidationRequest
 import tech.figure.validation.v1beta2.ValidationResultsMetadata
 import io.dartinc.registry.v1beta1.Controller as ENoteController
 
-/**
- * Performs validation to prevent a new document from changing specific fields of an existing document with the same checksum.
- */
-internal fun EnforcementContext.documentModificationValidation(
-    existingDocument: DocumentMetadata,
-    newDocument: DocumentMetadata,
-) =
-    existingDocument.checksum.checksum.let { existingChecksum ->
-        if (existingChecksum == newDocument.checksum.checksum) {
-            val checksumSnippet = if (existingChecksum.isNotBlank()) {
-                " with checksum $existingChecksum"
-            } else {
-                ""
-            }
-            requireThat(
-                existingDocument.checksum.algorithm.let { existingAlgorithm ->
-                    (
-                        existingAlgorithm == newDocument.checksum.algorithm || existingAlgorithm.isNullOrBlank()
-                        ) orError "Cannot change checksum algorithm of existing document$checksumSnippet"
-                },
-                (existingDocument.id == newDocument.id || existingDocument.id.value.isNullOrBlank())
-                    orError "Cannot change ID of existing document$checksumSnippet",
-                (existingDocument.uri == newDocument.uri || existingDocument.uri.isNullOrBlank())
-                    orError "Cannot change URI of existing document$checksumSnippet",
-                (existingDocument.contentType == newDocument.contentType || existingDocument.contentType.isNullOrBlank())
-                    orError "Cannot change content type of existing document$checksumSnippet",
-                (existingDocument.documentType == newDocument.documentType || existingDocument.documentType.isNullOrBlank())
-                    orError "Cannot change document type of existing document$checksumSnippet",
-            )
-        }
-    }
-
-internal val documentValidation: ContractEnforcementContext.(DocumentMetadata) -> Unit = { document ->
-    document.takeIf { it.isSet() }?.also { setDocument ->
-        val documentIdSnippet = if (setDocument.id.isSet()) {
-            " with ID ${setDocument.id.value}"
-        } else {
-            ""
-        }
-        requireThat(
-            setDocument.id.isValid()              orError "Document must have valid ID",
-            setDocument.uri.isNotBlank()          orError "Document$documentIdSnippet is missing URI",
-            setDocument.contentType.isNotBlank()  orError "Document$documentIdSnippet is missing content type",
-            setDocument.documentType.isNotBlank() orError "Document$documentIdSnippet is missing document type",
-            setDocument.fileName.isNotBlank()     orError "Document$documentIdSnippet is missing file name",
-        )
-        checksumValidation("Document$documentIdSnippet", setDocument.checksum)
-    } ?: raiseError("Document is not set")
-}
-
 internal val eNoteControllerValidation: ContractEnforcementContext.(ENoteController) -> Unit = { controller ->
     controller.takeIf { it.isSet() }?.also { setController ->
         requireThat(

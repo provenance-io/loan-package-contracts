@@ -9,6 +9,8 @@ import java.util.UUID as JavaUUID
 import tech.figure.util.v1beta1.Address as FigureTechAddress
 import tech.figure.util.v1beta1.Checksum as FigureTechChecksum
 import tech.figure.util.v1beta1.Date as FigureTechDate
+import tech.figure.util.v1beta1.DocumentMetadata as FigureTechDocumentMetadata
+import tech.figure.util.v1beta1.ElectronicSignature as FigureTechElectronicSignature
 import tech.figure.util.v1beta1.Money as FigureTechMoney
 import tech.figure.util.v1beta1.UUID as FigureTechUUID
 
@@ -82,3 +84,61 @@ internal fun EnforcementContext.moneyValidation(
                 orError "$parentDescription must have a 3-letter ISO 4217 currency",
         )
     } ?: raiseError("$parentDescription is not set")
+
+/**
+ * Performs validation to prevent a new document from changing specific fields of an existing document with the same checksum.
+ */
+internal fun EnforcementContext.documentModificationValidation(
+    existingDocument: FigureTechDocumentMetadata,
+    newDocument: FigureTechDocumentMetadata,
+) =
+    existingDocument.checksum.checksum.let { existingChecksum ->
+        if (existingChecksum == newDocument.checksum.checksum) {
+            val checksumSnippet = if (existingChecksum.isNotBlank()) {
+                " with checksum $existingChecksum"
+            } else {
+                ""
+            }
+            requireThat(
+                existingDocument.checksum.algorithm.let { existingAlgorithm ->
+                    (
+                        existingAlgorithm == newDocument.checksum.algorithm || existingAlgorithm.isNullOrBlank()
+                        ) orError "Cannot change checksum algorithm of existing document$checksumSnippet"
+                },
+                (existingDocument.id == newDocument.id || existingDocument.id.value.isNullOrBlank())
+                    orError "Cannot change ID of existing document$checksumSnippet",
+                (existingDocument.uri == newDocument.uri || existingDocument.uri.isNullOrBlank())
+                    orError "Cannot change URI of existing document$checksumSnippet",
+                (existingDocument.contentType == newDocument.contentType || existingDocument.contentType.isNullOrBlank())
+                    orError "Cannot change content type of existing document$checksumSnippet",
+                (existingDocument.documentType == newDocument.documentType || existingDocument.documentType.isNullOrBlank())
+                    orError "Cannot change document type of existing document$checksumSnippet",
+            )
+        }
+    }
+
+internal val documentValidation: ContractEnforcementContext.(FigureTechDocumentMetadata) -> Unit = { document ->
+    document.takeIf { it.isSet() }?.also { setDocument ->
+        val documentIdSnippet = if (setDocument.id.isSet()) {
+            " with ID ${setDocument.id.value}"
+        } else {
+            ""
+        }
+        requireThat(
+            setDocument.id.isValid()              orError "Document must have valid ID",
+            setDocument.uri.isNotBlank()          orError "Document$documentIdSnippet is missing URI",
+            setDocument.contentType.isNotBlank()  orError "Document$documentIdSnippet is missing content type",
+            setDocument.documentType.isNotBlank() orError "Document$documentIdSnippet is missing document type",
+            setDocument.fileName.isNotBlank()     orError "Document$documentIdSnippet is missing file name",
+        )
+        checksumValidation("Document$documentIdSnippet", setDocument.checksum)
+        if (setDocument.hasSignature() && setDocument.signature.isSet()) {
+            electronicSignatureValidation(setDocument.signature)
+        }
+    } ?: raiseError("Document is not set")
+}
+
+internal val electronicSignatureValidation: ContractEnforcementContext.(FigureTechElectronicSignature) -> Unit = { signature ->
+    checksumValidation("Document's eSignature", signature.checksum)
+    // TODO: What else?
+}
