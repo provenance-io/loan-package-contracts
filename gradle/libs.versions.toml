@@ -2,7 +2,7 @@
 ## Kotlin
 kotlin = "1.8.10"
 ## Provenance
-metadataAssetModel = "1.0.0"
+metadataAssetModel = "1.1.0"
 p8eScopeSdk = "0.6.4"
 ## Protocol Buffers
 grpc = "1.45.0"
