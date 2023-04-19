@@ -38,7 +38,7 @@ open class RecordLoanValidationResultsContract(
             )
             loanValidationResultsValidation(submission.results)
             validationRecord.iterationList.singleOrNull { iteration ->
-                iteration.request.requestId == submission.requestId // For now, we won't support letting results arrive before the request
+                iteration.request.requestId == submission.requestId
             } ?: raiseError("No single validation iteration with a matching request ID exists")
         }
         return validationRecord.iterationList.indexOfLast { iteration -> // The enforcement above ensures exactly one match

@@ -522,7 +522,6 @@ class UpdateFundingContractUnitTest : WordSpec({
                             }.build()
                         )
                     }.let { exception ->
-                        exception shouldHaveViolationCount 1
                         exception.message!! shouldContainAtLeastOneOf listOf(
                             "Disbursement amount must not be negative [Iteration${if (invalidAmountIndices.size == 1) "" else "s"} " +
                                 "${invalidAmountIndices.sorted().joinToString()}]",

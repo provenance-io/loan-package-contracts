@@ -570,7 +570,7 @@ internal object MetadataAssetModelArbs {
             }.build()
         }.build()
     }
-    fun anyValidValidationIteration(): Arb<ValidationIteration> = Arb.bind(
+    val anyValidValidationIteration: Arb<ValidationIteration> = Arb.bind(
         anyValidValidationRequest,
         anyUuid,
         anyPastNonEpochTimestamp,
@@ -669,7 +669,7 @@ internal object MetadataAssetModelArbs {
         slippage: Int = 30,
     ): Arb<LoanValidation> = Arb.bind(
         Arb.list(
-            anyValidValidationIteration(),
+            anyValidValidationIteration,
             range = iterationCount..iterationCount
         ),
         anyUuidSet(size = iterationCount, slippage = slippage),

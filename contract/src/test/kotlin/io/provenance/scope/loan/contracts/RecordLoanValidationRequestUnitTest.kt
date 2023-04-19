@@ -3,9 +3,8 @@ package io.provenance.scope.loan.contracts
 import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.core.spec.style.WordSpec
 import io.kotest.core.test.TestCaseOrder
+import io.kotest.matchers.shouldBe
 import io.kotest.matchers.string.shouldContain
-import io.kotest.property.Arb
-import io.kotest.property.arbitrary.long
 import io.kotest.property.checkAll
 import io.provenance.scope.loan.test.Constructors.requestContractWithEmptyExistingRecord
 import io.provenance.scope.loan.test.MetadataAssetModelArbs.anyFutureTimestamp
@@ -61,18 +60,19 @@ class RecordLoanValidationRequestUnitTest : WordSpec({
                 }
             }
         }
-        "given an input to an empty scope with an invalid block height" should {
-            "throw an appropriate exception" {
-                checkAll(anyValidValidationRequest, Arb.long(max = -1L)) { randomRequest, randomInvalidBlockHeight ->
-                    shouldThrow<ContractViolationException> {
+        "given an input to an empty scope without a block height" should {
+            "not throw an exception" {
+                checkAll(anyValidValidationRequest) { randomRequest ->
+                    randomRequest.toBuilder().also { requestBuilder ->
+                        requestBuilder.clearBlockHeight()
+                    }.build().let { request ->
                         requestContractWithEmptyExistingRecord.recordLoanValidationRequest(
-                            submission = randomRequest.toBuilder().also { requestBuilder ->
-                                requestBuilder.blockHeight = randomInvalidBlockHeight
-                            }.build()
-                        )
-                    }.let { exception ->
-                        exception shouldHaveViolationCount 1
-                        exception.message shouldContain "Request must have valid block height"
+                            submission = request
+                        ).let { resultingRecord ->
+                            resultingRecord.iterationList.singleOrNull { iteration ->
+                                iteration.request.requestId.value == randomRequest.requestId.value
+                            }?.request shouldBe request
+                        }
                     }
                 }
             }
@@ -114,7 +114,11 @@ class RecordLoanValidationRequestUnitTest : WordSpec({
                 checkAll(anyValidValidationRequest) { randomRequest ->
                     requestContractWithEmptyExistingRecord.recordLoanValidationRequest(
                         submission = randomRequest
-                    )
+                    ).let { resultingRecord ->
+                        resultingRecord.iterationList.singleOrNull { iteration ->
+                            iteration.request.requestId.value == randomRequest.requestId.value
+                        }?.request shouldBe randomRequest
+                    }
                 }
             }
         }

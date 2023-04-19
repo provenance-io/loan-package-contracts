@@ -57,6 +57,7 @@ object LoanScopeProperties {
 object LoanScopeInputs {
     const val validationRequest = "newRequest"
     const val validationResponse = "resultSubmission"
+    const val validationIteration = "validationIteration"
     const val eNoteUpdate = "newENote"
     const val eNoteControllerUpdate = "newController"
     const val newLoanStates = "newLoanStates"
