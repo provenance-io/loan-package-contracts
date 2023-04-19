@@ -181,7 +181,6 @@ internal val loanValidationRequestValidation: EnforcementContext.(ValidationRequ
         requireThat(
             setRequest.requestId.isValid()                   orError "Request must have valid ID",
             setRequest.effectiveTime.isValidAndNotInFuture() orError "Request must have valid effective time",
-            (setRequest.blockHeight >= 0L)                   orError "Request must have valid block height",
             setRequest.validatorName.isNotBlank()            orError "Request is missing validator name",
             setRequest.requesterName.isNotBlank()            orError "Request is missing requester name",
         )
