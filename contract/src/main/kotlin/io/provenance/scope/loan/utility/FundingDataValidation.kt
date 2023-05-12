@@ -29,12 +29,12 @@ internal val fundingValidation: ContractEnforcementContext.(Funding) -> Unit = {
                 }
                 "CANCELLED" -> {
                     requireThat(
-                        funding.completed.isValidFundingTime() orError "Cancelled funding's end time must be valid",
+                        (funding.completed.isNotSet() || funding.completed.isValidFundingTime()) orError "Cancelled funding's end time must be valid",
                     )
                 }
                 !in listOf("UNFUNDED", "UNKNOWN") -> {
                     requireThat(
-                        funding.started.isValidFundingTime() orError "Funding start time must be valid",
+                        (funding.started.isNotSet() || funding.started.isValidFundingTime()) orError "Funding start time must be valid",
                     )
                 }
             }
