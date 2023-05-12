@@ -119,24 +119,21 @@ class UpdateFundingContractUnitTest : WordSpec({
             }
         }
         "given an input without a funding status effective time" should {
-            "throw an appropriate exception" {
+            "not throw an exception" {
                 checkAll(
                     if (KotestConfig.runTestsExtended) anyValidAsset else anyValidAsset(hasMismoLoan = false, hasFunding = false),
                     anyValidFunding(disbursementCount = 1..if (KotestConfig.runTestsExtended) 6 else 3),
                 ) { randomExistingAsset, randomNewFunding ->
-                    shouldThrow<ContractViolationException> {
+                    randomNewFunding.toBuilder().also { fundingBuilder ->
+                        fundingBuilder.status = fundingBuilder.statusBuilder.also { statusBuilder ->
+                            statusBuilder.clearEffectiveTime()
+                        }.build()
+                    }.build().let { modifiedFundingData ->
                         UpdateFundingContract(
                             existingAsset = randomExistingAsset,
-                        ).updateFunding(
-                            randomNewFunding.toBuilder().also { fundingBuilder ->
-                                fundingBuilder.status = fundingBuilder.statusBuilder.also { statusBuilder ->
-                                    statusBuilder.clearEffectiveTime()
-                                }.build()
-                            }.build()
-                        )
-                    }.let { exception ->
-                        exception shouldHaveViolationCount 1
-                        exception.message shouldContain "Funding status must have valid effective time"
+                        ).updateFunding(modifiedFundingData).let { newAsset ->
+                            newAsset.kvMap[assetLoanKey]?.toFigureTechLoan()?.funding shouldBe modifiedFundingData
+                        }
                     }
                 }
             }

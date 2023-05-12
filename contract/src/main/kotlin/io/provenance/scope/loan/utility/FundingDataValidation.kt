@@ -12,7 +12,7 @@ internal val fundingValidation: ContractEnforcementContext.(Funding) -> Unit = {
             requireThat(
                 (fundingStatus.status in listOf("UNFUNDED", "INITIATED", "FUNDED", "CANCELLED"))
                     orError "Funding status must be valid",
-                fundingStatus.effectiveTime.isValidFundingTime()
+                (fundingStatus.effectiveTime.isNotSet() || fundingStatus.effectiveTime.isValidFundingTime())
                     orError "Funding status must have valid effective time",
             )
             when (fundingStatus.status) {
@@ -29,12 +29,12 @@ internal val fundingValidation: ContractEnforcementContext.(Funding) -> Unit = {
                 }
                 "CANCELLED" -> {
                     requireThat(
-                        funding.completed.isValidFundingTime() orError "Cancelled funding's end time must be valid",
+                        (funding.completed.isNotSet() || funding.completed.isValidFundingTime()) orError "Cancelled funding's end time must be valid",
                     )
                 }
                 !in listOf("UNFUNDED", "UNKNOWN") -> {
                     requireThat(
-                        funding.started.isValidFundingTime() orError "Funding start time must be valid",
+                        (funding.started.isNotSet() || funding.started.isValidFundingTime()) orError "Funding start time must be valid",
                     )
                 }
             }
@@ -53,14 +53,17 @@ internal val fundingValidation: ContractEnforcementContext.(Funding) -> Unit = {
                     )
                     setDisbursement.status.takeIf { it.isSet() }?.also { disbursementStatus ->
                         requireThat(
-                            disbursementStatus.status.isNotBlank()                orError "Disbursement status must not be empty",
-                            disbursementStatus.effectiveTime.isValidFundingTime() orError "Disbursement must have valid effective time",
+                            disbursementStatus.status.isNotBlank() orError "Disbursement status must not be empty",
+                            (disbursementStatus.effectiveTime.isNotSet() || disbursementStatus.effectiveTime.isValidFundingTime())
+                                orError "Disbursement status must have valid effective time",
                         )
                         when (disbursementStatus.status) {
-                            in listOf("COMPLETED", "FUNDED") -> {
+                            in listOf("COMPLETE", "COMPLETED", "FUNDED") -> {
                                 requireThat(
-                                    setDisbursement.started.isValidFundingTime()   orError "Completed disbursement's start time must be valid",
-                                    setDisbursement.completed.isValidFundingTime() orError "Completed disbursement's end time must be valid",
+                                    (setDisbursement.started.isNotSet() || setDisbursement.started.isValidFundingTime())
+                                        orError "Completed disbursement's start time must be valid",
+                                    (setDisbursement.completed.isNotSet() || setDisbursement.completed.isValidFundingTime())
+                                        orError "Completed disbursement's end time must be valid",
                                 )
                                 if (setDisbursement.started.isValidFundingTime() && setDisbursement.completed.isValidFundingTime()) {
                                     requireThat(
@@ -71,12 +74,14 @@ internal val fundingValidation: ContractEnforcementContext.(Funding) -> Unit = {
                             }
                             "CANCELLED" -> {
                                 requireThat(
-                                    setDisbursement.completed.isValidFundingTime() orError "Cancelled disbursement's end time must be valid",
+                                    (setDisbursement.completed.isNotSet() || setDisbursement.completed.isValidFundingTime())
+                                        orError "Cancelled disbursement's end time must be valid",
                                 )
                             }
                             !in listOf("UNFUNDED", "UNKNOWN") -> {
                                 requireThat(
-                                    setDisbursement.started.isValidFundingTime() orError "Disbursement start time must be valid",
+                                    (setDisbursement.started.isNotSet() || setDisbursement.started.isValidFundingTime())
+                                        orError "Disbursement start time must be valid",
                                 )
                             }
                         }
