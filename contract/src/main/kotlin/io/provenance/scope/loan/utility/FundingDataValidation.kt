@@ -12,7 +12,7 @@ internal val fundingValidation: ContractEnforcementContext.(Funding) -> Unit = {
             requireThat(
                 (fundingStatus.status in listOf("UNFUNDED", "INITIATED", "FUNDED", "CANCELLED"))
                     orError "Funding status must be valid",
-                fundingStatus.effectiveTime.isValidFundingTime()
+                (fundingStatus.effectiveTime.isNotSet() || fundingStatus.effectiveTime.isValidFundingTime())
                     orError "Funding status must have valid effective time",
             )
             when (fundingStatus.status) {
