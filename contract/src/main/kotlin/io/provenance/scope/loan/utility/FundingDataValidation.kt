@@ -57,7 +57,7 @@ internal val fundingValidation: ContractEnforcementContext.(Funding) -> Unit = {
                             disbursementStatus.effectiveTime.isValidFundingTime() orError "Disbursement must have valid effective time",
                         )
                         when (disbursementStatus.status) {
-                            in listOf("COMPLETED", "FUNDED") -> {
+                            in listOf("COMPLETE", "COMPLETED", "FUNDED") -> {
                                 requireThat(
                                     setDisbursement.started.isValidFundingTime()   orError "Completed disbursement's start time must be valid",
                                     setDisbursement.completed.isValidFundingTime() orError "Completed disbursement's end time must be valid",
