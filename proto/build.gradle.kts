@@ -19,8 +19,6 @@ plugins {
 dependencies {
     listOf(
         libs.bundles.protocGen,
-        libs.grpc.protobuf,
-        libs.grpc.stub,
         libs.metadataAssetModel,
         libs.p8eScopeSdk.contractBase,
     ).forEach(::implementation)
